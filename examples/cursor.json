@@ -1,5 +1,8 @@
 {
-  "_status": "DRAFT — VERIFY AGAINST CURRENT CURSOR MCP CONFIG FORMAT BEFORE USE",
+  "_endpoint_verified": "https://mcp.clawplus.pro/mcp answers JSON-RPC 2.0 over HTTP POST and returns Server-Sent Events; verified live.",
+  "_config_format": "UNRESOLVED — the endpoint was verified, this file's shape was not. No Cursor installation was available to load it during verification. Check Cursor's current MCP documentation for the supported remote-server key.",
+  "_transport": "streamable HTTP. Clients must send Accept: application/json, text/event-stream and a non-default User-Agent.",
+  "_auth": "None observed at the MCP endpoint.",
   "mcpServers": {
     "aurcounsel": {
       "url": "https://mcp.clawplus.pro/mcp"

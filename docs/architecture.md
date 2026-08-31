@@ -32,6 +32,21 @@ Any compatible client can use the public MCP interface according to the live tra
 
 AurCounsel MCP is the public protocol boundary. It exposes developer-facing capabilities while isolating internal implementation details.
 
+What that boundary actually consists of, as reported by the live server:
+
+| Surface | Observed |
+|---|---|
+| Tools | exactly five: `review_contract`, `draft_contract`, `compare_contracts`, `get_job`, `get_artifact` |
+| Prompts | none — `prompts/list` returns `{"prompts": []}` |
+| Resources | none — `resources/list` returns `{"resources": []}` |
+| Capabilities | `tools`, `prompts`, `resources`, `experimental`; all `listChanged` flags `false`, `resources.subscribe` `false` |
+| Protocol version | `2025-06-18` |
+| Server identity | `serverInfo.name` = `legalos`, `serverInfo.version` = `1.27.0` |
+
+The tool surface is the entire public boundary. There is no resource tree to walk and no prompt library to enumerate.
+
+> **`legalos` is the server identifier, not the product name.** `serverInfo.name` is what the live deployment returns on the wire, and it is a compatibility identifier for clients that key off that field. The product documented here is **AurCounsel**. Server-emitted strings are reproduced exactly as received throughout this repository and are never rewritten; this repository's own prose says AurCounsel. See [tools.md](tools.md).
+
 Its public responsibilities include:
 
 - exposing the supported tool contract;

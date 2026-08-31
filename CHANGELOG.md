@@ -26,16 +26,25 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 - Quickstart, architecture, artifact, error, security, and example documentation.
 - Machine-truth verification markers for live schemas, response shapes, artifact vocabulary, authentication, and executable examples.
 
+### Verified against the live endpoint
+
+- Exact descriptions and JSON input schemas for all five tools, from a live `tools/list`.
+- Transport contract: JSON-RPC 2.0 over POST, protocol version `2025-06-18`, dual `Accept` requirement, SSE response framing, no session header, and the edge network's rejection of some user agents.
+- `get_job` response shape, canonical status field, and the `completed`, `processing`, and `failed` bodies.
+- One authorised `review_contract` submission of a synthetic contract, followed from submission to `completed`: the success-response shape, the `job_id` field path, ten `get_job` reads, and the observed `progress` stages.
+- The twelve-value artifact vocabulary, taken verbatim from the server's own `context.accepted`.
+- `get_artifact` response shape for available text artifacts, binary artifacts, and a terminally failed job.
+- Error envelopes at all three layers: transport, tool execution, and application.
+- Authentication state: none enforced at the MCP endpoint.
+- `serverInfo.name` is `legalos` on the live deployment. That is the server identifier returned on the wire — a compatibility identifier for clients that key off `serverInfo.name` — and it is reproduced here unchanged. The product documented by this repository is AurCounsel; server-emitted strings are never rewritten, and this repository's own prose says AurCounsel throughout.
+- `examples/curl.md` and `examples/python_client.py`, both executed as written.
+
 ### Pending verification before publication
 
-- Exact live MCP tool schemas.
-- Exact response shapes.
-- Exact job response vocabulary/fields.
-- Exact artifact types and retrieval schema.
-- Exact authentication requirements.
-- Exact public error envelope/codes.
-- Executable examples tested against production.
+- **PENDING_AUTH** — `draft_contract` and `compare_contracts` write to production and were never called: their success-response shapes, the six draft/compare artifact media types, and the `PARTY_CONFIRMATION_REQUIRED` refusal. The `review_contract` submission that was authorised does not establish these by analogy.
+- **UNRESOLVED** — a `get_job` reading of `submitted` (the status appeared only in the submission response), `unknown` status behavior, failure detail beyond `JOB_FAILED`, the full progress-stage vocabulary, the transition set, rate limits and retry hints, artifact-URL access control, and the two client configuration file formats.
 - Approved security-reporting channel.
 - Approved repository license.
+- The release link below points at a placeholder organization; no public repository exists yet.
 
 [0.1.0]: https://github.com/REPLACE_WITH_ORG/aurcounsel-mcp/releases/tag/v0.1.0

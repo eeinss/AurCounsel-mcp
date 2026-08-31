@@ -14,7 +14,7 @@ submit contract operation
 -> get_artifact(...)
 ```
 
-Artifacts are retrieved through `get_artifact` using the identifiers and/or artifact-type fields defined by the live MCP schema.
+Artifacts are retrieved through `get_artifact` using the `job_id` and the artifact `name` as reported in `get_job`'s `artifacts[]` list.
 
 ## What counts as a completed deliverable
 
@@ -30,30 +30,93 @@ Clients should not expose them as final results.
 
 ## Artifact types
 
-**MACHINE TRUTH REQUIRED**
+The accepted vocabulary is exactly twelve values. This list is not inferred: it is returned verbatim by the live server in `context.accepted` when `get_artifact` is called with an unrecognised artifact name.
 
-Executor must provide the exact live artifact-type vocabulary. Do not infer artifact names from internal file names, private database columns, release fixtures, or implementation code.
+```text
+redline, original, revised, revised_docx, memo, review_comments,
+draft_html, draft_docx, draft_summary,
+compare_redline, compare_memo, compare_synthesis
+```
 
-Replace this section with a table after verification:
+Which subset is valid depends on the job's `capability`. The `media_type` and `inline_text_available` columns below are verbatim from a completed `review` job; the `draft` and `compare` rows are from the live `get_artifact` description, since no draft or compare job was observed.
 
-| Artifact type | Produced by | Meaning | Content/encoding | Availability rules |
+| Artifact | Produced by | Meaning (from the live description) | Media type | Inline text |
 |---|---|---|---|---|
-| `<LIVE_VALUE>` | `<tool>` | `<verified description>` | `<verified>` | `<verified>` |
+| `redline` | review | Tracked-change view of the changes | `text/html` | yes |
+| `original` | review | The submitted contract | `text/html` | yes |
+| `revised` | review | The revised contract | `text/html` | yes |
+| `revised_docx` | review | The revised contract to deliver | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | **no** |
+| `memo` | review | The opinion document | `text/html` | yes |
+| `review_comments` | review | The review opinion the UI shows the lawyer | `text/markdown` | yes |
+| `draft_html` | draft | The drafted contract | UNRESOLVED | UNRESOLVED |
+| `draft_docx` | draft | The same contract to deliver | UNRESOLVED | UNRESOLVED |
+| `draft_summary` | draft | Summary of the draft | UNRESOLVED | UNRESOLVED |
+| `compare_redline` | compare | What changed between the two versions | UNRESOLVED | UNRESOLVED |
+| `compare_memo` | compare | Comparison opinion document | UNRESOLVED | UNRESOLVED |
+| `compare_synthesis` | compare | Comparison synthesis | UNRESOLVED | UNRESOLVED |
+
+The six `UNRESOLVED` media types require a `draft` or `compare` job to observe. The one submission executed during this pass was a `review`, so they remain unobserved. See the PENDING_AUTH notes in [tools.md](tools.md).
 
 ## `get_artifact` response
 
-**MACHINE TRUTH REQUIRED**
+The call returns `isError: false` with a single text content block containing a JSON object.
 
-Document the exact production response shape, including only public fields. Verify:
+| Field | Type | Present when | Meaning |
+|---|---|---|---|
+| `ok` | boolean | always | `true` when the job resolved, including when the artifact is unavailable. |
+| `job_id` | string | always | Echo of the request. |
+| `artifact` | string | always | Echo of the requested artifact name. |
+| `capability` | string | always | `review`, `draft`, or `compare`. |
+| `available` | boolean | always | Whether the artifact has been written. |
+| `url` | string | always | `https://mcp.clawplus.pro/artifact/<job_id>/<artifact>` |
+| `media_type` | string | when available | MIME type of the artifact. |
+| `text` | string \| null | when available | Inline content for text artifacts; `null` for binary artifacts. |
+| `status` | string | when unavailable | The parent job's status. |
+| `note` | string | binary or unavailable | Server-supplied explanatory text. See the caution below. |
 
-- artifact ID or type field;
-- job association;
-- availability field, if any;
-- content payload or retrieval location;
-- MIME/content type if exposed;
-- filename if exposed;
-- metadata if exposed;
-- error details for missing/unavailable artifacts.
+### Available text artifact
+
+Request:
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/call",
+ "params":{"name":"get_artifact","arguments":{"job_id":"<JOB_ID>","artifact":"review_comments"}}}
+```
+
+Response — executed successfully against production. The `text` value is the review opinion for a real submitted contract, so it is elided here rather than republished; everything else is verbatim:
+
+```json
+{
+  "ok": true,
+  "job_id": "<JOB_ID>",
+  "artifact": "review_comments",
+  "capability": "review",
+  "available": true,
+  "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/review_comments",
+  "media_type": "text/markdown",
+  "text": "<markdown review opinion — omitted; this field carries the customer's document content>"
+}
+```
+
+All six review artifacts were retrieved this way. The five text artifacts (`redline`, `original`, `revised`, `memo`, `review_comments`) returned a non-null `text`.
+
+### Binary artifact
+
+A `.docx` artifact is returned as a URL only, with `text: null`:
+
+```json
+{
+  "ok": true,
+  "job_id": "<JOB_ID>",
+  "artifact": "revised_docx",
+  "capability": "review",
+  "available": true,
+  "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/revised_docx",
+  "media_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text": null,
+  "note": "Binary artifact — download it from the URL. Present the credential this call was made with; it is the same server."
+}
+```
 
 ## Failed-job semantics
 
@@ -73,8 +136,41 @@ This artifact is not available yet.
 
 when the job is already terminal.
 
+### Observed failed-job response
+
+Requesting `memo` from a terminally failed job returns:
+
+```json
+{
+  "ok": true,
+  "job_id": "<FAILED_JOB_ID>",
+  "artifact": "memo",
+  "capability": "review",
+  "available": false,
+  "status": "failed",
+  "url": "https://mcp.clawplus.pro/artifact/<FAILED_JOB_ID>/memo",
+  "note": "This artifact has not been written yet. Poll get_job and read `artifacts[].ready`."
+}
+```
+
+> **Caution — the `note` field is not authoritative about job state.** The machine-readable fields are correct and sufficient: `available` is `false` and `status` is `failed`, which is terminal. The accompanying `note`, however, says "has not been written **yet**" and tells the caller to keep polling. That advice is wrong for a terminal job — no amount of polling will make this artifact appear.
+>
+> Clients must decide on `status`, not on `note`. Do not relay the `note` text to an end user for a job whose status is `failed`.
+>
+> This is recorded as observed live behavior. Changing the server's wording is a product decision and is out of scope for this repository.
+
+## Missing artifact and unknown job
+
+- **Unrecognised artifact name** — an `INVALID_INPUT` application error whose `context.accepted` lists the twelve valid names. See [errors.md](errors.md).
+- **Unknown job identifier** — a `JOB_NOT_FOUND` application error. The artifact name is validated first: an unknown job combined with an invalid artifact name reports the artifact problem, not the job problem.
+- **Artifact requested before it is ready on a live job** — the live description states this returns `available: false` rather than an error. **UNRESOLVED.** `get_artifact` was never called on a job that was still `processing`. What *was* observed is the neighbouring fact, from `get_job`: on a live `processing` job the `artifacts` array is already fully populated, with every `ready` set to `false` (see [job-lifecycle.md](job-lifecycle.md)). That is the field to branch on. What `get_artifact` itself returns in that window — and what its `note` says — is not established.
+
 ## Integrity and completeness
 
 Clients should consume the artifact exactly as returned by the public contract and should not assume that undocumented internal artifacts exist.
 
-> **MACHINE TRUTH REQUIRED:** If production exposes checksums, byte lengths, structured sections, multiple downloadable formats, expiry semantics, or pagination, document those fields here only after live verification.
+The live responses expose no checksum, no byte length, no expiry, and no pagination. Structured sections are not exposed as fields; text artifacts arrive as a single `text` string.
+
+> **UNRESOLVED — artifact URL access.** Every response carries an artifact `url`, and the binary-artifact `note` says to "present the credential this call was made with." The MCP endpoint itself accepted requests with no credential at all (see [quickstart.md](quickstart.md)). What, if anything, guards `https://mcp.clawplus.pro/artifact/...` was not tested: fetching those URLs was outside the scope of this verification pass. This repository therefore makes no claim in either direction — not that those URLs are public, not that they require authentication, and not that they are permanent.
+>
+> **Because it is unresolved, handle it conservatively.** Treat the `job_id`, and any artifact reference or URL returned alongside it, as sensitive. Do not publish them, paste them into shared logs or issue trackers, or pass them to a third party. The supported way to read a deliverable is `get_job` to confirm the job is `completed`, then `get_artifact` over the MCP endpoint — not by fetching the `url` out of band.

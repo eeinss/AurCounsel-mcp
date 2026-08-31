@@ -1,6 +1,8 @@
 {
-  "_status": "DRAFT — VERIFY AGAINST CURRENT CLIENT + LIVE MCP TRANSPORT BEFORE USE",
-  "_purpose": "Illustrative AurCounsel MCP endpoint configuration only",
+  "_endpoint_verified": "https://mcp.clawplus.pro/mcp answers JSON-RPC 2.0 over HTTP POST and returns Server-Sent Events; verified live.",
+  "_config_format": "UNRESOLVED — the endpoint was verified, this file's shape was not. No Claude Desktop version was available to load it during verification. Check your client's current documentation for how it declares a remote HTTP MCP server; older builds need a stdio bridge instead of a url field.",
+  "_transport": "streamable HTTP. Clients must send Accept: application/json, text/event-stream and a non-default User-Agent.",
+  "_auth": "None observed at the MCP endpoint.",
   "mcpServers": {
     "aurcounsel": {
       "url": "https://mcp.clawplus.pro/mcp"

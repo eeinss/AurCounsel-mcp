@@ -49,9 +49,3 @@ README
 - `SECURITY.md`
 - `CHANGELOG.md`
 - `LICENSE`
-
-### Pre-publication work aid
-
-- `MACHINE_TRUTH_CHECKLIST.md`
-
-This file may remain internal to the draft branch or be removed before public release.

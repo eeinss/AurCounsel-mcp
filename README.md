@@ -20,7 +20,13 @@ AurCounsel MCP currently exposes these primary tools:
 - `get_job` — inspect the state of an asynchronous job.
 - `get_artifact` — retrieve completed deliverables produced by a job.
 
-> **Machine-truth note:** Tool names above are release-accepted. Exact input schemas, response fields, artifact type vocabulary, and executable request examples must be synchronized from the live MCP `tools/list` and production responses before publication.
+A live `tools/list` returns exactly these five tools and nothing else. Their exact descriptions, JSON input schemas, response fields, and the artifact vocabulary are transcribed from live captures in [docs/tools.md](docs/tools.md) and [docs/artifacts.md](docs/artifacts.md).
+
+> **Machine-truth note:** the three submission tools create real jobs. Exactly one submission was authorised for this documentation pass — a synthetic, eight-clause contract sent to `review_contract` — and it was followed to completion. Its success-response shape, the exact `job_id` field path, and the `processing` and `completed` job bodies are transcribed from that run. `draft_contract` and `compare_contracts` were never called; their success-response shapes remain **PENDING_AUTH** rather than guessed, and so do the six draft/compare artifact media types. Anything else that was not observed live is marked **UNRESOLVED** in place. Neither marker is a placeholder for a value someone knows — they mark facts this repository does not have.
+>
+> **Treat a `job_id` as sensitive.** It is the only handle to a job and it is not recoverable. Every identifier in this repository is a placeholder; no real one appears here, and none should appear in an issue, a log, or a chat.
+
+**Transport in one line:** POST JSON-RPC 2.0, send `Accept: application/json, text/event-stream` (both, or HTTP 406) plus your own `User-Agent`, read the reply out of the SSE `data:` line. No credential was required and none is issued. See [docs/quickstart.md](docs/quickstart.md).
 
 ## Five-minute mental model
 
@@ -92,7 +98,9 @@ The [`examples/`](examples/) directory contains starter configuration and reques
 - `python_client.py`
 - `curl.md`
 
-Some example fields are deliberately marked for live verification. They must not be presented as executable until checked against the production MCP transport and exact schemas.
+`python_client.py` runs against the public endpoint with no dependencies beyond the Python standard library, and every command in `curl.md` was executed as written. Both use the obvious placeholder job identifier `0123456789abcdef`, which is well-formed but belongs to no job, so they are safe to run verbatim and end in `JOB_NOT_FOUND`; substitute your own `job_id` to go further. Neither submits work.
+
+The two client configuration files are the exception: the endpoint they name is verified, but no Claude Desktop or Cursor installation was available to load them, so their config shape is marked UNRESOLVED inside the files themselves.
 
 ## Public interface, not backend source
 
