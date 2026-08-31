@@ -1,0 +1,8 @@
+{
+  "_status": "DRAFT — VERIFY AGAINST CURRENT CURSOR MCP CONFIG FORMAT BEFORE USE",
+  "mcpServers": {
+    "aurcounsel": {
+      "url": "https://mcp.clawplus.pro/mcp"
+    }
+  }
+}

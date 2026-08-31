@@ -1,0 +1,9 @@
+{
+  "_status": "DRAFT — VERIFY AGAINST CURRENT CLIENT + LIVE MCP TRANSPORT BEFORE USE",
+  "_purpose": "Illustrative AurCounsel MCP endpoint configuration only",
+  "mcpServers": {
+    "aurcounsel": {
+      "url": "https://mcp.clawplus.pro/mcp"
+    }
+  }
+}
