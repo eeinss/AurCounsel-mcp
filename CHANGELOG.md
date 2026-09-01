@@ -46,6 +46,3 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 - **PENDING_AUTH** — `draft_contract` and `compare_contracts` write to production and were never called: their success-response shapes, the six draft/compare artifact media types, and the `PARTY_CONFIRMATION_REQUIRED` refusal. The `review_contract` submission that was authorised does not establish these by analogy.
 - **UNRESOLVED** — a `get_job` reading of `submitted` (the status appeared only in the submission response), `unknown` status behavior, failure detail beyond `JOB_FAILED`, the full progress-stage vocabulary, the transition set, rate limits and retry hints, artifact-URL access control, and the two client configuration file formats.
 - The `get_artifact` response bodies in [artifacts.md](docs/artifacts.md) are sanitized examples in the verified live shape, not verbatim captures. The `failed` `get_job` body uses a placeholder identifier for the same reason.
-- The release link below points at a placeholder organization, and no release tag has been created.
-
-[0.1.0]: https://github.com/eeinss/AurCounsel-mcp/releases/tag/v0.1.0
