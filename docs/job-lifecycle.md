@@ -92,7 +92,7 @@ Client behavior:
 - retrieve the required completed deliverable(s) with `get_artifact` according to the live artifact schema;
 - handle an individually unavailable artifact as an artifact-level condition, not by rewriting the job status.
 
-Observed shape (a review job; the identifier is a placeholder):
+Observed shape — the synthetic contract submitted and polled through to completion during this pass (the identifier is a placeholder):
 
 ```json
 {
@@ -104,9 +104,9 @@ Observed shape (a review job; the identifier is a placeholder):
   "upstream_status": "done",
   "progress": {"fraction": 1.0, "stage": "done", "stage_recognised": true},
   "summary": {
-    "line": "審閱完成 — 50/51 條款已套用修訂,其中 1 條未能套用",
-    "clauses": 51, "replaced": 50, "have_revised": 51,
-    "not_applied": 1, "states_status": "ok"
+    "line": "審閱完成 — 8/8 條款已套用修訂",
+    "clauses": 8, "replaced": 8, "have_revised": 8,
+    "not_applied": 0, "states_status": "ok"
   },
   "artifacts": [
     {"name": "redline", "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/redline",
@@ -117,24 +117,11 @@ Observed shape (a review job; the identifier is a placeholder):
 }
 ```
 
-The `artifacts` array is abridged above to one entry; the completed review job listed all six review artifacts, every one with `ready: true`. `summary` is capability-specific — the fields above are the review shape.
-
-Note that `completed` does not imply every requested change succeeded. In the capture above the job completed while reporting `not_applied: 1`. Read `summary`, not just `status`.
-
-A second completed review job — the one submitted and polled during this pass — returned the same field set with different values:
-
-```json
-  "summary": {
-    "line": "審閱完成 — 8/8 條款已套用修訂",
-    "clauses": 8,
-    "replaced": 8,
-    "have_revised": 8,
-    "not_applied": 0,
-    "states_status": "ok"
-  }
-```
+The `artifacts` array is abridged above to one entry; the completed review job listed all six review artifacts, every one with `ready: true`. `summary` is capability-specific — the fields above are the review shape. [tools.md](tools.md) carries the same body unabridged.
 
 `summary.line` is a human-readable sentence in the document's language and its wording varies with the outcome. Display it; do not parse it. The counts next to it are the machine-readable form.
+
+Note that `completed` does not imply every requested change succeeded. The job above applied every clause it identified, but a second, pre-existing completed review job read during this work reported `not_applied: 1` while still returning `status: "completed"` and `states_status: "ok"` — the job finished; one requested change did not land. Read `summary`, not just `status`.
 
 ### `failed`
 

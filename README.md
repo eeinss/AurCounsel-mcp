@@ -131,4 +131,6 @@ Do not include credentials, confidential contracts, private fixtures, internal i
 
 ## License
 
-The public repository license has **not yet been selected** for V0.1. Do not publish this repository until `LICENSE` is replaced with the approved license text.
+[MIT](LICENSE).
+
+The license covers the contents of this repository — the documentation, the examples, and the other files published here. It does not cover, and must not be read as open sourcing, the AurCounsel backend source code, the private legal corpus, or the private Legal Knowledge implementation. Those are not part of this repository and are not published under any license by it.

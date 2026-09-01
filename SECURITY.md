@@ -2,11 +2,13 @@
 
 ## Reporting a security issue
 
-Please do **not** publish sensitive security reports, credentials, confidential contracts, production data, or exploit details in a public GitHub issue.
+Security vulnerabilities should **not** be reported through public GitHub issues.
 
-**MACHINE TRUTH / OWNER INPUT REQUIRED:** Before publication, replace this paragraph with the approved private security-reporting channel (for example, a dedicated security email address or GitHub private vulnerability reporting workflow).
+Please use GitHub's private vulnerability reporting mechanism for this repository.
 
-Until an official reporting channel is inserted, this repository should remain unpublished.
+When writing a report, do not include customer contracts, credentials, job identifiers, artifact URLs, or other sensitive production data unless it is strictly necessary in order to reproduce the issue.
+
+General usage questions and non-security bugs can use the normal public issue channel if and when that channel is enabled for this repository.
 
 ## Sensitive information
 

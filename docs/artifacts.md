@@ -38,7 +38,7 @@ draft_html, draft_docx, draft_summary,
 compare_redline, compare_memo, compare_synthesis
 ```
 
-Which subset is valid depends on the job's `capability`. The `media_type` and `inline_text_available` columns below are verbatim from a completed `review` job; the `draft` and `compare` rows are from the live `get_artifact` description, since no draft or compare job was observed.
+Which subset is valid depends on the job's `capability`. The `media_type` and `inline_text_available` columns below are verbatim from the `artifacts[]` list of the completed `get_job` reading on the synthetic contract submitted during this pass; the `draft` and `compare` rows are from the live `get_artifact` description, since no draft or compare job was observed.
 
 | Artifact | Produced by | Meaning (from the live description) | Media type | Inline text |
 |---|---|---|---|---|
@@ -58,6 +58,8 @@ Which subset is valid depends on the job's `capability`. The `media_type` and `i
 The six `UNRESOLVED` media types require a `draft` or `compare` job to observe. The one submission executed during this pass was a `review`, so they remain unobserved. See the PENDING_AUTH notes in [tools.md](tools.md).
 
 ## `get_artifact` response
+
+> **The three response bodies in this section are sanitized examples.** Their keys, nesting, and value types are the verified live response shape — the field table below is the same shape, and none of it is guessed. The identifiers, URLs, and any value that would carry document content are replaced with placeholders. No body below is presented as the verbatim capture of a particular job, and no submitted document content is reproduced anywhere in this repository.
 
 The call returns `isError: false` with a single text content block containing a JSON object.
 
@@ -83,7 +85,7 @@ Request:
  "params":{"name":"get_artifact","arguments":{"job_id":"<JOB_ID>","artifact":"review_comments"}}}
 ```
 
-Response — executed successfully against production. The `text` value is the review opinion for a real submitted contract, so it is elided here rather than republished; everything else is verbatim:
+Response — a sanitized example in the verified live shape. The call succeeds and `text` carries the review opinion inline; the opinion is the submitted document's content, so it is shown here as a placeholder:
 
 ```json
 {
@@ -94,15 +96,15 @@ Response — executed successfully against production. The `text` value is the r
   "available": true,
   "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/review_comments",
   "media_type": "text/markdown",
-  "text": "<markdown review opinion — omitted; this field carries the customer's document content>"
+  "text": "<omitted — markdown review opinion; this field carries the submitted document's content>"
 }
 ```
 
-All six review artifacts were retrieved this way. The five text artifacts (`redline`, `original`, `revised`, `memo`, `review_comments`) returned a non-null `text`.
+The shape was confirmed on all six review artifacts. The five text artifacts (`redline`, `original`, `revised`, `memo`, `review_comments`) return a non-null `text`.
 
 ### Binary artifact
 
-A `.docx` artifact is returned as a URL only, with `text: null`:
+A `.docx` artifact is returned as a URL only, with `text: null` (sanitized example, same shape):
 
 ```json
 {
@@ -138,7 +140,7 @@ when the job is already terminal.
 
 ### Observed failed-job response
 
-Requesting `memo` from a terminally failed job returns:
+Requesting `memo` from a terminally failed job returns (sanitized example, same shape):
 
 ```json
 {

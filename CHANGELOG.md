@@ -25,6 +25,8 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 - Explicit terminal-failure semantics: partial/generated internal artifacts are not completed deliverables.
 - Quickstart, architecture, artifact, error, security, and example documentation.
 - Machine-truth verification markers for live schemas, response shapes, artifact vocabulary, authentication, and executable examples.
+- MIT license for the contents of this repository.
+- Security policy naming GitHub private vulnerability reporting as the channel for vulnerability reports.
 
 ### Verified against the live endpoint
 
@@ -33,7 +35,7 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 - `get_job` response shape, canonical status field, and the `completed`, `processing`, and `failed` bodies.
 - One authorised `review_contract` submission of a synthetic contract, followed from submission to `completed`: the success-response shape, the `job_id` field path, ten `get_job` reads, and the observed `progress` stages.
 - The twelve-value artifact vocabulary, taken verbatim from the server's own `context.accepted`.
-- `get_artifact` response shape for available text artifacts, binary artifacts, and a terminally failed job.
+- `get_artifact` response shape for available text artifacts, binary artifacts, and a terminally failed job. The bodies published in [artifacts.md](docs/artifacts.md) are sanitized examples in that verified shape — identifiers, URLs, and document content are placeholders — not verbatim captures.
 - Error envelopes at all three layers: transport, tool execution, and application.
 - Authentication state: none enforced at the MCP endpoint.
 - `serverInfo.name` is `legalos` on the live deployment. That is the server identifier returned on the wire — a compatibility identifier for clients that key off `serverInfo.name` — and it is reproduced here unchanged. The product documented by this repository is AurCounsel; server-emitted strings are never rewritten, and this repository's own prose says AurCounsel throughout.
@@ -43,8 +45,7 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 - **PENDING_AUTH** — `draft_contract` and `compare_contracts` write to production and were never called: their success-response shapes, the six draft/compare artifact media types, and the `PARTY_CONFIRMATION_REQUIRED` refusal. The `review_contract` submission that was authorised does not establish these by analogy.
 - **UNRESOLVED** — a `get_job` reading of `submitted` (the status appeared only in the submission response), `unknown` status behavior, failure detail beyond `JOB_FAILED`, the full progress-stage vocabulary, the transition set, rate limits and retry hints, artifact-URL access control, and the two client configuration file formats.
-- Approved security-reporting channel.
-- Approved repository license.
-- The release link below points at a placeholder organization; no public repository exists yet.
+- The `get_artifact` response bodies in [artifacts.md](docs/artifacts.md) are sanitized examples in the verified live shape, not verbatim captures. The `failed` `get_job` body uses a placeholder identifier for the same reason.
+- The release link below points at a placeholder organization, and no release tag has been created.
 
-[0.1.0]: https://github.com/REPLACE_WITH_ORG/aurcounsel-mcp/releases/tag/v0.1.0
+[0.1.0]: https://github.com/eeinss/AurCounsel-mcp/releases/tag/v0.1.0

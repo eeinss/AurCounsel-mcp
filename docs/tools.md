@@ -473,7 +473,7 @@ Each `artifacts[]` entry:
  "params":{"name":"get_job","arguments":{"job_id":"<JOB_ID>"}}}
 ```
 
-Response body. Job identifiers are replaced with the placeholder `<JOB_ID>`; every other value is verbatim:
+Response body — the tenth and final read on the synthetic contract submitted during this pass. Job identifiers are replaced with the placeholder `<JOB_ID>`; every other value is verbatim:
 
 ```json
 {
@@ -483,27 +483,69 @@ Response body. Job identifiers are replaced with the placeholder `<JOB_ID>`; eve
   "status": "completed",
   "status_recognised": true,
   "upstream_status": "done",
-  "progress": { "fraction": 1.0, "stage": "done", "stage_recognised": true },
+  "progress": {
+    "fraction": 1.0,
+    "stage": "done",
+    "stage_recognised": true
+  },
   "summary": {
-    "line": "審閱完成 — 50/51 條款已套用修訂,其中 1 條未能套用",
-    "clauses": 51,
-    "replaced": 50,
-    "have_revised": 51,
-    "not_applied": 1,
+    "line": "審閱完成 — 8/8 條款已套用修訂",
+    "clauses": 8,
+    "replaced": 8,
+    "have_revised": 8,
+    "not_applied": 0,
     "states_status": "ok"
   },
   "artifacts": [
-    { "name": "redline",         "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/redline",         "media_type": "text/html",     "inline_text_available": true,  "ready": true },
-    { "name": "original",        "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/original",        "media_type": "text/html",     "inline_text_available": true,  "ready": true },
-    { "name": "revised",         "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/revised",         "media_type": "text/html",     "inline_text_available": true,  "ready": true },
-    { "name": "revised_docx",    "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/revised_docx",    "media_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "inline_text_available": false, "ready": true },
-    { "name": "memo",            "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/memo",            "media_type": "text/html",     "inline_text_available": true,  "ready": true },
-    { "name": "review_comments", "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/review_comments", "media_type": "text/markdown", "inline_text_available": true,  "ready": true }
+    {
+      "name": "redline",
+      "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/redline",
+      "media_type": "text/html",
+      "inline_text_available": true,
+      "ready": true
+    },
+    {
+      "name": "original",
+      "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/original",
+      "media_type": "text/html",
+      "inline_text_available": true,
+      "ready": true
+    },
+    {
+      "name": "revised",
+      "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/revised",
+      "media_type": "text/html",
+      "inline_text_available": true,
+      "ready": true
+    },
+    {
+      "name": "revised_docx",
+      "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/revised_docx",
+      "media_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "inline_text_available": false,
+      "ready": true
+    },
+    {
+      "name": "memo",
+      "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/memo",
+      "media_type": "text/html",
+      "inline_text_available": true,
+      "ready": true
+    },
+    {
+      "name": "review_comments",
+      "url": "https://mcp.clawplus.pro/artifact/<JOB_ID>/review_comments",
+      "media_type": "text/markdown",
+      "inline_text_available": true,
+      "ready": true
+    }
   ],
   "artifacts_blocked": null,
   "failure": null
 }
 ```
+
+`summary` is capability-specific; the fields above are the review shape. `completed` does not imply that every requested change landed — a second, pre-existing completed review job read during this work reported `not_applied: 1` while still returning `status: "completed"` and `states_status: "ok"`. Read `summary`, not just `status`.
 
 **Job in progress** — same request shape. This is the first of nine `processing` reads on the job submitted during this pass, taken 16 seconds after submission:
 
