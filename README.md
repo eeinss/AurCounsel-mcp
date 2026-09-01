@@ -28,6 +28,72 @@ A live `tools/list` returns exactly these five tools and nothing else. Their exa
 
 **Transport in one line:** POST JSON-RPC 2.0, send `Accept: application/json, text/event-stream` (both, or HTTP 406) plus your own `User-Agent`, read the reply out of the SSE `data:` line. No credential was required and none is issued. See [docs/quickstart.md](docs/quickstart.md).
 
+## API / Wire format
+
+Every operation is a JSON-RPC 2.0 call to the same endpoint:
+
+```text
+POST https://mcp.clawplus.pro/mcp
+```
+
+Required headers:
+
+```text
+Content-Type: application/json
+Accept: application/json, text/event-stream
+```
+
+Both `Accept` values must be present, or the server answers HTTP 406. Send your own `User-Agent` as well; the edge network rejects some default agent strings with HTTP 403 before the request reaches the server.
+
+A tool call uses this envelope:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_job",
+    "arguments": {
+      "job_id": "0123456789abcdef"
+    }
+  }
+}
+```
+
+The same call with `curl`:
+
+```bash
+curl https://mcp.clawplus.pro/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "get_job",
+      "arguments": {
+        "job_id": "0123456789abcdef"
+      }
+    }
+  }'
+```
+
+The reply is an `event: message` SSE frame; the JSON-RPC response is the JSON on its `data:` line.
+
+Required arguments, by tool:
+
+| Tool | Required arguments |
+| --- | --- |
+| `review_contract` | `file_name`, `file_b64` |
+| `draft_contract` | `subject` |
+| `compare_contracts` | `file_a_name`, `file_a_b64`, `file_b_name`, `file_b_b64` |
+| `get_job` | `job_id` |
+| `get_artifact` | `job_id`, `artifact` |
+
+The complete input schemas, the optional arguments, and the constraints the schemas themselves do not express are in [docs/tools.md](docs/tools.md).
+
 ## Five-minute mental model
 
 Most AurCounsel operations are asynchronous:

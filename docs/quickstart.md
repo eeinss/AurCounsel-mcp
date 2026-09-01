@@ -76,6 +76,52 @@ A live `tools/list` returns exactly these five and nothing else. `prompts/list` 
 
 The canonical schemas are whatever the live MCP server returns through tool discovery. The prose documentation in this repo must be regenerated or corrected whenever it diverges from that machine-readable contract. Every schema in [tools.md](tools.md) was transcribed from a live capture.
 
+### A request you can paste as-is
+
+Every tool is invoked the same way: a JSON-RPC 2.0 `tools/call` POST to the endpoint. This one reads a job, so it changes nothing:
+
+```http
+POST /mcp HTTP/1.1
+Host: mcp.clawplus.pro
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_job",
+    "arguments": {
+      "job_id": "0123456789abcdef"
+    }
+  }
+}
+```
+
+The same request with `curl`:
+
+```bash
+curl https://mcp.clawplus.pro/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "get_job",
+      "arguments": {
+        "job_id": "0123456789abcdef"
+      }
+    }
+  }'
+```
+
+The response is not plain JSON. It arrives as `text/event-stream`: an `event: message` frame whose `data:` line carries the JSON-RPC response, which your client must read out of that line before parsing.
+
+`0123456789abcdef` is a well-formed identifier that belongs to no job, so this request is safe to run verbatim and ends in a `JOB_NOT_FOUND` application error. Substitute your own `job_id` to read a real job.
+
 ## 5. Submit a job
 
 Choose one operation. For example, a contract review:
@@ -85,6 +131,30 @@ review_contract(file_name, file_b64, [requested_jurisdiction], [represented_part
 ```
 
 `file_name` and `file_b64` are the required fields; `file_b64` is the base64 of a `.docx`. The full schema for each submission tool is in [tools.md](tools.md).
+
+On the wire, that submission is:
+
+```http
+POST /mcp HTTP/1.1
+Host: mcp.clawplus.pro
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "review_contract",
+    "arguments": {
+      "file_name": "example-agreement.docx",
+      "file_b64": "<base64 of your .docx>"
+    }
+  }
+}
+```
+
+**Executing this request creates a production job.** Unlike the `get_job` request above, it is not safe to run as a demonstration: it consumes real processing and returns a `job_id` you must keep.
 
 A successful submission returns enough information to identify the asynchronous job, including a `job_id`. The `job_id` is not a top-level JSON-RPC field: it is inside the text content block, which is itself a JSON document.
 
