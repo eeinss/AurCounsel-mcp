@@ -39,7 +39,7 @@ You need:
 - an MCP-compatible client, or any HTTP client that can POST JSON;
 - network access to the public endpoint.
 
-**Authentication:** none observed. `tools/list` succeeded with no `Authorization` header, and returned the identical five-tool list when sent `Authorization: Bearer not-a-real-token`. There is no credential to obtain, and no auth error envelope exists to document.
+**Authentication:** none observed. `tools/list` succeeded with no `Authorization` header, and returned an identical list when sent `Authorization: Bearer not-a-real-token`. There is no credential to obtain, and no auth error envelope exists to document.
 
 > **Caution.** That is a statement of observed behavior, not a recommendation. Do not read "no credential was required" as "this data is public." A `job_id` is the only handle to a job and grants access to that job's artifacts — the live server instructions say to treat it as a credential. Whether the artifact download URLs are separately guarded was not tested; see [artifacts.md](artifacts.md).
 
@@ -68,13 +68,14 @@ After connecting, confirm the server exposes the expected primary tools:
 review_contract
 draft_contract
 compare_contracts
+revise_contract
 get_job
 get_artifact
 ```
 
-A live `tools/list` returns exactly these five and nothing else. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}` — the server publishes no prompts and no resources.
+A live `tools/list` returns exactly these six and nothing else. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}` — the server publishes no prompts and no resources.
 
-The canonical schemas are whatever the live MCP server returns through tool discovery. The prose documentation in this repo must be regenerated or corrected whenever it diverges from that machine-readable contract. Every schema in [tools.md](tools.md) was transcribed from a live capture.
+The canonical schemas are whatever the live MCP server returns through tool discovery. The prose documentation in this repo must be regenerated or corrected whenever it diverges from that machine-readable contract. The per-tool contract is in [tools.md](tools.md).
 
 ### A request you can paste as-is
 
@@ -168,6 +169,43 @@ That path, and the full success-response body, are recorded in [tools.md](tools.
 
 The `job_id` is the only handle to the job and is not recoverable. Store it before you do anything else, and treat it as a credential.
 
+### Submitting a revision
+
+`revise_contract` takes a contract and an instruction describing the change you want:
+
+```text
+revise_contract(file_name, file_b64 | file_ref, revision_text)
+```
+
+`file_b64` is the base64 of a `.docx`, as for a review; `file_ref` is the alternative to it, a reference to the document instead of its bytes. Send one of the two. `revision_text` is the instruction, in prose. On the wire:
+
+```http
+POST /mcp HTTP/1.1
+Host: mcp.clawplus.pro
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "revise_contract",
+    "arguments": {
+      "file_name": "example-agreement.docx",
+      "file_b64": "<base64 of your .docx>",
+      "revision_text": "<name the clause to change, and say what it should say>"
+    }
+  }
+}
+```
+
+**This also creates a production job.** The submission that was observed returned, inside the text content block, a `job_id` alongside `status: "submitted"`, `capability: "revise"`, and `detected_kind: "docx"` — so the `job_id` field path is the same one the review flow uses, and the job is read back with the same `get_job`.
+
+**Write the instruction so it names the clause.** An instruction the server cannot tie to a clause in the submitted document does not fail: the job still reaches `completed`, and it reports that it declined to revise, with a reason. That reporting is the next section.
+
+**How a clause is located.** A clause number is the authoritative locator. If the instruction names an ordinal that exists in the document — `第三條`, clause 3 — that clause is where the revision is applied, and the rest of the instruction cannot move it: any description of the clause's subject or title can only help locate a clause, never override an ordinal that the document actually has. An ordinal the document does not have is a different case: nothing is guessed, and the job comes back `completed` having declined to revise, with the reason.
+
 ## 6. Check job status
 
 Use:
@@ -192,6 +230,28 @@ The client should continue checking only while the job is non-terminal. `complet
 
 See [job-lifecycle.md](job-lifecycle.md) for full semantics.
 
+### For a revision, read the outcome as well as the status
+
+A `revise_contract` job carries `capability: "revise"` and one field the other capabilities do not: `revision`, a nested object beside `status` in the same parsed content block.
+
+This matters because `status` does not answer the question you actually asked. A revision that was applied and a revision the server declined to apply are **both** `completed`. The difference is reported only on `revision.outcome`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `outcome` | string | What happened to the revision. See the values below. |
+| `outcome_recognised` | boolean | Whether the server mapped the engine's own outcome value into its published vocabulary — the same self-report idea as `status_recognised`. |
+| `replaced` | integer | How many clauses were replaced. |
+| `not_applied` | integer | How many requested changes were not applied. |
+| `reason` | string \| null | User-facing explanation when the revision was not applied; `null` when it was applied. |
+
+Outcome values:
+
+- `applied` — the revision was made. `replaced` counts the clauses that were replaced, `not_applied` is zero, and `reason` is null.
+- `needs_clarification` — the server could not tie the instruction to a clause in the submitted contract and did not revise. The job is still `completed`, and `reason` carries the explanation to show the user.
+- `blocked` — the third value in the server's recognised set.
+
+A client that branches on `status` alone will report a declined revision as a success. Branch on `outcome`, and surface `reason` to the user when it is non-null.
+
 ## 7. Retrieve artifacts
 
 Once a job reaches `completed`, request a completed deliverable with:
@@ -200,7 +260,14 @@ Once a job reaches `completed`, request a completed deliverable with:
 get_artifact(job_id, artifact)
 ```
 
-The second argument is named `artifact` (not `artifact_type`) and must be one of exactly twelve values. Both are verified live. The response reports `available`, `media_type`, a download `url`, and — for text artifacts — the content inline in `text`; binary artifacts return `text: null`. See [artifacts.md](artifacts.md) for the vocabulary, the response fields, and the failed-job behavior.
+The second argument is named `artifact` (not `artifact_type`). The response reports `available`, `media_type`, a download `url`, and — for text artifacts — the content inline in `text`; binary artifacts return `text: null`. See [artifacts.md](artifacts.md) for the vocabulary, the response fields, and the failed-job behavior.
+
+A completed revision lists its deliverables in the job's own `artifacts[]`, each with a `name` and a `ready` flag; fetch by the names you find there. A revision serves two:
+
+- `revised_docx` — the revised contract, as a `.docx`.
+- `redline_docx` — the same revision as a tracked-change `.docx`. It carries real Word tracked changes (insertion and deletion revision marks), not just visually marked-up text, so it opens in Word with the changes reviewable and acceptable/rejectable.
+
+Do not confuse `redline_docx` with `redline`: a review's `redline` is an HTML view of the changes, while `redline_docx` is a Word document carrying the changes as revision marks.
 
 If a job reaches `failed`, partial/generated internal outputs are not considered completed deliverables and should not be consumed as if the job succeeded.
 
@@ -224,19 +291,27 @@ completed? ── yes ──> get_artifact(...)
 failed or unknown -> stop and handle error
 ```
 
+For a `revise` job, insert one step between `completed?` and `get_artifact(...)`: read `revision.outcome`. If it is not `applied`, the job succeeded but the contract was not changed — report `revision.reason` instead of presenting artifacts as a revision.
+
 Working code for the read side of this loop is in [`../examples/python_client.py`](../examples/python_client.py).
 
 ## Verification status of this guide
 
-Executed live against the public endpoint during this documentation pass:
+Executed live against the public endpoint in the first documentation pass:
 
 - `initialize`, `tools/list`, `prompts/list`, `resources/list`;
-- exact description and JSON input schema for all five tools;
+- exact description and JSON input schema for `review_contract`, `draft_contract`, `compare_contracts`, `get_job`, and `get_artifact`;
 - one `review_contract` submission of a synthetic contract, followed by ten `get_job` reads to `completed`;
 - `get_job` on a `processing` job, on a `completed` job, and on a terminally `failed` job;
 - `get_artifact` for all six artifacts of a completed review job, including a binary one;
 - unknown job, malformed job identifier, unknown artifact name, unknown tool, unknown method, malformed JSON, missing `Accept`, and rejected user agent;
 - requests with no credential and with a bogus bearer token.
+
+Executed live in the revision pass, after `revise_contract` was published:
+
+- `initialize` and `tools/list`, which returned six tools including `revise_contract`;
+- one `revise_contract` submission — a synthetic contract plus one instruction naming a clause explicitly — polled with `get_job` to `completed`, reporting `capability: "revise"` and `outcome: "applied"` with a positive `replaced` and `not_applied` zero;
+- `get_artifact` for both artifacts of that job, `revised_docx` and `redline_docx`, each fetched and checked to be a well-formed `.docx`, with the redline checked for real Word tracked-change marks.
 
 Still outstanding:
 

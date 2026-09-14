@@ -2,7 +2,7 @@
 
 This document describes the public purpose and behavioral contract of AurCounsel MCP tools. **Exact schemas must come from the live MCP server.** This file intentionally does not invent field names that have not been verified.
 
-All schemas and descriptions below were captured from a live `tools/list` against `https://mcp.clawplus.pro/mcp` on 2026-08-31 and are reproduced verbatim. Response bodies come from live calls on the same endpoint, including one authorised `review_contract` submission of a synthetic contract that was followed to `completed`. Where a cell could not be captured, it is marked `UNRESOLVED` or `PENDING_AUTH` rather than filled in.
+The schemas and descriptions reproduced verbatim below were captured from a live `tools/list` against `https://mcp.clawplus.pro/mcp`. Response bodies come from live calls on the same endpoint: one authorised `review_contract` submission of a synthetic contract, followed to `completed`, and one authorised `revise_contract` submission, likewise followed to `completed`. `revise_contract` is the one tool documented from its live run rather than from a discovery capture — its arguments and response fields are below, but no verbatim `inputSchema` block appears for it, because none was captured. Where a cell could not be captured, it is marked `UNRESOLVED` or `PENDING_AUTH` rather than filled in.
 
 ## Contract authority
 
@@ -16,17 +16,18 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-`tools/list` returns exactly five tools, in this order:
+`tools/list` returns exactly six tools:
 
 ```text
 review_contract
 draft_contract
 compare_contracts
+revise_contract
 get_job
 get_artifact
 ```
 
-No additional public tools exist beyond these five. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these six. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 Every tool's `inputSchema` is a JSON Schema `object` whose `title` has the form `<tool_name>Arguments`. Optional parameters are declared as `anyOf: [<type>, {"type": "null"}]` with `"default": null` — that is, an optional parameter may be omitted or passed explicitly as `null`.
 
@@ -357,6 +358,68 @@ All four fields are required. There are no optional fields and no enums. Both in
 
 ---
 
+## `revise_contract`
+
+### Purpose
+
+Submit a contract together with a revision instruction in prose, and get the revised contract back with a tracked-change redline.
+
+### Expected lifecycle
+
+```text
+revise_contract
+-> job_id
+-> get_job(job_id)
+-> completed | failed
+-> read the revision outcome
+-> get_artifact(...) when completed
+```
+
+### Public guarantees
+
+- The operation is asynchronous, like the other submission tools.
+- A successful submission identifies a job.
+- A job that finishes is `completed` whether or not the revision was applied. `completed` reports that the job ran; the separate `revision` block on `get_job` reports what it did. See [`get_job`](#get_job).
+- An instruction the server cannot tie to a clause of the submitted contract is not an error and not a guess: the job completes having declined to revise, and says why.
+- Completed deliverables are retrieved through `get_artifact`: `revised_docx` and `redline_docx`.
+
+### Arguments
+
+| Field | Required | Type | Notes |
+|---|---|---|---|
+| `file_name` | yes | string | Label only, as for a review. |
+| `file_b64` | one of the two | string | The document, base64-encoded. |
+| `file_ref` | one of the two | string | A reference to the document, as the alternative to sending its bytes. |
+| `revision_text` | yes | string | The revision instruction, in prose: which clause to change and what it should say. |
+
+Send the document one way or the other — `file_b64` or `file_ref` — not both.
+
+### How a clause is located
+
+A clause number is the authoritative locator. If `revision_text` names an ordinal the document actually has — `第三條`, clause 3 — that clause is where the revision is applied, and nothing else in the instruction can move it: a description of the clause's subject or title may help find a clause, but it cannot override an ordinal the document has.
+
+An ordinal the document does not have is the other case. Nothing is guessed and no other clause is substituted; the job completes having declined to revise, with the reason reported.
+
+### Submission response
+
+Same envelope as the other submission tools — one `text` content block whose text is a JSON object, with `job_id` at its top level:
+
+| Field | Note |
+|---|---|
+| `ok` | `true` on a successful submission. |
+| `job_id` | The handle. Treat it as sensitive; see the note under [`review_contract`](#success-response-shape-and-job_id-path). |
+| `capability` | `revise` for this tool. |
+| `status` | `submitted`. |
+| `file_name` | Echo of the argument. |
+| `detected_kind` | The type identified from content, not from the file name. |
+| `revision_text` | Echo of the instruction. |
+
+### Verified example
+
+One `revise_contract` submission was executed: a synthetic contract plus one instruction naming the clause to change, followed to `completed`. The contract and the instruction are private fixtures and are not reproduced here, and — as on the `review_contract` section — this page carries no copy-pasteable submission command, because sending one creates a real job.
+
+---
+
 ## `get_job`
 
 ### Purpose
@@ -402,6 +465,8 @@ Get the state of any job submitted through this server.
         job_id: The handle returned when the job was submitted.
 ```
 
+Server-emitted strings are reproduced unchanged here. The live `capability` vocabulary also carries `revise`; the response field table below is the one to read for it.
+
 ### Exact input schema (verbatim)
 
 ```json
@@ -421,7 +486,7 @@ The tool returns `isError: false` and a single text content block containing thi
 |---|---|---|
 | `ok` | boolean | `true` on a resolved job; `false` on an application error (see [errors.md](errors.md)). |
 | `job_id` | string | Echo of the requested identifier. |
-| `capability` | string \| null | `review`, `draft`, or `compare`. `null` only for an unclassifiable job row, in which case `artifacts_blocked` explains. |
+| `capability` | string \| null | `review`, `draft`, `compare`, or `revise`. `null` only for an unclassifiable job row, in which case `artifacts_blocked` explains. |
 | `status` | string | Canonical status. One of the five values above. |
 | `status_recognised` | boolean | `false` when the engine's status did not map — which is what produces `status: "unknown"`. |
 | `upstream_status` | string | The raw engine value behind `status`. Observed: `"done"` for `completed`, `"error"` for `failed`. |
@@ -434,6 +499,12 @@ The tool returns `isError: false` and a single text content block containing thi
 | `summary.have_revised` | integer \| null | Review only. |
 | `summary.not_applied` | integer \| null | Review only. |
 | `summary.states_status` | string \| null | Observed: `"ok"`. |
+| `revision` | object \| null | Revision jobs. The block below — this, not `status`, is where a revision's result is reported. |
+| `revision.outcome` | string | What the revision did. Observed: `"applied"`. The server's recognised set holds three values; the other two are `needs_clarification`, for an instruction that could not be tied to a clause, and `blocked`. |
+| `revision.outcome_recognised` | boolean | `false` when the engine's outcome did not map, as `status_recognised` is for `status`. |
+| `revision.replaced` | integer | How many clauses were replaced. Observed: `1`, for a one-clause instruction. |
+| `revision.not_applied` | integer | How many requested changes were not applied. Observed: `0`. |
+| `revision.reason` | string \| null | Why the revision was not applied; `null` when it was. |
 | `artifacts` | array | See below. Never empty without `artifacts_blocked`. |
 | `artifacts_blocked` | object \| null | Present when no artifact address could be built. Observed `null` in both captures. |
 | `failure` | object \| null | Present when `status` is `failed`. Observed: `{"error_code": "JOB_FAILED"}`. |
@@ -724,13 +795,13 @@ The parameter is named `artifact`, not `artifact_type`. Both fields are required
 
 ### Artifact vocabulary, response shape, and failure behavior
 
-See [artifacts.md](artifacts.md), which carries the exact 12-value vocabulary, the response field table, and the observed responses for the available, binary, unavailable, and unknown-job cases.
+See [artifacts.md](artifacts.md), which carries the artifact vocabulary by capability, the response field table, and the observed responses for the available, binary, unavailable, and unknown-job cases.
 
 ---
 
 ## Schema synchronization checklist
 
-Before a release of this repository, compare all five documented tools against one fresh live discovery capture. Verify:
+Before a release of this repository, compare all six documented tools against one fresh live discovery capture. Verify:
 
 - exact tool names;
 - exact descriptions;

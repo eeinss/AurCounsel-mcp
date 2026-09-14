@@ -1,8 +1,10 @@
 # AurCounsel MCP
 
-> AurCounsel MCP provides contract review, drafting, comparison, and artifact retrieval through the Model Context Protocol.
+> AurCounsel MCP provides contract review, drafting, comparison, revision, and artifact retrieval through the Model Context Protocol.
 
 AurCounsel MCP is the public developer interface for **AurCounsel**, a contract intelligence platform. It lets MCP-compatible clients submit contract work, monitor asynchronous jobs, and retrieve completed deliverables without exposing AurCounsel's private backend implementation.
+
+> **Newest capability: `revise_contract`.** It takes a contract plus a revision instruction in prose and returns the revised document together with a tracked-change redline. It is the one capability whose result is **not** carried by `status`: a revision that was applied and a revision the server declined to apply both finish as `completed`, and the difference is reported on a separate `outcome` field. See [What you can do](#what-you-can-do) and the revision notes in [docs/quickstart.md](docs/quickstart.md).
 
 **Public MCP endpoint**
 
@@ -17,12 +19,18 @@ AurCounsel MCP currently exposes these primary tools:
 - `review_contract` — submit a contract for review.
 - `draft_contract` — request contract drafting.
 - `compare_contracts` — compare two contracts or contract versions.
+- `revise_contract` — submit a contract plus a revision instruction, and get the revised contract and a tracked-change redline back.
 - `get_job` — inspect the state of an asynchronous job.
 - `get_artifact` — retrieve completed deliverables produced by a job.
 
-A live `tools/list` returns exactly these five tools and nothing else. Their exact descriptions, JSON input schemas, response fields, and the artifact vocabulary are transcribed from live captures in [docs/tools.md](docs/tools.md) and [docs/artifacts.md](docs/artifacts.md).
+A live `tools/list` returns exactly these six tools and nothing else. The descriptions, JSON input schemas, response fields, and artifact vocabulary are in [docs/tools.md](docs/tools.md) and [docs/artifacts.md](docs/artifacts.md). The live machine-readable contract, not this prose, is canonical.
 
-> **Machine-truth note:** the three submission tools create real jobs. Exactly one submission was authorised for this documentation pass — a synthetic, eight-clause contract sent to `review_contract` — and it was followed to completion. Its success-response shape, the exact `job_id` field path, and the `processing` and `completed` job bodies are transcribed from that run. `draft_contract` and `compare_contracts` were never called; their success-response shapes remain **PENDING_AUTH** rather than guessed, and so do the six draft/compare artifact media types. Anything else that was not observed live is marked **UNRESOLVED** in place. Neither marker is a placeholder for a value someone knows — they mark facts this repository does not have.
+> **Machine-truth note:** the four submission tools create real jobs. Two submissions have been authorised in total, each followed to completion, and each is the sole source of what is written about its tool here:
+>
+> - `review_contract` — a synthetic, eight-clause contract, in the first documentation pass. Its success-response shape, the exact `job_id` field path, and the `processing` and `completed` job bodies are transcribed from that run.
+> - `revise_contract` — a synthetic contract plus one explicit revision instruction naming the clause to change, in the revision pass. Its submission arguments, its `submitted` and `completed` job bodies, the `outcome` reporting described below, and the two artifacts it served are transcribed from that run. The contract and the instruction themselves are private fixtures and are not reproduced here.
+>
+> `draft_contract` and `compare_contracts` were never called; their success-response shapes remain **PENDING_AUTH** rather than guessed, and so do the six draft/compare artifact media types. Anything else that was not observed live is marked **UNRESOLVED** in place. Neither marker is a placeholder for a value someone knows — they mark facts this repository does not have.
 >
 > **Treat a `job_id` as sensitive.** It is the only handle to a job and it is not recoverable. Every identifier in this repository is a placeholder; no real one appears here, and none should appear in an issue, a log, or a chat.
 
@@ -89,10 +97,13 @@ Required arguments, by tool:
 | `review_contract` | `file_name`, `file_b64` |
 | `draft_contract` | `subject` |
 | `compare_contracts` | `file_a_name`, `file_a_b64`, `file_b_name`, `file_b_b64` |
+| `revise_contract` | `file_name`, one of `file_b64` / `file_ref`, `revision_text` |
 | `get_job` | `job_id` |
 | `get_artifact` | `job_id`, `artifact` |
 
 The complete input schemas, the optional arguments, and the constraints the schemas themselves do not express are in [docs/tools.md](docs/tools.md).
+
+`revise_contract` takes the document either inline as `file_b64` or by reference as `file_ref`; supply one of the two, not both. `revision_text` is the revision instruction, in prose: name the clause you want changed and say what it should say. An instruction the server cannot tie to a clause in the submitted contract is not an error; it comes back as a `completed` job that declined to revise, with the reason on the `outcome` field. See [docs/quickstart.md](docs/quickstart.md).
 
 ## Five-minute mental model
 
@@ -101,7 +112,7 @@ Most AurCounsel operations are asynchronous:
 ```text
 MCP Client
    |
-   | review_contract / draft_contract / compare_contracts
+   | review_contract / draft_contract / compare_contracts / revise_contract
    v
 AurCounsel MCP
    |
@@ -125,7 +136,20 @@ review_contract
 -> get_artifact(...)
 ```
 
+A revision runs the same loop, with one extra thing to read at the end:
+
+```text
+revise_contract(file_name, file_b64, revision_text)
+-> job_id
+-> get_job(job_id)
+-> completed
+-> read the outcome: applied, or declined with a reason
+-> get_artifact(...)   # revised_docx, redline_docx
+```
+
 A job that reaches `failed` is terminal. Partial or internally generated outputs from a failed job are **not** completed deliverables.
+
+For a revision, `completed` answers "did the job finish", not "was the contract changed". Those are two different questions and the server answers them on two different fields — see [docs/quickstart.md](docs/quickstart.md#6-check-job-status).
 
 ## Quickstart
 
@@ -136,10 +160,10 @@ A job that reaches `failed` is terminal. Partial or internally generated outputs
    ```
 
 2. Confirm the server exposes the AurCounsel tools.
-3. Submit a contract operation such as `review_contract`.
+3. Submit a contract operation such as `review_contract`, or `revise_contract` with a revision instruction.
 4. Save the returned `job_id`.
 5. Poll or re-check with `get_job` until the job is terminal.
-6. If the status is `completed`, retrieve the requested deliverable with `get_artifact`.
+6. If the status is `completed`, retrieve the requested deliverable with `get_artifact`. For a revision, read the `outcome` field first: `completed` alone does not mean the contract was changed.
 7. If the status is `failed`, treat the job as failed; do not interpret unavailable artifacts as "still processing."
 
 See [docs/quickstart.md](docs/quickstart.md) for client setup and [docs/job-lifecycle.md](docs/job-lifecycle.md) for lifecycle semantics.
@@ -183,6 +207,7 @@ AurCounsel Contract Intelligence Engine
     ├── Contract Review
     ├── Drafting
     ├── Comparison
+    ├── Revision
     ├── Legal Grounding
     └── Artifact Generation
 ```
