@@ -179,7 +179,7 @@ Requesting `memo` from a terminally failed job returns (sanitized example, same 
 ## Missing artifact and unknown job
 
 - **Unrecognised artifact name** — an `INVALID_INPUT` application error whose `context.accepted` lists the valid names. See [errors.md](errors.md).
-- **Unknown job identifier** — a `JOB_NOT_FOUND` application error. The artifact name is validated first: an unknown job combined with an invalid artifact name reports the artifact problem, not the job problem.
+- **Job identifier not submitted by your identity (including an unknown one)** — HTTP `403 Forbidden` before the tool runs. A job your identity submitted that the service can no longer find is a `JOB_NOT_FOUND` application error. The artifact name is validated first: an unknown job combined with an invalid artifact name reports the artifact problem, not the job problem.
 - **Artifact requested before it is ready on a live job** — the live description states this returns `available: false` rather than an error. **UNRESOLVED.** `get_artifact` was never called on a job that was still `processing`. What *was* observed is the neighbouring fact, from `get_job`: on a live `processing` job the `artifacts` array is already fully populated, with every `ready` set to `false` (see [job-lifecycle.md](job-lifecycle.md)). That is the field to branch on. What `get_artifact` itself returns in that window — and what its `note` says — is not established.
 
 ## Integrity and completeness
@@ -188,6 +188,6 @@ Clients should consume the artifact exactly as returned by the public contract a
 
 The live responses expose no checksum, no byte length, no expiry, and no pagination. Structured sections are not exposed as fields; text artifacts arrive as a single `text` string.
 
-> **UNRESOLVED — artifact URL access.** Every response carries an artifact `url`, and the binary-artifact `note` says to "present the credential this call was made with." The MCP endpoint itself accepted requests with no credential at all (see [quickstart.md](quickstart.md)). What, if anything, guards `https://mcp.clawplus.pro/artifact/...` was not tested: fetching those URLs was outside the scope of this verification pass. This repository therefore makes no claim in either direction — not that those URLs are public, not that they require authentication, and not that they are permanent.
+> **Artifact URL access.** Artifact URLs (`https://mcp.clawplus.pro/artifact/...`) require the same `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>` header as the MCP endpoint, and only the identity that submitted the job can fetch them: a missing or invalid token gets `401 Unauthorized`, another identity gets `403 Forbidden`. Whether the URLs are permanent is not specified.
 >
-> **Because it is unresolved, handle it conservatively.** Treat the `job_id`, and any artifact reference or URL returned alongside it, as sensitive. Do not publish them, paste them into shared logs or issue trackers, or pass them to a third party. The supported way to read a deliverable is `get_job` to confirm the job is `completed`, then `get_artifact` over the MCP endpoint — not by fetching the `url` out of band.
+> **Handle identifiers conservatively.** Treat the `job_id`, and any artifact reference or URL returned alongside it, as sensitive. Do not publish them, paste them into shared logs or issue trackers, or pass them to a third party. The supported way to read a deliverable is `get_job` to confirm the job is `completed`, then `get_artifact` over the MCP endpoint — not by fetching the `url` out of band.

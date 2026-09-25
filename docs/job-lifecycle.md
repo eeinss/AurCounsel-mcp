@@ -178,7 +178,7 @@ Client behavior:
 - read and surface `upstream_status`;
 - do not treat it as progress and do not treat it as terminal.
 
-An identifier that resolves to no job is a different outcome entirely: it returns the `JOB_NOT_FOUND` application error, documented in [errors.md](errors.md).
+An identifier your identity did not submit — including one that resolves to no job — is refused with HTTP `403 Forbidden` before the tool runs. `JOB_NOT_FOUND` is the application error for a job your identity submitted that the service can no longer find; both are documented in [errors.md](errors.md).
 
 **UNRESOLVED** — no live `unknown` response was observed. The description above is the server's own.
 

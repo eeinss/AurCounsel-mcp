@@ -39,15 +39,23 @@ You need:
 - an MCP-compatible client, or any HTTP client that can POST JSON;
 - network access to the public endpoint.
 
-**Authentication:** none observed. `tools/list` succeeded with no `Authorization` header, and returned an identical list when sent `Authorization: Bearer not-a-real-token`. There is no credential to obtain, and no auth error envelope exists to document.
+**Authentication:** every MCP request must carry a bearer token, including `initialize`, `tools/list`, every `tools/call`, and artifact downloads:
 
-> **Caution.** That is a statement of observed behavior, not a recommendation. Do not read "no credential was required" as "this data is public." A `job_id` is the only handle to a job and grants access to that job's artifacts — the live server instructions say to treat it as a credential. Whether the artifact download URLs are separately guarded was not tested; see [artifacts.md](artifacts.md).
+```text
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
+```
+
+```bash
+export AURCOUNSEL_MCP_TOKEN="..."
+```
+
+A request without a token, or with an invalid one, receives `401 Unauthorized`. Jobs and artifacts are scoped to the authenticated identity: a job or artifact identifier alone does not grant access, and reading another identity's job or artifact returns `403 Forbidden`. See [errors.md](errors.md#6-authentication-and-authorization-errors).
 
 **User agent:** send one. The edge network in front of the endpoint rejects Python's default `Python-urllib/*` signature with HTTP 403 (Cloudflare error 1010) before the request reaches the MCP server. Any identifying value works; `curl`'s default is accepted. See [errors.md](errors.md).
 
 ## 3. Configure your MCP client
 
-Use the public endpoint as the MCP server URL.
+Use the public endpoint as the MCP server URL, and configure the client to send `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>` on every request.
 
 Example client files are available in:
 
@@ -84,6 +92,7 @@ Every tool is invoked the same way: a JSON-RPC 2.0 `tools/call` POST to the endp
 ```http
 POST /mcp HTTP/1.1
 Host: mcp.clawplus.pro
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
 Content-Type: application/json
 Accept: application/json, text/event-stream
 
@@ -104,6 +113,7 @@ The same request with `curl`:
 
 ```bash
 curl https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{
@@ -121,7 +131,7 @@ curl https://mcp.clawplus.pro/mcp \
 
 The response is not plain JSON. It arrives as `text/event-stream`: an `event: message` frame whose `data:` line carries the JSON-RPC response, which your client must read out of that line before parsing.
 
-`0123456789abcdef` is a well-formed identifier that belongs to no job, so this request is safe to run verbatim and ends in a `JOB_NOT_FOUND` application error. Substitute your own `job_id` to read a real job.
+`0123456789abcdef` is a well-formed identifier that belongs to no identity, so this request is safe to run verbatim and ends in `403 Forbidden`. Substitute a `job_id` your identity submitted to read a real job.
 
 ## 5. Submit a job
 
@@ -138,6 +148,7 @@ On the wire, that submission is:
 ```http
 POST /mcp HTTP/1.1
 Host: mcp.clawplus.pro
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
 Content-Type: application/json
 Accept: application/json, text/event-stream
 
@@ -182,6 +193,7 @@ revise_contract(file_name, file_b64 | file_ref, revision_text)
 ```http
 POST /mcp HTTP/1.1
 Host: mcp.clawplus.pro
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
 Content-Type: application/json
 Accept: application/json, text/event-stream
 
@@ -305,7 +317,7 @@ Executed live against the public endpoint in the first documentation pass:
 - `get_job` on a `processing` job, on a `completed` job, and on a terminally `failed` job;
 - `get_artifact` for all six artifacts of a completed review job, including a binary one;
 - unknown job, malformed job identifier, unknown artifact name, unknown tool, unknown method, malformed JSON, missing `Accept`, and rejected user agent;
-- requests with no credential and with a bogus bearer token.
+- requests with no credential and with a bogus bearer token (at the time, the endpoint did not require one; it now answers both with `401 Unauthorized`).
 
 Executed live in the revision pass, after `revise_contract` was published:
 

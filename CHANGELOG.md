@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### Changed
+
+- Authentication is required: every MCP request, including artifact downloads, must carry `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>`. Missing or invalid token: `401 Unauthorized`.
+- Jobs and artifacts are scoped to the authenticated identity; reading another identity's job or artifact returns `403 Forbidden`. A job or artifact identifier alone does not grant access.
+- README, quickstart, curl, Python and client-configuration examples updated to send the bearer header from `$AURCOUNSEL_MCP_TOKEN`; errors and artifacts pages document `401` / `403`.
+
 ### Added
 
 - Initial public repository information architecture.

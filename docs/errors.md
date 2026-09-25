@@ -129,7 +129,7 @@ An identifier that is the wrong shape is rejected before lookup:
  "context":{"field":"job_id"}}
 ```
 
-So `job_id` has two distinct rejection paths: malformed → `INVALID_INPUT`, well-formed but unknown → `JOB_NOT_FOUND`.
+So `job_id` has two distinct rejection paths inside the tool: malformed → `INVALID_INPUT`, well-formed but unknown → `JOB_NOT_FOUND`. On the public endpoint a job identifier your identity did not submit — including an unknown one — is refused earlier, with HTTP `403 Forbidden` (section 6).
 
 ### Unknown artifact name
 
@@ -208,9 +208,14 @@ This prevents a known UX ambiguity in which an unavailable artifact can sound me
 
 ## 6. Authentication and authorization errors
 
-**None observed.** The public endpoint served `tools/list` with no `Authorization` header at all, and served the identical five-tool list when sent `Authorization: Bearer not-a-real-token` — same HTTP 200, same tool count. No authentication is enforced at the MCP endpoint, so there is no auth error envelope to document.
+Every MCP request must carry `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>`. These refusals happen before any MCP method runs; the body is plain text, not a JSON-RPC envelope.
 
-See the caution in [quickstart.md](quickstart.md): this is a description of observed behavior, not a recommendation.
+| HTTP status | Meaning |
+| --- | --- |
+| `401 Unauthorized` | Missing or invalid bearer token. The response carries `WWW-Authenticate: Bearer`. |
+| `403 Forbidden` | Authenticated, but the identity does not have access to the requested job/artifact. |
+
+Jobs and artifacts are scoped to the authenticated identity. A job or artifact identifier alone does not grant access.
 
 ## 7. Rate limits and transient errors
 

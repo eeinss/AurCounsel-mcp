@@ -12,10 +12,21 @@ MCP transport framing, headers, session behavior, and request payloads must matc
 
 Every command on this page was executed against the public production endpoint, and the responses below are the responses those commands returned.
 
+## Authentication
+
+Every request must carry a bearer token. Keep it in an environment variable; the commands below read it from there:
+
+```bash
+export AURCOUNSEL_MCP_TOKEN="..."
+```
+
+Requests without a token, or with an invalid one, receive `401 Unauthorized` (section 7). Jobs and artifacts are scoped to the authenticated identity: a job or artifact identifier alone does not grant access, and reading another identity's job or artifact returns `403 Forbidden`.
+
 ## Transport requirements
 
 The endpoint speaks JSON-RPC 2.0 over HTTP POST and answers with a Server-Sent Events frame.
 
+- `Authorization: Bearer $AURCOUNSEL_MCP_TOKEN`
 - `Content-Type: application/json`
 - `Accept: application/json, text/event-stream` — **both** media types are required. Sending only one, or omitting `Accept`, returns HTTP 406.
 - Responses arrive as `text/event-stream`: an `event: message` line followed by a `data: {...}` line carrying the JSON-RPC object.
@@ -31,14 +42,15 @@ It is used that way in section 2 below.
 
 ### Job identifiers in these examples
 
-The job identifier below is the obvious placeholder `0123456789abcdef`. It is well-formed but belongs to no job, so every command on this page is safe to run verbatim and will answer `JOB_NOT_FOUND`. Substitute your own `job_id` to see the populated shapes documented in [../docs/tools.md](../docs/tools.md) and [../docs/artifacts.md](../docs/artifacts.md).
+The job identifier below is the obvious placeholder `0123456789abcdef`. It is well-formed but belongs to no identity, so every command on this page is safe to run verbatim; the job and artifact reads answer `403 Forbidden`. Use a `job_id` your identity submitted to see the populated shapes documented in [../docs/tools.md](../docs/tools.md) and [../docs/artifacts.md](../docs/artifacts.md).
 
-Treat a real `job_id` as a credential: it is the only handle to that job, it is not recoverable, and it grants artifact access.
+Only the identity that submitted a job can read it or its artifacts. A `job_id` is not recoverable, so keep it; on its own it does not grant access.
 
 ## 1. Connectivity / protocol negotiation
 
 ```bash
 curl -sS -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
@@ -59,6 +71,7 @@ data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-06-18","capabili
 
 ```bash
 curl -sS -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
@@ -68,6 +81,7 @@ Returns the five tools with their full descriptions and JSON input schemas. To l
 
 ```bash
 curl -sS -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
@@ -93,6 +107,7 @@ get_artifact
 # NOT EXECUTED — creates a production job.
 # file_b64 is the base64 of a .docx file; file_name and file_b64 are required.
 curl -sS -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"review_contract","arguments":{"file_name":"agreement.docx","file_b64":"<BASE64_DOCX>","requested_jurisdiction":"taiwan","represented_party":"Party A"}}}'
@@ -102,35 +117,31 @@ curl -sS -X POST https://mcp.clawplus.pro/mcp \
 
 ```bash
 curl -sS -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_job","arguments":{"job_id":"0123456789abcdef"}}}'
 ```
 
-HTTP 200. The placeholder identifier resolves to no job, so the tool call succeeds and reports an application error in its body:
+HTTP 403, `text/plain`. The placeholder belongs to no identity, so the server refuses before the tool runs:
 
 ```text
-event: message
-data: {"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"{\n  \"ok\": false,\n  \"error_code\": \"JOB_NOT_FOUND\",\n  \"message\": \"No LegalOS job with that identifier exists.\",\n  \"context\": {\n    \"upstream_status\": 404\n  }\n}"}],"isError":false}}
+Forbidden
 ```
 
-Note `isError` is `false`. See [../docs/errors.md](../docs/errors.md) for why that matters. With a real `job_id` the same command returns the populated job object documented in [../docs/tools.md](../docs/tools.md).
+With a `job_id` your identity submitted, the same command returns HTTP 200 and the populated job object documented in [../docs/tools.md](../docs/tools.md).
 
 ## 5. Retrieve `get_artifact`
 
 ```bash
 curl -sS -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"get_artifact","arguments":{"job_id":"0123456789abcdef","artifact":"memo"}}}'
 ```
 
-HTTP 200, same `JOB_NOT_FOUND` body as above:
-
-```text
-event: message
-data: {"jsonrpc":"2.0","id":5,"result":{"content":[{"type":"text","text":"{\n  \"ok\": false,\n  \"error_code\": \"JOB_NOT_FOUND\",\n  \"message\": \"No LegalOS job with that identifier exists.\",\n  \"context\": {\n    \"upstream_status\": 404\n  }\n}"}],"isError":false}}
-```
+HTTP 403, same `Forbidden` body as above.
 
 The argument is named `artifact`, not `artifact_type`, and it must be one of the twelve values listed in [../docs/artifacts.md](../docs/artifacts.md).
 
@@ -140,6 +151,7 @@ Omit the SSE media type and the endpoint refuses before any tool runs:
 
 ```bash
 curl -sS -i -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json' \
   -d '{"jsonrpc":"2.0","id":6,"method":"tools/list","params":{}}'
@@ -152,6 +164,19 @@ HTTP 406, `application/json`:
 ```
 
 If your client hangs instead of returning, check that you are issuing a POST. A GET to the same URL opens a long-lived SSE channel and emits periodic `: ping` comments rather than answering a request.
+
+## 7. Authentication errors
+
+Without a token, or with an invalid one, every request is refused before any MCP method runs:
+
+```bash
+curl -sS -i -X POST https://mcp.clawplus.pro/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":7,"method":"tools/list","params":{}}'
+```
+
+HTTP 401 with `WWW-Authenticate: Bearer` — missing or invalid bearer token. Reading a job or artifact that belongs to another identity returns HTTP 403 — authenticated, but the identity does not have access to the requested job or artifact.
 
 ## Sanitization rules
 

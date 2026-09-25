@@ -12,6 +12,22 @@ AurCounsel MCP is the public developer interface for **AurCounsel**, a contract 
 https://mcp.clawplus.pro/mcp
 ```
 
+## Authentication
+
+Every MCP request must carry a bearer token:
+
+```text
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
+```
+
+Keep the token in an environment variable rather than in files or command history:
+
+```bash
+export AURCOUNSEL_MCP_TOKEN="..."
+```
+
+Requests without a token, or with an invalid one, receive `401 Unauthorized`. Jobs and artifacts are scoped to the authenticated identity. A job or artifact identifier alone does not grant access: reading a job or artifact that belongs to another identity returns `403 Forbidden`. See [docs/errors.md](docs/errors.md#6-authentication-and-authorization-errors).
+
 ## What you can do
 
 AurCounsel MCP currently exposes these primary tools:
@@ -32,9 +48,9 @@ A live `tools/list` returns exactly these six tools and nothing else. The descri
 >
 > `draft_contract` and `compare_contracts` were never called; their success-response shapes remain **PENDING_AUTH** rather than guessed, and so do the six draft/compare artifact media types. Anything else that was not observed live is marked **UNRESOLVED** in place. Neither marker is a placeholder for a value someone knows — they mark facts this repository does not have.
 >
-> **Treat a `job_id` as sensitive.** It is the only handle to a job and it is not recoverable. Every identifier in this repository is a placeholder; no real one appears here, and none should appear in an issue, a log, or a chat.
+> **Treat a `job_id` and your token as sensitive.** A `job_id` is not recoverable, and jobs are readable only by the identity that submitted them. Every identifier in this repository is a placeholder; no real identifier or token appears here, and none should appear in an issue, a log, or a chat.
 
-**Transport in one line:** POST JSON-RPC 2.0, send `Accept: application/json, text/event-stream` (both, or HTTP 406) plus your own `User-Agent`, read the reply out of the SSE `data:` line. No credential was required and none is issued. See [docs/quickstart.md](docs/quickstart.md).
+**Transport in one line:** POST JSON-RPC 2.0 with `Authorization: Bearer $AURCOUNSEL_MCP_TOKEN`, send `Accept: application/json, text/event-stream` (both, or HTTP 406) plus your own `User-Agent`, read the reply out of the SSE `data:` line. See [docs/quickstart.md](docs/quickstart.md).
 
 ## API / Wire format
 
@@ -47,6 +63,7 @@ POST https://mcp.clawplus.pro/mcp
 Required headers:
 
 ```text
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
 Content-Type: application/json
 Accept: application/json, text/event-stream
 ```
@@ -72,7 +89,10 @@ A tool call uses this envelope:
 The same call with `curl`:
 
 ```bash
+export AURCOUNSEL_MCP_TOKEN="..."
+
 curl https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{
@@ -153,7 +173,7 @@ For a revision, `completed` answers "did the job finish", not "was the contract 
 
 ## Quickstart
 
-1. Configure an MCP client to use:
+1. Configure an MCP client to use the endpoint below, with the header `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>` on every request:
 
    ```text
    https://mcp.clawplus.pro/mcp
@@ -188,7 +208,7 @@ The [`examples/`](examples/) directory contains starter configuration and reques
 - `python_client.py`
 - `curl.md`
 
-`python_client.py` runs against the public endpoint with no dependencies beyond the Python standard library, and every command in `curl.md` was executed as written. Both use the obvious placeholder job identifier `0123456789abcdef`, which is well-formed but belongs to no job, so they are safe to run verbatim and end in `JOB_NOT_FOUND`; substitute your own `job_id` to go further. Neither submits work.
+`python_client.py` runs against the public endpoint with no dependencies beyond the Python standard library, and every command in `curl.md` was executed as written. Both read the token from `AURCOUNSEL_MCP_TOKEN` and use the obvious placeholder job identifier `0123456789abcdef`, which is well-formed but belongs to no identity, so they are safe to run verbatim and end in `403 Forbidden`; substitute a `job_id` your identity submitted to go further. Neither submits work.
 
 The two client configuration files are the exception: the endpoint they name is verified, but no Claude Desktop or Cursor installation was available to load them, so their config shape is marked UNRESOLVED inside the files themselves.
 

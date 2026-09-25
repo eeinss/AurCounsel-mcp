@@ -2,10 +2,13 @@
   "_endpoint_verified": "https://mcp.clawplus.pro/mcp answers JSON-RPC 2.0 over HTTP POST and returns Server-Sent Events; verified live.",
   "_config_format": "UNRESOLVED — the endpoint was verified, this file's shape was not. No Claude Desktop version was available to load it during verification. Check your client's current documentation for how it declares a remote HTTP MCP server; older builds need a stdio bridge instead of a url field.",
   "_transport": "streamable HTTP. Clients must send Accept: application/json, text/event-stream and a non-default User-Agent.",
-  "_auth": "None observed at the MCP endpoint.",
+  "_auth": "Every request must carry Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>. Missing or invalid token: HTTP 401. Jobs and artifacts are scoped to the authenticated identity.",
   "mcpServers": {
     "aurcounsel": {
-      "url": "https://mcp.clawplus.pro/mcp"
+      "url": "https://mcp.clawplus.pro/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AURCOUNSEL_MCP_TOKEN}"
+      }
     }
   }
 }
