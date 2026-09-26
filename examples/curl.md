@@ -105,7 +105,7 @@ get_artifact
 
 ```bash
 # NOT EXECUTED — creates a production job.
-# file_b64 is the base64 of a .docx file; file_name and file_b64 are required.
+# file_b64 is the base64 of a .docx file; file_name, file_b64 and represented_party are required.
 curl -sS -X POST https://mcp.clawplus.pro/mcp \
   -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \

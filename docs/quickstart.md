@@ -138,10 +138,10 @@ The response is not plain JSON. It arrives as `text/event-stream`: an `event: me
 Choose one operation. For example, a contract review:
 
 ```text
-review_contract(file_name, file_b64, [requested_jurisdiction], [represented_party], [contract_type_hint])
+review_contract(file_name, file_b64, represented_party, [requested_jurisdiction], [contract_type_hint])
 ```
 
-`file_name` and `file_b64` are the required fields; `file_b64` is the base64 of a `.docx`. The full schema for each submission tool is in [tools.md](tools.md).
+`file_name`, `file_b64` and `represented_party` are required; `file_b64` is the base64 of a `.docx`, and `represented_party` says which party AurCounsel represents (甲方 / party A, 乙方 / party B, or neutral). A call without `represented_party` is refused with `INVALID_INPUT` before anything is sent. The full schema for each submission tool is in [tools.md](tools.md).
 
 On the wire, that submission is:
 
@@ -160,7 +160,8 @@ Accept: application/json, text/event-stream
     "name": "review_contract",
     "arguments": {
       "file_name": "example-agreement.docx",
-      "file_b64": "<base64 of your .docx>"
+      "file_b64": "<base64 of your .docx>",
+      "represented_party": "party A"
     }
   }
 }

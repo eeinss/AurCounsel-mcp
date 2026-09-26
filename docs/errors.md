@@ -103,7 +103,7 @@ Shape:
 | `error_code` | Observed | Meaning | `context` |
 |---|---|---|---|
 | `JOB_NOT_FOUND` | yes | No job exists with that identifier. | `{"upstream_status": 404}` |
-| `INVALID_INPUT` | yes | An argument was present but could not be used. | `{"field": "<name>"}`, plus `accepted` for `artifact` |
+| `INVALID_INPUT` | yes | An argument was missing or could not be used. For `review_contract` without `represented_party` the message is "Missing required parameter: represented_party. Please specify which party AurCounsel represents: party A (甲方), party B (乙方) or neutral." | `{"field": "<name>"}`, plus `accepted` for `artifact` |
 | `JOB_FAILED` | yes | Appears in `get_job`'s `failure` block, not as a top-level `error_code`. | — |
 | `PARTY_CONFIRMATION_REQUIRED` | **no** | Declared by the `review_contract` and `draft_contract` descriptions: an unresolvable `represented_party` is refused and the caller is asked which position the client holds. The one submission made during this pass sent a `represented_party` the server did resolve, so it took the success path and this code was never returned. Provoking it means deliberately submitting an unresolvable party, which was not authorised. **UNRESOLVED.** | UNRESOLVED |
 

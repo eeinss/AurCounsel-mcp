@@ -67,8 +67,20 @@ Submit one contract for full LegalOS review.
     Returns immediately with a job_id; the review runs in the background and
     takes minutes. Poll get_job with that job_id.
 
+    The document arrives one of two ways, and the call must use exactly one of
+    them: `file_ref`, the handle returned by POSTing the document to `/upload`,
+    or `file_b64`, the document base64-encoded in this argument. Supplying both
+    is refused and so is supplying neither — neither one is a default and
+    neither falls back to the other, so which document was reviewed is never a
+    question about precedence.
+
     Args:
-        file_name: Original file name, used as a label on the review.
+        file_name: Original file name, used as a label on the review. Required
+            on both paths: it labels the review, and it is not what identifies
+            the document — that is done by content.
+        file_ref: A handle from `/upload`, held for a limited time, usable only
+            by the caller that uploaded it. The document was identified and
+            checked when it was uploaded; that result is what this review uses.
         file_b64: The document, base64-encoded. .docx, .pdf and .doc are
             accepted and are identified by content, not by file name.
         requested_jurisdiction: Governing law to review under. 'hk' is accepted
@@ -82,7 +94,9 @@ Submit one contract for full LegalOS review.
             'supplier' or 'licensor' does not: which position holds that role
             is a fact about this contract, and nothing here can read it, so the
             call is refused with PARTY_CONFIRMATION_REQUIRED and you are asked
-            which position the client holds. Omit for the engine's own detection.
+            which position the client holds. Required: there is no detection to
+            fall back on, and a call without it is refused with INVALID_INPUT
+            before anything is sent.
         contract_type_hint: Contract type in free text, e.g. 'nda', 'lease',
             '委任契約'. A hint only — an unrecognised value costs nothing.
 ```
@@ -92,28 +106,81 @@ Submit one contract for full LegalOS review.
 ```json
 {
   "properties": {
-    "file_name": { "title": "File Name", "type": "string" },
-    "file_b64": { "title": "File B64", "type": "string" },
+    "file_name": {
+      "title": "File Name",
+      "type": "string"
+    },
+    "file_b64": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File B64"
+    },
+    "file_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File Ref"
+    },
     "requested_jurisdiction": {
       "anyOf": [
-        { "enum": ["taiwan", "mainland", "hk", "other"], "type": "string" },
-        { "type": "null" }
+        {
+          "enum": [
+            "taiwan",
+            "mainland",
+            "hk",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
       ],
       "default": null,
       "title": "Requested Jurisdiction"
     },
     "represented_party": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
       "title": "Represented Party"
     },
     "contract_type_hint": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
       "title": "Contract Type Hint"
     }
   },
-  "required": ["file_name", "file_b64"],
+  "required": [
+    "file_name",
+    "represented_party"
+  ],
   "title": "review_contractArguments",
   "type": "object"
 }
@@ -122,9 +189,10 @@ Submit one contract for full LegalOS review.
 | Field | Required | Type | Notes |
 |---|---|---|---|
 | `file_name` | yes | string | Label only. File type is identified by content, not by this name. |
-| `file_b64` | yes | string | Base64 of the document. `.docx`, `.pdf`, `.doc` accepted. |
+| `file_b64` | one of `file_b64` / `file_ref` | string \| null | Base64 of the document. `.docx`, `.pdf`, `.doc` accepted. |
+| `file_ref` | one of `file_b64` / `file_ref` | string \| null | Handle returned by uploading the document to `/upload`. Supplying both, or neither, is refused. |
+| `represented_party` | **yes** | string | Which party AurCounsel represents: free text that must resolve to 甲方 (party A) / 乙方 (party B) / neutral. There is no automatic detection. Missing ⇒ `INVALID_INPUT` with the message "Missing required parameter: represented_party. Please specify which party AurCounsel represents…", and nothing is sent. A role name (`supplier`, `licensor`) does not resolve and is refused with `PARTY_CONFIRMATION_REQUIRED`. |
 | `requested_jurisdiction` | no | enum \| null | `taiwan`, `mainland`, `hk`, `other`. `hk` is accepted but reviewed as `other`, and the response reports that the request was degraded. |
-| `represented_party` | no | string \| null | Free text that must resolve to 甲方 / 乙方 / neutral. A role name (`supplier`, `licensor`) does not resolve and is refused with `PARTY_CONFIRMATION_REQUIRED`. |
 | `contract_type_hint` | no | string \| null | Free-text hint; an unrecognised value is harmless. |
 
 ### Success response shape and `job_id` path

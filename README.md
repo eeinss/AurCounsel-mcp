@@ -115,7 +115,7 @@ Required arguments, by tool:
 
 | Tool | Required arguments |
 | --- | --- |
-| `review_contract` | `file_name`, `file_b64` |
+| `review_contract` | `file_name`, one of `file_b64` / `file_ref`, `represented_party` |
 | `draft_contract` | `subject` |
 | `compare_contracts` | `file_a_name`, `file_a_b64`, `file_b_name`, `file_b_b64` |
 | `revise_contract` | `file_name`, one of `file_b64` / `file_ref`, `revision_text` |
