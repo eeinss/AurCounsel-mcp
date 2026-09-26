@@ -16,18 +16,19 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-`tools/list` returns exactly six tools:
+`tools/list` returns exactly seven tools:
 
 ```text
 review_contract
 draft_contract
 compare_contracts
 revise_contract
+legal_research
 get_job
 get_artifact
 ```
 
-No additional public tools exist beyond these six. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these seven. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 Every tool's `inputSchema` is a JSON Schema `object` whose `title` has the form `<tool_name>Arguments`. Optional parameters are declared as `anyOf: [<type>, {"type": "null"}]` with `"default": null` — that is, an optional parameter may be omitted or passed explicitly as `null`.
 
@@ -812,3 +813,32 @@ Before a release of this repository, compare all six documented tools against on
 - response shapes;
 - public error responses;
 - any newly added or removed tools.
+
+## `legal_research`
+
+### Purpose
+
+Research a legal question: relevant statutes, court judgments and how courts decide the issue, organised into a readable result (conclusion, legal basis, how courts see it, decisive factors, what to confirm next). Use it when the question needs systematic research; it is not a lookup for the text of a single provision. A run takes several minutes.
+
+### Arguments
+
+| Argument | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `question` | string | yes | The legal question, in the user's own words. |
+
+### Lifecycle and result
+
+The call returns immediately with `{"ok": true, "job_id": "...", "capability": "legal_research", "status": "submitted"}`. Poll `get_job`: `status` moves from `processing` to `completed` (or `failed`). When `completed`, `research_markdown` carries the result as Markdown, and `artifacts` lists one artifact, `research`, which `get_artifact` returns as `text/markdown`.
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "legal_research",
+  "status": "completed",
+  "research_markdown": "### ...",
+  "artifacts": [{"name": "research", "ready": true}]
+}
+```
+
+Jobs and artifacts are scoped to the authenticated identity; another identity reading this job gets `403 Forbidden`.

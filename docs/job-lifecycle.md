@@ -182,6 +182,21 @@ An identifier your identity did not submit — including one that resolves to no
 
 **UNRESOLVED** — no live `unknown` response was observed. The description above is the server's own.
 
+## Legal Research jobs
+
+A `legal_research` job follows the same states: `submitted` → `processing` → `completed` or `failed`. It has one artifact, `research` (Markdown). When the job is `completed`, `get_job` also returns the result inline in `research_markdown`:
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "legal_research",
+  "status": "completed",
+  "research_markdown": "### ...",
+  "artifacts": [{"name": "research", "ready": true}]
+}
+```
+
 ## State diagram
 
 ```text

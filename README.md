@@ -36,10 +36,11 @@ AurCounsel MCP currently exposes these primary tools:
 - `draft_contract` — request contract drafting.
 - `compare_contracts` — compare two contracts or contract versions.
 - `revise_contract` — submit a contract plus a revision instruction, and get the revised contract and a tracked-change redline back.
+- `legal_research` — research a legal question: relevant statutes, court judgments and how courts decide the issue, organised into a readable result.
 - `get_job` — inspect the state of an asynchronous job.
 - `get_artifact` — retrieve completed deliverables produced by a job.
 
-A live `tools/list` returns exactly these six tools and nothing else. The descriptions, JSON input schemas, response fields, and artifact vocabulary are in [docs/tools.md](docs/tools.md) and [docs/artifacts.md](docs/artifacts.md). The live machine-readable contract, not this prose, is canonical.
+A live `tools/list` returns exactly these seven tools and nothing else. The descriptions, JSON input schemas, response fields, and artifact vocabulary are in [docs/tools.md](docs/tools.md) and [docs/artifacts.md](docs/artifacts.md). The live machine-readable contract, not this prose, is canonical.
 
 > **Machine-truth note:** the four submission tools create real jobs. Two submissions have been authorised in total, each followed to completion, and each is the sole source of what is written about its tool here:
 >
@@ -118,6 +119,7 @@ Required arguments, by tool:
 | `draft_contract` | `subject` |
 | `compare_contracts` | `file_a_name`, `file_a_b64`, `file_b_name`, `file_b_b64` |
 | `revise_contract` | `file_name`, one of `file_b64` / `file_ref`, `revision_text` |
+| `legal_research` | `question` |
 | `get_job` | `job_id` |
 | `get_artifact` | `job_id`, `artifact` |
 
@@ -170,6 +172,43 @@ revise_contract(file_name, file_b64, revision_text)
 A job that reaches `failed` is terminal. Partial or internally generated outputs from a failed job are **not** completed deliverables.
 
 For a revision, `completed` answers "did the job finish", not "was the contract changed". Those are two different questions and the server answers them on two different fields — see [docs/quickstart.md](docs/quickstart.md#6-check-job-status).
+
+## Legal Research
+
+`legal_research` takes one argument, `question`, and runs asynchronously like the other capabilities. Use it for questions that need systematic research — how courts apply a provision, which judgments are representative, what the practical position is. A run takes several minutes.
+
+```bash
+curl https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "legal_research",
+      "arguments": {
+        "question": "How do courts decide whether a statutory reduction for identifying a drug source applies?"
+      }
+    }
+  }'
+```
+
+The reply carries a `job_id`. Poll `get_job` with it; when `status` is `completed`, the result is in `research_markdown`, and the same Markdown is available as `get_artifact(job_id, "research")`:
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "legal_research",
+  "status": "completed",
+  "research_markdown": "### ...",
+  "artifacts": [{"name": "research", "ready": true}]
+}
+```
+
+Like every job, a Legal Research job is readable only by the identity that submitted it.
 
 ## Quickstart
 

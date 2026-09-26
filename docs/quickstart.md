@@ -218,7 +218,34 @@ Accept: application/json, text/event-stream
 
 **How a clause is located.** A clause number is the authoritative locator. If the instruction names an ordinal that exists in the document — `第三條`, clause 3 — that clause is where the revision is applied, and the rest of the instruction cannot move it: any description of the clause's subject or title can only help locate a clause, never override an ordinal that the document actually has. An ordinal the document does not have is a different case: nothing is guessed, and the job comes back `completed` having declined to revise, with the reason.
 
+### Legal Research
+
+`legal_research` takes one argument, `question`, and is submitted the same way:
+
+```bash
+curl https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "legal_research",
+      "arguments": {
+        "question": "How do courts decide whether a statutory reduction for identifying a drug source applies?"
+      }
+    }
+  }'
+```
+
+It returns a `job_id` like every other submission. See section 6 for where its result appears.
+
 ## 6. Check job status
+
+For a `legal_research` job, `get_job` reports `capability: "legal_research"`; once `status` is `completed`, the result is in `research_markdown` (also available as `get_artifact(job_id, "research")`).
+
 
 Use:
 

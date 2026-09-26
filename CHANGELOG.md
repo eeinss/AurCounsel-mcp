@@ -6,6 +6,10 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### Added
+
+- `legal_research` tool (Legal Research): submit a legal question, poll `get_job`, read `research_markdown` or `get_artifact(job_id, "research")`. Documented in README, quickstart, tools, job lifecycle and curl examples.
+
 ### Changed
 
 - Authentication is required: every MCP request, including artifact downloads, must carry `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>`. Missing or invalid token: `401 Unauthorized`.

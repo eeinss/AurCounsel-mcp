@@ -113,6 +113,30 @@ curl -sS -X POST https://mcp.clawplus.pro/mcp \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"review_contract","arguments":{"file_name":"agreement.docx","file_b64":"<BASE64_DOCX>","requested_jurisdiction":"taiwan","represented_party":"Party A"}}}'
 ```
 
+## 3b. Submit `legal_research`
+
+Creates a real job. Replace the question with your own.
+
+```bash
+curl -sS -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "legal_research",
+      "arguments": {
+        "question": "How do courts decide whether a statutory reduction for identifying a drug source applies?"
+      }
+    }
+  }'
+```
+
+The reply carries a `job_id`; poll it with section 4. When `status` is `completed`, `research_markdown` holds the result.
+
 ## 4. Check `get_job`
 
 ```bash
