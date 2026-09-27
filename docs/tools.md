@@ -16,7 +16,7 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-`tools/list` returns exactly seven tools:
+`tools/list` returns exactly eight tools:
 
 ```text
 review_contract
@@ -24,11 +24,12 @@ draft_contract
 compare_contracts
 revise_contract
 legal_research
+fast_legal
 get_job
 get_artifact
 ```
 
-No additional public tools exist beyond these seven. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these eight. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 Every tool's `inputSchema` is a JSON Schema `object` whose `title` has the form `<tool_name>Arguments`. Optional parameters are declared as `anyOf: [<type>, {"type": "null"}]` with `"default": null` — that is, an optional parameter may be omitted or passed explicitly as `null`.
 
@@ -870,7 +871,7 @@ See [artifacts.md](artifacts.md), which carries the artifact vocabulary by capab
 
 ## Schema synchronization checklist
 
-Before a release of this repository, compare all six documented tools against one fresh live discovery capture. Verify:
+Before a release of this repository, compare all documented tools against one fresh live discovery capture. Verify:
 
 - exact tool names;
 - exact descriptions;
@@ -908,5 +909,84 @@ The call returns immediately with `{"ok": true, "job_id": "...", "capability": "
   "artifacts": [{"name": "research", "ready": true}]
 }
 ```
+
+Jobs and artifacts are scoped to the authenticated identity; another identity reading this job gets `403 Forbidden`.
+
+## `fast_legal`
+
+### Purpose
+
+Answer a legal question with bounded research and report whether the evidence found was sufficient. Fast Legal performs bounded legal research using AurCounsel's legal retrieval capabilities. It is independent of `legal_research` and never calls it; the caller decides whether to follow up with `legal_research`.
+
+### Live description (verbatim)
+
+```text
+Answer a legal question with bounded research, and say whether the evidence found was sufficient.
+
+    Fast Legal performs bounded legal research using AurCounsel's legal retrieval capabilities (statutes and court
+    judgments) and returns an answer together with an evidence-sufficiency status:
+    COMPLETE — the evidence found supports the core answer (it does not mean research was exhaustive);
+    INSUFFICIENT_EVIDENCE — only part of the answer could be supported; the answer states what could and could not be
+    confirmed and why, and evidence.deep_research_recommended is true.
+    The status is model-assessed, not a guarantee. Fast Legal never runs legal_research by itself: when you need a
+    fuller answer, call legal_research with the same question. A run usually takes one to a few minutes.
+
+    Returns immediately with a job_id. Poll get_job with that job_id; when status is completed the answer is in
+    answer_markdown and the status in evidence (also available as get_artifact(job_id, "fast_answer")).
+
+    Args:
+        question: The legal question, in the user's own words.
+    ```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "question": {
+      "title": "Question",
+      "type": "string"
+    }
+  },
+  "required": [
+    "question"
+  ],
+  "title": "fast_legalArguments",
+  "type": "object"
+}
+```
+
+### Lifecycle and result
+
+The call returns immediately with `{"ok": true, "job_id": "...", "capability": "fast_legal", "status": "submitted"}`. Poll `get_job`: `status` moves from `processing` to `completed` (or `failed`). When `completed`, `answer_markdown` carries the answer as Markdown, `evidence` carries the evidence-sufficiency status, and `artifacts` lists one artifact, `fast_answer`, which `get_artifact` returns as `text/markdown` together with the same `evidence`.
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "fast_legal",
+  "status": "completed",
+  "progress": null,
+  "answer_markdown": "...",
+  "evidence": {
+    "status": "COMPLETE",
+    "insufficiency_reason": "",
+    "deep_research_recommended": false,
+    "review_outcome": "PASS"
+  },
+  "artifacts": [{"name": "fast_answer", "ready": true}]
+}
+```
+
+| `evidence` field | Meaning |
+| --- | --- |
+| `status` | `COMPLETE` — the evidence found supports the core answer (it does not mean the research was exhaustive). `INSUFFICIENT_EVIDENCE` — only part of the answer could be supported; the answer states what could and could not be confirmed, and why. |
+| `insufficiency_reason` | Set only for `INSUFFICIENT_EVIDENCE`: what is missing and why. |
+| `deep_research_recommended` | `true` for `INSUFFICIENT_EVIDENCE`, otherwise `false`. |
+| `review_outcome` | Observability only: which internal review result produced the status (`PASS`, `REWRITE`, `INSUFFICIENT_EVIDENCE`, `NOT_RUN`, `UNREADABLE`). |
+
+The status is **model-assessed**, not a guarantee. `INSUFFICIENT_EVIDENCE` does not mean the proposition is false or that no authority exists; it means bounded research did not gather enough to answer reliably.
+
+The `COMPLETE` response above was observed live. An `INSUFFICIENT_EVIDENCE` response was not observed in this documentation pass; its shape is the same, with the fields set as the table describes — **UNRESOLVED** as a live capture.
 
 Jobs and artifacts are scoped to the authenticated identity; another identity reading this job gets `403 Forbidden`.

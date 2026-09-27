@@ -8,6 +8,7 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ### Added
 
+- `fast_legal` tool (Fast Legal): bounded legal research with an evidence-sufficiency status (`COMPLETE` / `INSUFFICIENT_EVIDENCE`, model-assessed). Poll `get_job` for `answer_markdown` and `evidence`, or read `get_artifact(job_id, "fast_answer")`. Independent of `legal_research`: it never calls it, and the caller decides whether to follow up with `legal_research`. Documented in README, quickstart, tools, job lifecycle and curl examples.
 - `legal_research` tool (Legal Research): submit a legal question, poll `get_job`, read `research_markdown` or `get_artifact(job_id, "research")`. Documented in README, quickstart, tools, job lifecycle and curl examples.
 
 ### Changed

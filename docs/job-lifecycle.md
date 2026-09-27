@@ -197,6 +197,30 @@ A `legal_research` job follows the same states: `submitted` → `processing` →
 }
 ```
 
+## Fast Legal jobs
+
+A `fast_legal` job follows the same states: `submitted` → `processing` → `completed` or `failed`. It has one artifact, `fast_answer` (Markdown). When the job is `completed`, `get_job` also returns the answer inline in `answer_markdown` and the evidence-sufficiency status in `evidence`:
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "fast_legal",
+  "status": "completed",
+  "progress": null,
+  "answer_markdown": "...",
+  "evidence": {
+    "status": "COMPLETE",
+    "insufficiency_reason": "",
+    "deep_research_recommended": false,
+    "review_outcome": "PASS"
+  },
+  "artifacts": [{"name": "fast_answer", "ready": true}]
+}
+```
+
+`evidence.status` is `COMPLETE` or `INSUFFICIENT_EVIDENCE`. It is separate from the job `status`: a job that answered with `INSUFFICIENT_EVIDENCE` is still `completed`. See [tools.md](tools.md#fast_legal).
+
 ## State diagram
 
 ```text

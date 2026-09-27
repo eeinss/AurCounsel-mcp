@@ -1,10 +1,12 @@
 # AurCounsel MCP
 
-> AurCounsel MCP provides contract review, drafting, comparison, revision, and artifact retrieval through the Model Context Protocol.
+> AurCounsel MCP provides contract review, drafting, comparison, revision, legal research, and artifact retrieval through the Model Context Protocol.
 
 AurCounsel MCP is the public developer interface for **AurCounsel**, a contract intelligence platform. It lets MCP-compatible clients submit contract work, monitor asynchronous jobs, and retrieve completed deliverables without exposing AurCounsel's private backend implementation.
 
-> **Newest capability: `revise_contract`.** It takes a contract plus a revision instruction in prose and returns the revised document together with a tracked-change redline. It is the one capability whose result is **not** carried by `status`: a revision that was applied and a revision the server declined to apply both finish as `completed`, and the difference is reported on a separate `outcome` field. See [What you can do](#what-you-can-do) and the revision notes in [docs/quickstart.md](docs/quickstart.md).
+> **Newest capability: `fast_legal`.** It answers a legal question with bounded research and says whether the evidence it found was sufficient (`COMPLETE` or `INSUFFICIENT_EVIDENCE`). It never runs `legal_research` by itself: when you need a fuller answer, you decide whether to call `legal_research`. See [Fast Legal and Legal Research](#fast-legal-and-legal-research).
+
+> **`revise_contract`.** It takes a contract plus a revision instruction in prose and returns the revised document together with a tracked-change redline. It is the one capability whose result is **not** carried by `status`: a revision that was applied and a revision the server declined to apply both finish as `completed`, and the difference is reported on a separate `outcome` field. See [What you can do](#what-you-can-do) and the revision notes in [docs/quickstart.md](docs/quickstart.md).
 
 **Public MCP endpoint**
 
@@ -37,10 +39,11 @@ AurCounsel MCP currently exposes these primary tools:
 - `compare_contracts` — compare two contracts or contract versions.
 - `revise_contract` — submit a contract plus a revision instruction, and get the revised contract and a tracked-change redline back.
 - `legal_research` — research a legal question: relevant statutes, court judgments and how courts decide the issue, organised into a readable result.
+- `fast_legal` — answer a legal question with bounded research, together with an evidence-sufficiency status.
 - `get_job` — inspect the state of an asynchronous job.
 - `get_artifact` — retrieve completed deliverables produced by a job.
 
-A live `tools/list` returns exactly these seven tools and nothing else. The descriptions, JSON input schemas, response fields, and artifact vocabulary are in [docs/tools.md](docs/tools.md) and [docs/artifacts.md](docs/artifacts.md). The live machine-readable contract, not this prose, is canonical.
+A live `tools/list` returns exactly these eight tools and nothing else. The descriptions, JSON input schemas, response fields, and artifact vocabulary are in [docs/tools.md](docs/tools.md) and [docs/artifacts.md](docs/artifacts.md). The live machine-readable contract, not this prose, is canonical.
 
 > **Machine-truth note:** the four submission tools create real jobs. Two submissions have been authorised in total, each followed to completion, and each is the sole source of what is written about its tool here:
 >
@@ -120,6 +123,7 @@ Required arguments, by tool:
 | `compare_contracts` | `file_a_name`, `file_a_b64`, `file_b_name`, `file_b_b64` |
 | `revise_contract` | `file_name`, one of `file_b64` / `file_ref`, `revision_text` |
 | `legal_research` | `question` |
+| `fast_legal` | `question` |
 | `get_job` | `job_id` |
 | `get_artifact` | `job_id`, `artifact` |
 
@@ -173,7 +177,67 @@ A job that reaches `failed` is terminal. Partial or internally generated outputs
 
 For a revision, `completed` answers "did the job finish", not "was the contract changed". Those are two different questions and the server answers them on two different fields — see [docs/quickstart.md](docs/quickstart.md#6-check-job-status).
 
-## Legal Research
+## Fast Legal and Legal Research
+
+Two independent capabilities answer legal questions:
+
+- `fast_legal` — Fast Legal performs bounded legal research using AurCounsel's legal retrieval capabilities and returns an answer with an evidence-sufficiency status. A run usually takes one to a few minutes.
+- `legal_research` — deeper, systematic research. A run takes several minutes.
+
+Neither calls the other. A typical client calls `fast_legal` first and, when `evidence.status` is `INSUFFICIENT_EVIDENCE` (`evidence.deep_research_recommended` is `true`) and a fuller answer is needed, calls `legal_research` with the same question. That decision is yours.
+
+### Fast Legal
+
+`fast_legal` takes one argument, `question`, and runs asynchronously like the other capabilities.
+
+```bash
+curl https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "fast_legal",
+      "arguments": {
+        "question": "What must be shown to establish tort liability under Article 184 of the Taiwan Civil Code?"
+      }
+    }
+  }'
+```
+
+The reply carries a `job_id`. Poll `get_job` with it; when `status` is `completed`, the answer is in `answer_markdown` and the status in `evidence`. The same Markdown is available as `get_artifact(job_id, "fast_answer")`:
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "fast_legal",
+  "status": "completed",
+  "progress": null,
+  "answer_markdown": "...",
+  "evidence": {
+    "status": "COMPLETE",
+    "insufficiency_reason": "",
+    "deep_research_recommended": false,
+    "review_outcome": "PASS"
+  },
+  "artifacts": [{"name": "fast_answer", "ready": true}]
+}
+```
+
+| `evidence` field | Meaning |
+| --- | --- |
+| `status` | `COMPLETE` — the evidence found supports the core answer (it does not mean the research was exhaustive). `INSUFFICIENT_EVIDENCE` — only part of the answer could be supported; the answer states what could and could not be confirmed, and why. |
+| `insufficiency_reason` | Set only for `INSUFFICIENT_EVIDENCE`: what is missing and why. |
+| `deep_research_recommended` | `true` for `INSUFFICIENT_EVIDENCE`, otherwise `false`. |
+| `review_outcome` | Observability only: which internal review result produced the status (`PASS`, `REWRITE`, `INSUFFICIENT_EVIDENCE`, `NOT_RUN`, `UNREADABLE`). |
+
+The status is **model-assessed**, not a guarantee. `INSUFFICIENT_EVIDENCE` does not mean the proposition is false or that no authority exists; it means bounded research did not gather enough to answer reliably.
+
+### Legal Research
 
 `legal_research` takes one argument, `question`, and runs asynchronously like the other capabilities. Use it for questions that need systematic research — how courts apply a provision, which judgments are representative, what the practical position is. A run takes several minutes.
 
@@ -208,7 +272,7 @@ The reply carries a `job_id`. Poll `get_job` with it; when `status` is `complete
 }
 ```
 
-Like every job, a Legal Research job is readable only by the identity that submitted it.
+Like every job, a Fast Legal or Legal Research job is readable only by the identity that submitted it.
 
 ## Quickstart
 
@@ -267,6 +331,7 @@ AurCounsel Contract Intelligence Engine
     ├── Drafting
     ├── Comparison
     ├── Revision
+    ├── Legal Research (Fast Legal, Legal Research)
     ├── Legal Grounding
     └── Artifact Generation
 ```

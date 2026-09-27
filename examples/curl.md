@@ -137,6 +137,30 @@ curl -sS -X POST https://mcp.clawplus.pro/mcp \
 
 The reply carries a `job_id`; poll it with section 4. When `status` is `completed`, `research_markdown` holds the result.
 
+## 3c. Submit `fast_legal`
+
+Creates a real job. Replace the question with your own.
+
+```bash
+curl -sS -X POST https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "fast_legal",
+      "arguments": {
+        "question": "What must be shown to establish tort liability under Article 184 of the Taiwan Civil Code?"
+      }
+    }
+  }'
+```
+
+The reply carries a `job_id`; poll it with section 4. When `status` is `completed`, `answer_markdown` holds the answer and `evidence.status` says whether the evidence was sufficient (`COMPLETE` or `INSUFFICIENT_EVIDENCE`).
+
 ## 4. Check `get_job`
 
 ```bash
