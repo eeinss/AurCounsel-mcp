@@ -30,24 +30,29 @@ Clients should not expose them as final results.
 
 ## Artifact types
 
-The accepted vocabulary is exactly twelve values. This list is not inferred: it is returned verbatim by the live server in `context.accepted` when `get_artifact` is called with an unrecognised artifact name.
+The accepted vocabulary is not inferred: it is returned verbatim by the live server in `context.accepted` when `get_artifact` is called with an unrecognised artifact name. Which names are valid for a given job depends on that job's `capability`:
 
 ```text
-redline, original, revised, revised_docx, memo, review_comments,
-draft_html, draft_docx, draft_summary,
-compare_redline, compare_memo, compare_synthesis
+review:   redline, original, revised, revised_docx, memo, review_comments
+draft:    draft_html, draft_docx, draft_summary
+compare:  compare_redline, compare_memo, compare_synthesis
+revise:   revised_docx, redline_docx   (revision jobs submitted before revise_contract was withdrawn)
+fast_legal:      fast_answer
 ```
 
-Which subset is valid depends on the job's `capability`. The `media_type` and `inline_text_available` columns below are verbatim from the `artifacts[]` list of the completed `get_job` reading on the synthetic contract submitted during this pass; the `draft` and `compare` rows are from the live `get_artifact` description, since no draft or compare job was observed.
+Read `context.accepted` from the live server rather than counting the list above.
+
+The `media_type` and `inline_text_available` columns below are verbatim from the `artifacts[]` list of the completed `get_job` reading on the synthetic contract submitted during the review pass; the two `revise` rows are from the completed revision job and the artifacts it served; the `draft` and `compare` rows are from the live `get_artifact` description, since no draft or compare job was observed.
 
 | Artifact | Produced by | Meaning (from the live description) | Media type | Inline text |
 |---|---|---|---|---|
 | `redline` | review | Tracked-change view of the changes | `text/html` | yes |
 | `original` | review | The submitted contract | `text/html` | yes |
 | `revised` | review | The revised contract | `text/html` | yes |
-| `revised_docx` | review | The revised contract to deliver | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | **no** |
+| `revised_docx` | review, revise | The revised contract to deliver | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | **no** |
 | `memo` | review | The opinion document | `text/html` | yes |
 | `review_comments` | review | The review opinion the UI shows the lawyer | `text/markdown` | yes |
+| `redline_docx` | revise | The revised contract carrying the changes as Word revision marks | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | **no** |
 | `draft_html` | draft | The drafted contract | UNRESOLVED | UNRESOLVED |
 | `draft_docx` | draft | The same contract to deliver | UNRESOLVED | UNRESOLVED |
 | `draft_summary` | draft | Summary of the draft | UNRESOLVED | UNRESOLVED |
@@ -55,7 +60,18 @@ Which subset is valid depends on the job's `capability`. The `media_type` and `i
 | `compare_memo` | compare | Comparison opinion document | UNRESOLVED | UNRESOLVED |
 | `compare_synthesis` | compare | Comparison synthesis | UNRESOLVED | UNRESOLVED |
 
-The six `UNRESOLVED` media types require a `draft` or `compare` job to observe. The one submission executed during this pass was a `review`, so they remain unobserved. See the PENDING_AUTH notes in [tools.md](tools.md).
+The six `UNRESOLVED` media types require a `draft` or `compare` job to observe. Neither capability has been submitted, so they remain unobserved. See the PENDING_AUTH notes in [tools.md](tools.md).
+
+### Revision artifacts
+
+`revise_contract` has been withdrawn; this applies to revision jobs submitted before that. A `revise` job serves two artifacts, and they are not interchangeable:
+
+- `revised_docx` — the revised contract as a clean Word document. The new text is in place and the document carries no revision marks.
+- `redline_docx` — the same result as a Word document carrying the changes as tracked revision marks, so that the change can be read, and accepted or rejected, in Word.
+
+Both are binary, and both are returned as a URL only with `text: null`, like any other `.docx` artifact.
+
+**Do not confuse `redline_docx` with `redline`.** A review's `redline` is an HTML view of the changes. `redline_docx` is a Word document with the revision marks inside it. Different capability, different artifact, different format.
 
 ## `get_artifact` response
 
@@ -68,11 +84,11 @@ The call returns `isError: false` with a single text content block containing a 
 | `ok` | boolean | always | `true` when the job resolved, including when the artifact is unavailable. |
 | `job_id` | string | always | Echo of the request. |
 | `artifact` | string | always | Echo of the requested artifact name. |
-| `capability` | string | always | `review`, `draft`, or `compare`. |
+| `capability` | string | always | `review`, `draft`, `compare`, `revise` (existing revision jobs), or `fast_legal`. |
 | `available` | boolean | always | Whether the artifact has been written. |
 | `url` | string | always | `https://mcp.clawplus.pro/artifact/<job_id>/<artifact>` |
 | `media_type` | string | when available | MIME type of the artifact. |
-| `text` | string \| null | when available | Inline content for text artifacts; `null` for binary artifacts. |
+| `text` | string \| null | when available | Inline content for text artifacts; `null` for binary artifacts. A text artifact larger than 8 MB is not returned inline: the call is refused with `ARTIFACT_TOO_LARGE`, and the same file is downloadable from its `url`. |
 | `status` | string | when unavailable | The parent job's status. |
 | `note` | string | binary or unavailable | Server-supplied explanatory text. See the caution below. |
 
@@ -163,8 +179,8 @@ Requesting `memo` from a terminally failed job returns (sanitized example, same 
 
 ## Missing artifact and unknown job
 
-- **Unrecognised artifact name** — an `INVALID_INPUT` application error whose `context.accepted` lists the twelve valid names. See [errors.md](errors.md).
-- **Unknown job identifier** — a `JOB_NOT_FOUND` application error. The artifact name is validated first: an unknown job combined with an invalid artifact name reports the artifact problem, not the job problem.
+- **Unrecognised artifact name** — an `INVALID_INPUT` application error whose `context.accepted` lists the valid names. See [errors.md](errors.md).
+- **Job identifier not submitted by your identity (including an unknown one)** — HTTP `403 Forbidden` before the tool runs. A job your identity submitted that the service can no longer find is a `JOB_NOT_FOUND` application error. The artifact name is validated first: an unknown job combined with an invalid artifact name reports the artifact problem, not the job problem.
 - **Artifact requested before it is ready on a live job** — the live description states this returns `available: false` rather than an error. **UNRESOLVED.** `get_artifact` was never called on a job that was still `processing`. What *was* observed is the neighbouring fact, from `get_job`: on a live `processing` job the `artifacts` array is already fully populated, with every `ready` set to `false` (see [job-lifecycle.md](job-lifecycle.md)). That is the field to branch on. What `get_artifact` itself returns in that window — and what its `note` says — is not established.
 
 ## Integrity and completeness
@@ -173,6 +189,6 @@ Clients should consume the artifact exactly as returned by the public contract a
 
 The live responses expose no checksum, no byte length, no expiry, and no pagination. Structured sections are not exposed as fields; text artifacts arrive as a single `text` string.
 
-> **UNRESOLVED — artifact URL access.** Every response carries an artifact `url`, and the binary-artifact `note` says to "present the credential this call was made with." The MCP endpoint itself accepted requests with no credential at all (see [quickstart.md](quickstart.md)). What, if anything, guards `https://mcp.clawplus.pro/artifact/...` was not tested: fetching those URLs was outside the scope of this verification pass. This repository therefore makes no claim in either direction — not that those URLs are public, not that they require authentication, and not that they are permanent.
+> **Artifact URL access.** Artifact URLs (`https://mcp.clawplus.pro/artifact/...`) require the same `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>` header as the MCP endpoint, and only the identity that submitted the job can fetch them: a missing or invalid token gets `401 Unauthorized`, another identity gets `403 Forbidden`. Whether the URLs are permanent is not specified.
 >
-> **Because it is unresolved, handle it conservatively.** Treat the `job_id`, and any artifact reference or URL returned alongside it, as sensitive. Do not publish them, paste them into shared logs or issue trackers, or pass them to a third party. The supported way to read a deliverable is `get_job` to confirm the job is `completed`, then `get_artifact` over the MCP endpoint — not by fetching the `url` out of band.
+> **Handle identifiers conservatively.** Treat the `job_id`, and any artifact reference or URL returned alongside it, as sensitive. Do not publish them, paste them into shared logs or issue trackers, or pass them to a third party. The supported way to read a deliverable is `get_job` to confirm the job is `completed`, then `get_artifact` over the MCP endpoint — not by fetching the `url` out of band.

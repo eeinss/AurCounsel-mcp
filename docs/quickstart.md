@@ -39,15 +39,23 @@ You need:
 - an MCP-compatible client, or any HTTP client that can POST JSON;
 - network access to the public endpoint.
 
-**Authentication:** none observed. `tools/list` succeeded with no `Authorization` header, and returned the identical five-tool list when sent `Authorization: Bearer not-a-real-token`. There is no credential to obtain, and no auth error envelope exists to document.
+**Authentication:** every MCP request must carry a bearer token, including `initialize`, `tools/list`, every `tools/call`, and artifact downloads:
 
-> **Caution.** That is a statement of observed behavior, not a recommendation. Do not read "no credential was required" as "this data is public." A `job_id` is the only handle to a job and grants access to that job's artifacts — the live server instructions say to treat it as a credential. Whether the artifact download URLs are separately guarded was not tested; see [artifacts.md](artifacts.md).
+```text
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
+```
+
+```bash
+export AURCOUNSEL_MCP_TOKEN="..."
+```
+
+A request without a token, or with an invalid one, receives `401 Unauthorized`. Jobs and artifacts are scoped to the authenticated identity: a job or artifact identifier alone does not grant access, and reading another identity's job or artifact returns `403 Forbidden`. See [errors.md](errors.md#6-authentication-and-authorization-errors).
 
 **User agent:** send one. The edge network in front of the endpoint rejects Python's default `Python-urllib/*` signature with HTTP 403 (Cloudflare error 1010) before the request reaches the MCP server. Any identifying value works; `curl`'s default is accepted. See [errors.md](errors.md).
 
 ## 3. Configure your MCP client
 
-Use the public endpoint as the MCP server URL.
+Use the public endpoint as the MCP server URL, and configure the client to send `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>` on every request.
 
 Example client files are available in:
 
@@ -68,13 +76,16 @@ After connecting, confirm the server exposes the expected primary tools:
 review_contract
 draft_contract
 compare_contracts
+revise_contract
+get_capabilities
+fast_legal
 get_job
 get_artifact
 ```
 
-A live `tools/list` returns exactly these five and nothing else. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}` — the server publishes no prompts and no resources.
+A live `tools/list` returns exactly these eight and nothing else. `compare_contracts` and `revise_contract` are registered but not open: every call returns `PERMISSION_DENIED`. Call `get_capabilities` to see what is open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}` — the server publishes no prompts and no resources.
 
-The canonical schemas are whatever the live MCP server returns through tool discovery. The prose documentation in this repo must be regenerated or corrected whenever it diverges from that machine-readable contract. Every schema in [tools.md](tools.md) was transcribed from a live capture.
+The canonical schemas are whatever the live MCP server returns through tool discovery. The prose documentation in this repo must be regenerated or corrected whenever it diverges from that machine-readable contract. The per-tool contract is in [tools.md](tools.md).
 
 ### A request you can paste as-is
 
@@ -83,6 +94,7 @@ Every tool is invoked the same way: a JSON-RPC 2.0 `tools/call` POST to the endp
 ```http
 POST /mcp HTTP/1.1
 Host: mcp.clawplus.pro
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
 Content-Type: application/json
 Accept: application/json, text/event-stream
 
@@ -103,6 +115,7 @@ The same request with `curl`:
 
 ```bash
 curl https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{
@@ -120,23 +133,24 @@ curl https://mcp.clawplus.pro/mcp \
 
 The response is not plain JSON. It arrives as `text/event-stream`: an `event: message` frame whose `data:` line carries the JSON-RPC response, which your client must read out of that line before parsing.
 
-`0123456789abcdef` is a well-formed identifier that belongs to no job, so this request is safe to run verbatim and ends in a `JOB_NOT_FOUND` application error. Substitute your own `job_id` to read a real job.
+`0123456789abcdef` is a well-formed identifier that belongs to no identity, so this request is safe to run verbatim and ends in `403 Forbidden`. Substitute a `job_id` your identity submitted to read a real job.
 
 ## 5. Submit a job
 
 Choose one operation. For example, a contract review:
 
 ```text
-review_contract(file_name, file_b64, [requested_jurisdiction], [represented_party], [contract_type_hint])
+review_contract(file_name, file_b64, represented_party, [requested_jurisdiction], [contract_type_hint])
 ```
 
-`file_name` and `file_b64` are the required fields; `file_b64` is the base64 of a `.docx`. The full schema for each submission tool is in [tools.md](tools.md).
+`file_name`, `file_b64` and `represented_party` are required; `file_b64` is the base64 of a `.docx`, and `represented_party` says which party AurCounsel represents (甲方 / party A, 乙方 / party B, or neutral). A call without `represented_party` is refused with `INVALID_INPUT` before anything is sent. The full schema for each submission tool is in [tools.md](tools.md).
 
 On the wire, that submission is:
 
 ```http
 POST /mcp HTTP/1.1
 Host: mcp.clawplus.pro
+Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>
 Content-Type: application/json
 Accept: application/json, text/event-stream
 
@@ -148,7 +162,8 @@ Accept: application/json, text/event-stream
     "name": "review_contract",
     "arguments": {
       "file_name": "example-agreement.docx",
-      "file_b64": "<base64 of your .docx>"
+      "file_b64": "<base64 of your .docx>",
+      "represented_party": "party A"
     }
   }
 }
@@ -168,7 +183,42 @@ That path, and the full success-response body, are recorded in [tools.md](tools.
 
 The `job_id` is the only handle to the job and is not recoverable. Store it before you do anything else, and treat it as a credential.
 
+### Revisions
+
+`revise_contract` is in `tools/list` again but is not open: every call returns `PERMISSION_DENIED`, with nothing sent. Revision jobs submitted before it was withdrawn on an earlier date can still be read — see [For a revision, read the outcome as well as the status](#for-a-revision-read-the-outcome-as-well-as-the-status).
+
+### Fast Legal
+
+`fast_legal` takes `question` and an optional `level`, and is submitted the same way:
+
+```bash
+curl https://mcp.clawplus.pro/mcp \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "fast_legal",
+      "arguments": {
+        "question": "What must be shown to establish tort liability under Article 184 of the Taiwan Civil Code?"
+      }
+    }
+  }'
+```
+
+It returns a `job_id` like every other submission. `level` is `"medium"` by default (free, the fastest); pass `"level": "high"` or `"level": "large"` (the deepest) in `arguments`, charged by usage. For a `high` or `large` job, `get_job` reports the settled charge in `cost` once the job ends; see [Levels and cost](tools.md#levels-and-cost-level-cost-cost_status). Any other value is refused with `INVALID_INPUT` (`context: {"field": "level"}`).
+
+> `evidence.status` is the answer review's own result: `COMPLETE`, or `INSUFFICIENT_EVIDENCE` with its reason in `insufficiency_reason`. The answer text carries no evidence-status line, and you do not have to show `evidence` next to the answer; see [Presenting evidence and sources](tools.md#presenting-evidence-and-sources). See [tools.md](tools.md#fast_legal).
+>
+> To show the answer while it is being written, poll `get_job` with `after_seq`; see [tools.md](tools.md#following-a-fast_legal-job-as-it-runs-after_seq).
+
 ## 6. Check job status
+
+For a `fast_legal` job, `get_job` reports `capability: "fast_legal"`; once `status` is `completed`, the answer is in `answer_markdown` and the evidence-sufficiency status in `evidence` (the answer is also available as `get_artifact(job_id, "fast_answer")`). It also reports the job's `level`, and `cost` / `cost_status` (`settled` once a `high` job ends; `unsupported` for `medium`).
+
 
 Use:
 
@@ -192,6 +242,28 @@ The client should continue checking only while the job is non-terminal. `complet
 
 See [job-lifecycle.md](job-lifecycle.md) for full semantics.
 
+### For a revision, read the outcome as well as the status
+
+This applies only to revision jobs submitted before `revise_contract` was withdrawn. Such a job carries `capability: "revise"` and one field the other capabilities do not: `revision`, a nested object beside `status` in the same parsed content block.
+
+This matters because `status` does not answer the question you actually asked. A revision that was applied and a revision the server declined to apply are **both** `completed`. The difference is reported only on `revision.outcome`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `outcome` | string | What happened to the revision. See the values below. |
+| `outcome_recognised` | boolean | Whether the server mapped the engine's own outcome value into its published vocabulary — the same self-report idea as `status_recognised`. |
+| `replaced` | integer | How many clauses were replaced. |
+| `not_applied` | integer | How many requested changes were not applied. |
+| `reason` | string \| null | User-facing explanation when the revision was not applied; `null` when it was applied. |
+
+Outcome values:
+
+- `applied` — the revision was made. `replaced` counts the clauses that were replaced, `not_applied` is zero, and `reason` is null.
+- `needs_clarification` — the server could not tie the instruction to a clause in the submitted contract and did not revise. The job is still `completed`, and `reason` carries the explanation to show the user.
+- `blocked` — the third value in the server's recognised set.
+
+A client that branches on `status` alone will report a declined revision as a success. Branch on `outcome`, and surface `reason` to the user when it is non-null.
+
 ## 7. Retrieve artifacts
 
 Once a job reaches `completed`, request a completed deliverable with:
@@ -200,7 +272,14 @@ Once a job reaches `completed`, request a completed deliverable with:
 get_artifact(job_id, artifact)
 ```
 
-The second argument is named `artifact` (not `artifact_type`) and must be one of exactly twelve values. Both are verified live. The response reports `available`, `media_type`, a download `url`, and — for text artifacts — the content inline in `text`; binary artifacts return `text: null`. See [artifacts.md](artifacts.md) for the vocabulary, the response fields, and the failed-job behavior.
+The second argument is named `artifact` (not `artifact_type`). The response reports `available`, `media_type`, a download `url`, and — for text artifacts — the content inline in `text`; binary artifacts return `text: null`. See [artifacts.md](artifacts.md) for the vocabulary, the response fields, and the failed-job behavior.
+
+A completed revision job (submitted before `revise_contract` was withdrawn) lists its deliverables in the job's own `artifacts[]`, each with a `name` and a `ready` flag; fetch by the names you find there. A revision serves two:
+
+- `revised_docx` — the revised contract, as a `.docx`.
+- `redline_docx` — the same revision as a tracked-change `.docx`. It carries real Word tracked changes (insertion and deletion revision marks), not just visually marked-up text, so it opens in Word with the changes reviewable and acceptable/rejectable.
+
+Do not confuse `redline_docx` with `redline`: a review's `redline` is an HTML view of the changes, while `redline_docx` is a Word document carrying the changes as revision marks.
 
 If a job reaches `failed`, partial/generated internal outputs are not considered completed deliverables and should not be consumed as if the job succeeded.
 
@@ -224,19 +303,27 @@ completed? ── yes ──> get_artifact(...)
 failed or unknown -> stop and handle error
 ```
 
+For a `revise` job, insert one step between `completed?` and `get_artifact(...)`: read `revision.outcome`. If it is not `applied`, the job succeeded but the contract was not changed — report `revision.reason` instead of presenting artifacts as a revision.
+
 Working code for the read side of this loop is in [`../examples/python_client.py`](../examples/python_client.py).
 
 ## Verification status of this guide
 
-Executed live against the public endpoint during this documentation pass:
+Executed live against the public endpoint in the first documentation pass:
 
 - `initialize`, `tools/list`, `prompts/list`, `resources/list`;
-- exact description and JSON input schema for all five tools;
+- exact description and JSON input schema for `review_contract`, `draft_contract`, `compare_contracts`, `get_job`, and `get_artifact`;
 - one `review_contract` submission of a synthetic contract, followed by ten `get_job` reads to `completed`;
 - `get_job` on a `processing` job, on a `completed` job, and on a terminally `failed` job;
 - `get_artifact` for all six artifacts of a completed review job, including a binary one;
 - unknown job, malformed job identifier, unknown artifact name, unknown tool, unknown method, malformed JSON, missing `Accept`, and rejected user agent;
-- requests with no credential and with a bogus bearer token.
+- requests with no credential and with a bogus bearer token (at the time, the endpoint did not require one; it now answers both with `401 Unauthorized`).
+
+Executed live in the revision pass, after `revise_contract` was published (the tool has since been withdrawn):
+
+- `initialize` and `tools/list`, which returned six tools including `revise_contract`;
+- one `revise_contract` submission — a synthetic contract plus one instruction naming a clause explicitly — polled with `get_job` to `completed`, reporting `capability: "revise"` and `outcome: "applied"` with a positive `replaced` and `not_applied` zero;
+- `get_artifact` for both artifacts of that job, `revised_docx` and `redline_docx`, each fetched and checked to be a well-formed `.docx`, with the redline checked for real Word tracked-change marks.
 
 Still outstanding:
 

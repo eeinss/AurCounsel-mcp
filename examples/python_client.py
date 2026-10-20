@@ -3,6 +3,7 @@
 Talks to the public AurCounsel MCP endpoint over plain HTTP using only the
 Python standard library, so it runs without installing anything:
 
+    export AURCOUNSEL_MCP_TOKEN="..."
     python3 examples/python_client.py
     python3 examples/python_client.py <job_id>
 
@@ -14,8 +15,9 @@ What it demonstrates:
     4. get_artifact(job_id)  -- retrieve a completed deliverable
 
 Without an argument it uses the placeholder identifier below, which is
-well-formed but belongs to no job, so the run is safe and ends in
-JOB_NOT_FOUND. Pass your own job_id to see the populated shapes.
+well-formed but belongs to no identity, so the run is safe and ends in
+HTTP 403 Forbidden. Pass a job_id your identity submitted to see the
+populated shapes.
 
 This example never submits work. review_contract, draft_contract and
 compare_contracts create real jobs, so they are described in docs/tools.md
@@ -23,7 +25,9 @@ rather than executed here.
 
 Transport notes:
 
-  * POST JSON-RPC 2.0 to the endpoint.
+  * POST JSON-RPC 2.0 to the endpoint with Authorization: Bearer
+    $AURCOUNSEL_MCP_TOKEN. Missing or invalid token: HTTP 401. Reading
+    another identity's job or artifact: HTTP 403.
   * Accept BOTH application/json and text/event-stream; the server answers
     406 if either is missing.
   * Send your own User-Agent. The edge network in front of the endpoint
@@ -43,12 +47,14 @@ Treat a real job_id as a credential. It is the only handle to the job, it is
 not recoverable, and it grants access to that job's artifacts.
 """
 
+import os
 import json
 import sys
 import urllib.error
 import urllib.request
 
 AURCOUNSEL_MCP_URL = "https://mcp.clawplus.pro/mcp"
+AURCOUNSEL_MCP_TOKEN = os.environ.get("AURCOUNSEL_MCP_TOKEN", "")
 PLACEHOLDER_JOB_ID = "0123456789abcdef"
 TIMEOUT_SECONDS = 30
 USER_AGENT = "aurcounsel-python-example/0.1.0"
@@ -80,6 +86,7 @@ def rpc(method, params, request_id=1):
         data=body,
         method="POST",
         headers={
+            "Authorization": "Bearer " + AURCOUNSEL_MCP_TOKEN,
             "Content-Type": "application/json",
             # Both media types are mandatory; one alone gets HTTP 406.
             "Accept": "application/json, text/event-stream",
@@ -148,7 +155,11 @@ def main():
         job = call_tool("get_job", {"job_id": job_id})
     except ApplicationError as exc:
         print("   application error: %s" % exc)
-        print("   (the default identifier is a placeholder; pass a real job_id to go further)")
+        return 0
+    except TransportError as exc:
+        # HTTP 403: this identity did not submit that job (the default identifier is a placeholder).
+        print("   refused: %s" % exc)
+        print("   (the default identifier is a placeholder; pass a job_id your identity submitted)")
         return 0
     print("   status          %s" % job.get("status"))
     print("   capability      %s" % job.get("capability"))

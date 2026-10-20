@@ -2,7 +2,7 @@
 
 This document describes the public purpose and behavioral contract of AurCounsel MCP tools. **Exact schemas must come from the live MCP server.** This file intentionally does not invent field names that have not been verified.
 
-All schemas and descriptions below were captured from a live `tools/list` against `https://mcp.clawplus.pro/mcp` on 2026-08-31 and are reproduced verbatim. Response bodies come from live calls on the same endpoint, including one authorised `review_contract` submission of a synthetic contract that was followed to `completed`. Where a cell could not be captured, it is marked `UNRESOLVED` or `PENDING_AUTH` rather than filled in.
+The schemas and descriptions reproduced verbatim below were captured from a live `tools/list` against `https://mcp.clawplus.pro/mcp`. Response bodies come from live calls on the same endpoint, starting with one authorised `review_contract` submission of a synthetic contract, followed to `completed`. The descriptions and schemas were last re-captured from the live `tools/list` on 2026-10-18; the `fast_legal` description and schema and the `get_job` description reflect the service as deployed on 2026-10-20. Where a cell could not be captured, it is marked `UNRESOLVED` or `PENDING_AUTH` rather than filled in.
 
 ## Contract authority
 
@@ -16,17 +16,24 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-`tools/list` returns exactly five tools, in this order:
+`tools/list` returns exactly twelve tools:
 
 ```text
 review_contract
 draft_contract
 compare_contracts
+revise_contract
+get_capabilities
+fast_legal
 get_job
 get_artifact
+get_article
+search_statutes
+search_judgments
+read_judgment
 ```
 
-No additional public tools exist beyond these five. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these twelve. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 Every tool's `inputSchema` is a JSON Schema `object` whose `title` has the form `<tool_name>Arguments`. Optional parameters are declared as `anyOf: [<type>, {"type": "null"}]` with `"default": null` — that is, an optional parameter may be omitted or passed explicitly as `null`.
 
@@ -54,6 +61,7 @@ review_contract
 
 - The operation is asynchronous.
 - A successful submission identifies a job.
+- `model` is optional and is a level: omitted (or `medium`) is the default, unchanged. [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (only `medium`) and the levels built under `capabilities.review.implemented_models` (`medium`, `high`, `large`), each with `review.<level>.enabled`. **`high` and `large` reviews are not open:** a call with either returns `PERMISSION_DENIED` (`context: {"capability": "review", "model": ...}`) before the document is read — nothing is sent and no job is created. Any other value is refused with `INVALID_INPUT` and `context.accepted`. A review is never switched to another level.
 - Completed deliverables are retrieved through the artifact interface.
 - A failed job must not expose partial/generated internal artifacts as completed deliverables.
 
@@ -65,8 +73,20 @@ Submit one contract for full LegalOS review.
     Returns immediately with a job_id; the review runs in the background and
     takes minutes. Poll get_job with that job_id.
 
+    The document arrives one of two ways, and the call must use exactly one of
+    them: `file_ref`, the handle returned by POSTing the document to `/upload`,
+    or `file_b64`, the document base64-encoded in this argument. Supplying both
+    is refused and so is supplying neither — neither one is a default and
+    neither falls back to the other, so which document was reviewed is never a
+    question about precedence.
+
     Args:
-        file_name: Original file name, used as a label on the review.
+        file_name: Original file name, used as a label on the review. Required
+            on both paths: it labels the review, and it is not what identifies
+            the document — that is done by content.
+        file_ref: A handle from `/upload`, held for a limited time, usable only
+            by the caller that uploaded it. The document was identified and
+            checked when it was uploaded; that result is what this review uses.
         file_b64: The document, base64-encoded. .docx, .pdf and .doc are
             accepted and are identified by content, not by file name.
         requested_jurisdiction: Governing law to review under. 'hk' is accepted
@@ -80,9 +100,19 @@ Submit one contract for full LegalOS review.
             'supplier' or 'licensor' does not: which position holds that role
             is a fact about this contract, and nothing here can read it, so the
             call is refused with PARTY_CONFIRMATION_REQUIRED and you are asked
-            which position the client holds. Omit for the engine's own detection.
+            which position the client holds. Required: there is no detection to
+            fall back on, and a call without it is refused with INVALID_INPUT
+            before anything is sent.
         contract_type_hint: Contract type in free text, e.g. 'nda', 'lease',
             '委任契約'. A hint only — an unrecognised value costs nothing.
+        model: Optional. The review level: medium (the default), high or large.
+            get_capabilities lists the levels open now
+            (capabilities.review.models) and those built
+            (implemented_models). A built level that is not open is refused
+            with PERMISSION_DENIED before the document is read; any other value
+            with INVALID_INPUT. The review is
+            never switched to another level.
+    
 ```
 
 ### Exact input schema (verbatim)
@@ -90,28 +120,93 @@ Submit one contract for full LegalOS review.
 ```json
 {
   "properties": {
-    "file_name": { "title": "File Name", "type": "string" },
-    "file_b64": { "title": "File B64", "type": "string" },
+    "file_name": {
+      "title": "File Name",
+      "type": "string"
+    },
+    "file_b64": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File B64"
+    },
+    "file_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File Ref"
+    },
     "requested_jurisdiction": {
       "anyOf": [
-        { "enum": ["taiwan", "mainland", "hk", "other"], "type": "string" },
-        { "type": "null" }
+        {
+          "enum": [
+            "taiwan",
+            "mainland",
+            "hk",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
       ],
       "default": null,
       "title": "Requested Jurisdiction"
     },
     "represented_party": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
       "title": "Represented Party"
     },
     "contract_type_hint": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
       "title": "Contract Type Hint"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
     }
   },
-  "required": ["file_name", "file_b64"],
+  "required": [
+    "file_name",
+    "represented_party"
+  ],
   "title": "review_contractArguments",
   "type": "object"
 }
@@ -120,9 +215,10 @@ Submit one contract for full LegalOS review.
 | Field | Required | Type | Notes |
 |---|---|---|---|
 | `file_name` | yes | string | Label only. File type is identified by content, not by this name. |
-| `file_b64` | yes | string | Base64 of the document. `.docx`, `.pdf`, `.doc` accepted. |
+| `file_b64` | one of `file_b64` / `file_ref` | string \| null | Base64 of the document. `.docx`, `.pdf`, `.doc` accepted. |
+| `file_ref` | one of `file_b64` / `file_ref` | string \| null | Handle returned by uploading the document to `/upload`. Supplying both, or neither, is refused. |
+| `represented_party` | **yes** | string | Which party AurCounsel represents: free text that must resolve to 甲方 (party A) / 乙方 (party B) / neutral. There is no automatic detection. Missing ⇒ `INVALID_INPUT` with the message "Missing required parameter: represented_party. Please specify which party AurCounsel represents…", and nothing is sent. A role name (`supplier`, `licensor`) does not resolve and is refused with `PARTY_CONFIRMATION_REQUIRED`. |
 | `requested_jurisdiction` | no | enum \| null | `taiwan`, `mainland`, `hk`, `other`. `hk` is accepted but reviewed as `other`, and the response reports that the request was degraded. |
-| `represented_party` | no | string \| null | Free text that must resolve to 甲方 / 乙方 / neutral. A role name (`supplier`, `licensor`) does not resolve and is refused with `PARTY_CONFIRMATION_REQUIRED`. |
 | `contract_type_hint` | no | string \| null | Free-text hint; an unrecognised value is harmless. |
 
 ### Success response shape and `job_id` path
@@ -245,16 +341,46 @@ Draft a new contract or legal document with LegalOS.
             for a contract.
         requested_jurisdiction: Governing law to draft under. 'hk' is accepted
             but LegalOS has no Hong Kong jurisdiction, so it is drafted as
-            'other' and the response says the request was degraded. Whether a
-            jurisdiction is required is a property of the deployment, not of
-            this call: where it is required, omitting it is refused upstream.
-        represented_party: Which side the document is being drafted for, in
-            your own words. LegalOS works on position, so this must resolve to
+            'other' and the response says the request was degraded. Required:
+            omitting it is refused with MISSING_FIELD (context.field
+            'jurisdiction') before anything is sent — ask the user.
+            Pass it only when the user has stated the governing law. Do not
+            infer it from the currency, a company's location, an address, the
+            place of performance or a court name; if the user has not said it,
+            ask the user.
+        represented_party: Required for a contract (doc_type omitted): which side the document is being drafted for, in
+            your own words; neutral drafts for both sides in balance. Omitting it for a contract is refused with INVALID_INPUT. LegalOS works on position, so this must resolve to
             one of party_a (甲方), party_b (乙方) or neutral. A role such as
             'supplier' or 'licensor' does not resolve: which position holds
             that role is a fact about this document, and nothing here can read
             it, so the call is refused with PARTY_CONFIRMATION_REQUIRED and you
-            are asked which position the client holds. Omit to draft neutrally.
+            are asked which position the client holds.
+            Pass it only when the user has said which side they represent; do
+            not infer it from the same kind of clues, ask the user instead.
+        model: Optional. The drafting level: medium (the default; free), high or large.
+            省略 model 時為 medium(擬約預設);經銷、買賣及軟體開發委託契約另套用該契約類型的最低必要事項指引。
+            high、large 只開放已驗證的契約類型(台灣、代表一方),各自開放的類型以 get_capabilities 的 draft.high / draft.large 的
+            contract_types 為準;其他類型指定該等級會被拒絕(INVALID_INPUT,context.field model),不會改用其他等級。
+            A level that is built but not open now (in get_capabilities implemented_models, not in models) is refused with
+            PERMISSION_DENIED; any other value with INVALID_INPUT. A request is never switched to another level.
+
+    Examples (one Taiwan request; the two calls differ only in model):
+
+        1. Level omitted (medium):
+            draft_contract(subject='會員系統的開發與上線', contract_type='軟體開發委託合約',
+                           party_a='甲山零售股份有限公司', party_b='乙川數位有限公司',
+                           amount='新臺幣一百二十萬元(未稅)', term='自簽約日起六個月',
+                           special='分三期付款;系統上線後提供三個月保固。',
+                           requested_jurisdiction='taiwan', represented_party='party_a')
+
+        2. large, for a contract type open at that level (get_capabilities draft.large.contract_types):
+            draft_contract(subject='住家室內裝修工程', contract_type='室內裝修工程承攬契約',
+                           party_a='王小明', party_b='乙川室內裝修有限公司',
+                           amount='新臺幣八十萬元(含稅)', term='自開工日起六十日',
+                           special='分三期付款;完工驗收後保固一年。',
+                           requested_jurisdiction='taiwan', represented_party='party_a',
+                           model='large')
+    
 ```
 
 ### Exact input schema (verbatim)
@@ -262,31 +388,154 @@ Draft a new contract or legal document with LegalOS.
 ```json
 {
   "properties": {
-    "subject": { "title": "Subject", "type": "string" },
-    "contract_type": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "title": "Contract Type" },
-    "party_a": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "title": "Party A" },
-    "party_b": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "title": "Party B" },
-    "amount": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "title": "Amount" },
-    "term": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "title": "Term" },
-    "special": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "title": "Special" },
-    "doc_type": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "title": "Doc Type" },
+    "subject": {
+      "title": "Subject",
+      "type": "string"
+    },
+    "contract_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Contract Type"
+    },
+    "party_a": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Party A"
+    },
+    "party_b": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Party B"
+    },
+    "amount": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Amount"
+    },
+    "term": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Term"
+    },
+    "special": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Special"
+    },
+    "doc_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Doc Type"
+    },
     "requested_jurisdiction": {
       "anyOf": [
-        { "enum": ["taiwan", "mainland", "hk", "other"], "type": "string" },
-        { "type": "null" }
+        {
+          "enum": [
+            "taiwan",
+            "mainland",
+            "hk",
+            "other"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
       ],
       "default": null,
       "title": "Requested Jurisdiction"
     },
-    "represented_party": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "title": "Represented Party" }
+    "represented_party": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Represented Party"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    }
   },
-  "required": ["subject"],
+  "required": [
+    "subject"
+  ],
   "title": "draft_contractArguments",
   "type": "object"
 }
 ```
 
-`subject` is the only schema-required field. Note that the description declares `contract_type` to be required in practice when drafting a contract, and declares that whether `requested_jurisdiction` is required is a deployment property enforced upstream. Neither of those constraints is expressed in the JSON Schema.
+`subject` is the only schema-required field. The server also requires, without the JSON Schema saying so: `contract_type` when drafting a contract, and **`requested_jurisdiction` for every draft** — a draft without it is refused with `MISSING_FIELD` and `context.field: "jurisdiction"` before anything is sent (no job is created). Ask the user for the governing law rather than inferring it.
+
+**`represented_party` is required for a contract** (any draft without `doc_type`). The server refuses a contract draft without it with `INVALID_INPUT`. The live description says so, but its last sentence still reads "Omit to draft neutrally"; that sentence is out of date. To draft for both sides in balance, send `represented_party: "neutral"`.
+
+`model` is optional and is a level: `medium` (the default), `high` or `large`. `get_capabilities` lists the levels open now under `capabilities.draft.models` (on 2026-10-20: `medium`, `high`, `large`) and the levels built under `implemented_models`. A built level that is not open is refused with `PERMISSION_DENIED`, `context: {"capability": "draft", "model": ...}`, with no job created; any other value with `INVALID_INPUT`.
+
+- **Contract types with minimum-content guidance:** one list for every open level — [`get_capabilities`](#get_capabilities) `draft.<level>.contract_types` is the same for each (on 2026-10-20: 室內裝修工程承攬, interior fit-out works; 僱傭, employment under the Labor Standards Act; 金錢借貸, money loan; 冷藏食品配送運送, refrigerated food delivery carriage; 會計師委任, engagement of a CPA; 資訊系統維運與代管服務, IT operations and hosting services; 交通事故損害賠償和解, settlement of traffic-accident damages; 不動產附負擔贈與, gift of real property subject to a burden; 設備維護保養, equipment maintenance; Taiwan law, a represented side). Whichever open level is chosen, a contract of such a type is drafted with that type's guidance.
+- **Omitted / `medium`:** the drafting default. Other contract types take the general drafting path; for distribution, sale / purchase and software-development contracts `medium` also applies those types' minimum-content guidance (`draft.default_floor_types`, `default_floor_models`).
+- **`high`, `large`:** **only** the listed contract types. With any other contract type, document type or jurisdiction the submission is refused and no job is created: `ok: false`, `error_code: "INVALID_INPUT"`, `context: {"field": "model", "submitted": ..., "detail": "model_not_open_for_contract_type"}`. It is **never switched to another level**; to draft that type, omit `model`.
 
 ### Success response shape and `job_id` path
 
@@ -302,7 +551,7 @@ Draft a new contract or legal document with LegalOS.
 
 ### Purpose
 
-Submit two contracts, versions, or other comparison inputs accepted by the live schema and ask AurCounsel to produce a comparison job.
+**Not open.** Every call — with or without `model` — returns `ok: false`, `error_code: "PERMISSION_DENIED"`, `context.capability: "compare"`, before any document is read: nothing is sent, no job is created and no model is called. The capability is implemented on the service and is listed by [`get_capabilities`](#get_capabilities) with `enabled: false`, `implemented: true`; when it opens, that listing changes and this tool starts accepting calls.
 
 ### Public guarantees
 
@@ -315,6 +564,11 @@ Submit two contracts, versions, or other comparison inputs accepted by the live 
 ```text
 Compare two versions of a contract and report what changed.
 
+    Not open yet: while the service's capability table has this capability
+    disabled (see get_capabilities), every call is refused with
+    PERMISSION_DENIED before any document is read — nothing is sent, no job is
+    created and no model is called.
+
     Returns immediately with a job_id; the comparison runs in the background and
     takes minutes. Poll get_job with that job_id.
 
@@ -322,11 +576,23 @@ Compare two versions of a contract and report what changed.
     here — the comparison pipeline reads Word documents only, and a file of
     another type is refused by content rather than by file name.
 
+    The two documents arrive the same way as each other: either both as handles
+    from `/upload` (`file_a_ref` with `file_b_ref`) or both as base64
+    (`file_a_b64` with `file_b_b64`). A call that mixes the two is refused, as
+    is one that gives both transports for a side or neither. The names are
+    always required; they are labels, and they are not what identifies a
+    document.
+
     Args:
         file_a_name: Original file name of the first contract, used as a label.
-        file_a_b64: The first contract, base64-encoded .docx.
         file_b_name: Original file name of the second contract, used as a label.
+        file_a_b64: The first contract, base64-encoded .docx.
         file_b_b64: The second contract, base64-encoded .docx.
+        file_a_ref: Handle from `/upload` for the first contract.
+        file_b_ref: Handle from `/upload` for the second contract.
+        model: Optional. The level: medium (the default), high or large; get_capabilities lists
+            the levels offered. Never switched to another level.
+    
 ```
 
 ### Exact input schema (verbatim)
@@ -334,26 +600,543 @@ Compare two versions of a contract and report what changed.
 ```json
 {
   "properties": {
-    "file_a_name": { "title": "File A Name", "type": "string" },
-    "file_a_b64": { "title": "File A B64", "type": "string" },
-    "file_b_name": { "title": "File B Name", "type": "string" },
-    "file_b_b64": { "title": "File B B64", "type": "string" }
+    "file_a_name": {
+      "title": "File A Name",
+      "type": "string"
+    },
+    "file_b_name": {
+      "title": "File B Name",
+      "type": "string"
+    },
+    "file_a_b64": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File A B64"
+    },
+    "file_b_b64": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File B B64"
+    },
+    "file_a_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File A Ref"
+    },
+    "file_b_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File B Ref"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    }
   },
-  "required": ["file_a_name", "file_a_b64", "file_b_name", "file_b_b64"],
+  "required": [
+    "file_a_name",
+    "file_b_name"
+  ],
   "title": "compare_contractsArguments",
   "type": "object"
 }
 ```
 
-All four fields are required. There are no optional fields and no enums. Both inputs must be `.docx` — unlike `review_contract`, `.pdf` and `.doc` are refused, by content rather than by file name.
+`file_a_name` and `file_b_name` are always required. The two documents arrive the same way: either both inline (`file_a_b64` with `file_b_b64`) or both by reference from [`/upload`](#uploading-a-document-upload) (`file_a_ref` with `file_b_ref`). A call that mixes the two, or gives both or neither for one side, is refused with `INVALID_INPUT`. There are no enums. Both inputs must be `.docx` — unlike `review_contract`, `.pdf` and `.doc` are refused, by content rather than by file name.
 
 ### Success response shape and `job_id` path
 
-**PENDING_AUTH.** Calling this tool creates a real job in the production system, and `compare_contracts` was not called. As with `draft_contract`, the response body for a `compare` submission was not observed and is not guessed here.
+Not reachable while the tool is closed: every call returns `PERMISSION_DENIED`, observed live on 2026-10-18 (with and without `model`).
 
 ### Verified example
 
-**PENDING_AUTH** — no `compare_contracts` request was executed.
+```json
+{"ok": false, "error_code": "PERMISSION_DENIED", "message": "This capability is not open yet (此功能尚未開放). Nothing was sent, no job was created and no model was called; context.capability names it, and get_capabilities lists what is open.", "context": {"capability": "compare"}}
+```
+
+---
+
+## `revise_contract`
+
+### Purpose
+
+**Not open.** Every call — with or without `model` — returns `ok: false`, `error_code: "PERMISSION_DENIED"`, `context.capability: "revise"`, before any document is read: nothing is sent, no job is created and no model is called. The capability is implemented on the service and is listed by [`get_capabilities`](#get_capabilities) with `enabled: false`, `implemented: true`; when it opens, that listing changes and this tool starts accepting calls.
+
+Jobs submitted before the tool was withdrawn on an earlier date can still be read by the identity that submitted them: `capability: "revise"`, a `revision` block (`outcome`: `applied`, `blocked` or `needs_clarification`, with `reason` when not applied), and for an applied revision `revised_docx` and `redline_docx` through `get_artifact`.
+
+### Live description (verbatim)
+
+```text
+Apply a requested change to one contract and produce the revised document.
+
+    Not open yet: while the service's capability table has this capability
+    disabled (see get_capabilities), every call is refused with
+    PERMISSION_DENIED before any document is read — nothing is sent, no job is
+    created and no model is called.
+
+    Returns immediately with a job_id; the revision runs in the background and
+    takes minutes. Poll get_job with that job_id, then read the result with
+    get_artifact.
+
+    The document arrives one of two ways, and the call must use exactly one of
+    them: `file_ref`, the handle returned by POSTing the document to `/upload`,
+    or `file_b64`, the document base64-encoded in this argument. Supplying both
+    is refused and so is supplying neither — neither one is a default and
+    neither falls back to the other, so which document was revised is never a
+    question about precedence.
+
+    Every call is a first revision of the document it carries: the document sent
+    here is a new source, so the revision is made against those bytes and not
+    against anything an earlier call revised. To revise a revision, send the
+    revised document back in a new call.
+
+    Two outcomes are not failures and are reported by get_job rather than as
+    errors: the change may be *blocked*, meaning a revised document was produced
+    but is not deliverable, and it may *need clarification*, meaning the request
+    could not be located in this contract. In both cases the job completes and
+    there is no revised document to download; the reason comes back with the job.
+
+    Args:
+        file_name: Original file name, used only as a label. Required on both
+            paths; it is not what identifies the document — that is done by
+            content.
+        revision_text: What to change, in your own words, e.g.
+            '第三條的期間改成 12 個月' or 'strike the exclusivity clause'. This
+            is the instruction the engine works from, so a request naming the
+            clause and the wanted outcome is located more often than a general
+            one. Required on every call.
+        file_ref: A handle from `/upload`, held for a limited time, usable only
+            by the caller that uploaded it.
+        file_b64: The document, base64-encoded. .docx only — a revision
+            produces a new .docx version of a .docx, and the kind is identified
+            by content, not by file name.
+        model: Optional. The level: medium (the default), high or large; get_capabilities lists
+            the levels offered. Never switched to another level.
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "file_name": {
+      "title": "File Name",
+      "type": "string"
+    },
+    "revision_text": {
+      "title": "Revision Text",
+      "type": "string"
+    },
+    "file_b64": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File B64"
+    },
+    "file_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File Ref"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    }
+  },
+  "required": [
+    "file_name",
+    "revision_text"
+  ],
+  "title": "revise_contractArguments",
+  "type": "object"
+}
+```
+
+---
+
+## `get_capabilities`
+
+### Purpose
+
+Read what this deployment offers right now. Read-only: it creates no job and calls no model. Everything it returns is read from the service's own capability table at call time — the same table that opens or closes a tool.
+
+### Response (live, 2026-10-20)
+
+```json
+{
+  "ok": true,
+  "draft": {
+    "jurisdictions": [
+      "taiwan",
+      "mainland",
+      "other"
+    ],
+    "represented_party": [
+      "party_a",
+      "party_b",
+      "neutral"
+    ],
+    "default_floor_types": [
+      {
+        "type": "distribution",
+        "scope": "以「經銷」命名的契約(經銷 / 獨家經銷 / 經銷代理):經銷模組驗證範圍"
+      },
+      {
+        "type": "purchase",
+        "scope": "動產買賣、採購與長期供貨契約:買賣模組驗證範圍"
+      },
+      {
+        "type": "sw_dev",
+        "scope": "軟體 / 系統委託開發契約:軟體開發委託模組驗證範圍"
+      }
+    ],
+    "default_floor_models": [
+      "medium"
+    ],
+    "medium": {
+      "enabled": true,
+      "contract_types": [
+        {
+          "type": "fitout",
+          "name": "室內裝修工程承攬",
+          "scope": "室內裝修工程承攬契約(既有建物,代表定作人):LS-08 Floor 驗證範圍"
+        },
+        {
+          "type": "employment",
+          "name": "僱傭(勞動契約)",
+          "scope": "勞動基準法適用之僱傭契約(不定期・全職,代表雇主):LS-01 Floor 驗證範圍"
+        },
+        {
+          "type": "loan",
+          "name": "金錢借貸",
+          "scope": "金錢消費借貸契約(個人貸與公司・附息・定期,代表貸與人):LS-13 Floor 驗證範圍"
+        },
+        {
+          "type": "carriage_cold",
+          "name": "冷藏食品配送運送",
+          "scope": "企業間冷藏食品之長期配送運送契約(公路汽車運輸,代表託運人):LS-06 Floor 驗證範圍"
+        },
+        {
+          "type": "mandate",
+          "name": "會計師委任",
+          "scope": "企業委任會計師或會計師事務所提供查核簽證、稅務申報等專業服務之委任契約(代表委任人):LS-09 Floor 驗證範圍"
+        },
+        {
+          "type": "service",
+          "name": "資訊系統維運與代管服務",
+          "scope": "企業間雲端代管、系統維運與技術支援等持續性服務契約(得併含客製開發,代表服務使用方):LS-15 Floor 驗證範圍"
+        },
+        {
+          "type": "settlement",
+          "name": "交通事故損害賠償和解",
+          "scope": "交通事故侵權損害賠償之和解契約(代表受害人,和解金受領方):LS-11 Floor 驗證範圍"
+        },
+        {
+          "type": "gift",
+          "name": "不動產附負擔贈與",
+          "scope": "以不動產(房屋及其基地應有部分)為標的之附負擔贈與契約(代表贈與人):LS-10 Floor 驗證範圍"
+        },
+        {
+          "type": "equip_maint",
+          "name": "設備維護保養",
+          "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
+        }
+      ],
+      "jurisdiction": "taiwan",
+      "represented_party": [
+        "party_a",
+        "party_b"
+      ]
+    },
+    "large": {
+      "enabled": true,
+      "contract_types": [
+        {
+          "type": "fitout",
+          "name": "室內裝修工程承攬",
+          "scope": "室內裝修工程承攬契約(既有建物,代表定作人):LS-08 Floor 驗證範圍"
+        },
+        {
+          "type": "employment",
+          "name": "僱傭(勞動契約)",
+          "scope": "勞動基準法適用之僱傭契約(不定期・全職,代表雇主):LS-01 Floor 驗證範圍"
+        },
+        {
+          "type": "loan",
+          "name": "金錢借貸",
+          "scope": "金錢消費借貸契約(個人貸與公司・附息・定期,代表貸與人):LS-13 Floor 驗證範圍"
+        },
+        {
+          "type": "carriage_cold",
+          "name": "冷藏食品配送運送",
+          "scope": "企業間冷藏食品之長期配送運送契約(公路汽車運輸,代表託運人):LS-06 Floor 驗證範圍"
+        },
+        {
+          "type": "mandate",
+          "name": "會計師委任",
+          "scope": "企業委任會計師或會計師事務所提供查核簽證、稅務申報等專業服務之委任契約(代表委任人):LS-09 Floor 驗證範圍"
+        },
+        {
+          "type": "service",
+          "name": "資訊系統維運與代管服務",
+          "scope": "企業間雲端代管、系統維運與技術支援等持續性服務契約(得併含客製開發,代表服務使用方):LS-15 Floor 驗證範圍"
+        },
+        {
+          "type": "settlement",
+          "name": "交通事故損害賠償和解",
+          "scope": "交通事故侵權損害賠償之和解契約(代表受害人,和解金受領方):LS-11 Floor 驗證範圍"
+        },
+        {
+          "type": "gift",
+          "name": "不動產附負擔贈與",
+          "scope": "以不動產(房屋及其基地應有部分)為標的之附負擔贈與契約(代表贈與人):LS-10 Floor 驗證範圍"
+        },
+        {
+          "type": "equip_maint",
+          "name": "設備維護保養",
+          "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
+        }
+      ],
+      "jurisdiction": "taiwan",
+      "represented_party": [
+        "party_a",
+        "party_b"
+      ]
+    },
+    "high": {
+      "enabled": true,
+      "contract_types": [
+        {
+          "type": "fitout",
+          "name": "室內裝修工程承攬",
+          "scope": "室內裝修工程承攬契約(既有建物,代表定作人):LS-08 Floor 驗證範圍"
+        },
+        {
+          "type": "employment",
+          "name": "僱傭(勞動契約)",
+          "scope": "勞動基準法適用之僱傭契約(不定期・全職,代表雇主):LS-01 Floor 驗證範圍"
+        },
+        {
+          "type": "loan",
+          "name": "金錢借貸",
+          "scope": "金錢消費借貸契約(個人貸與公司・附息・定期,代表貸與人):LS-13 Floor 驗證範圍"
+        },
+        {
+          "type": "carriage_cold",
+          "name": "冷藏食品配送運送",
+          "scope": "企業間冷藏食品之長期配送運送契約(公路汽車運輸,代表託運人):LS-06 Floor 驗證範圍"
+        },
+        {
+          "type": "mandate",
+          "name": "會計師委任",
+          "scope": "企業委任會計師或會計師事務所提供查核簽證、稅務申報等專業服務之委任契約(代表委任人):LS-09 Floor 驗證範圍"
+        },
+        {
+          "type": "service",
+          "name": "資訊系統維運與代管服務",
+          "scope": "企業間雲端代管、系統維運與技術支援等持續性服務契約(得併含客製開發,代表服務使用方):LS-15 Floor 驗證範圍"
+        },
+        {
+          "type": "settlement",
+          "name": "交通事故損害賠償和解",
+          "scope": "交通事故侵權損害賠償之和解契約(代表受害人,和解金受領方):LS-11 Floor 驗證範圍"
+        },
+        {
+          "type": "gift",
+          "name": "不動產附負擔贈與",
+          "scope": "以不動產(房屋及其基地應有部分)為標的之附負擔贈與契約(代表贈與人):LS-10 Floor 驗證範圍"
+        },
+        {
+          "type": "equip_maint",
+          "name": "設備維護保養",
+          "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
+        }
+      ],
+      "jurisdiction": "taiwan",
+      "represented_party": [
+        "party_a",
+        "party_b"
+      ]
+    }
+  },
+  "review": {
+    "represented_party": [
+      "party_a",
+      "party_b",
+      "neutral"
+    ],
+    "medium": {
+      "enabled": true
+    },
+    "large": {
+      "enabled": false
+    },
+    "high": {
+      "enabled": false
+    }
+  },
+  "revise": {
+    "medium": {
+      "enabled": false
+    },
+    "large": {
+      "enabled": false
+    }
+  },
+  "compare": {
+    "medium": {
+      "enabled": false
+    },
+    "large": {
+      "enabled": false
+    }
+  },
+  "models": {
+    "medium": {},
+    "high": {},
+    "large": {}
+  },
+  "capabilities": {
+    "draft": {
+      "enabled": true,
+      "implemented": true,
+      "default_model": "medium",
+      "models": [
+        "medium",
+        "high",
+        "large"
+      ],
+      "implemented_models": [
+        "medium",
+        "high",
+        "large"
+      ]
+    },
+    "review": {
+      "enabled": true,
+      "implemented": true,
+      "default_model": "medium",
+      "models": [
+        "medium"
+      ],
+      "implemented_models": [
+        "medium",
+        "high",
+        "large"
+      ]
+    },
+    "revise": {
+      "enabled": false,
+      "implemented": true,
+      "default_model": "medium",
+      "models": [],
+      "implemented_models": [
+        "medium",
+        "large"
+      ]
+    },
+    "compare": {
+      "enabled": false,
+      "implemented": true,
+      "default_model": "medium",
+      "models": [],
+      "implemented_models": [
+        "medium",
+        "large"
+      ]
+    }
+  }
+}
+```
+
+### Live description (verbatim)
+
+```text
+What this deployment offers right now, read from the service's own table (nothing is cached here).
+
+    Read-only; creates no job and calls no model. A `model` argument is a level: medium (the default; free, local), high or large.
+    Returns:
+      models: the levels offered.
+      capabilities: per capability (draft, review, revise, compare) whether it is enabled for you now (`enabled`), whether it is built
+        (`implemented` — a capability can be built and still not open, in which case its tool answers PERMISSION_DENIED), its default
+        level (`default_model`, used when `model` is omitted), `models` — the levels open to you now — and `implemented_models` — the
+        levels built; a level listed only in implemented_models is refused with PERMISSION_DENIED.
+      draft / review / revise / compare: per implemented level, `{"enabled": true|false}`. For a level limited to some contract types
+        (draft.high, draft.large) also `contract_types` (the types open now), `jurisdiction` and `represented_party`: draft_contract
+        at that level accepts only those; any other request is refused (INVALID_INPUT, context.field model), never switched to another
+        level.
+      draft also: accepted jurisdictions and represented_party values; `default_floor_types`, the contract types for which the default
+        level also applies minimum-content guidance. review also: accepted represented_party values.
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {},
+  "title": "get_capabilitiesArguments",
+  "type": "object"
+}
+```
 
 ---
 
@@ -384,9 +1167,9 @@ unknown
 ```text
 Get the state of any job submitted through this server.
 
-    capability says which kind of job this is: review, draft or compare. It is
-    null only for a job row the service could not classify, and the reply then
-    also carries artifacts_blocked saying so.
+    capability says which kind of job this is: review, draft, compare or
+    revise. It is null only for a job row the service could not classify, and
+    the reply then also carries artifacts_blocked saying so.
 
     status is one of submitted, processing, completed, failed, or unknown.
     'unknown' means LegalOS reported a state this server does not map; the raw
@@ -394,20 +1177,80 @@ Get the state of any job submitted through this server.
     'failed' with a failure block — LegalOS reports that in the body rather than
     as an HTTP error, so check the status and not just the call.
 
+    revision is present only on a revise job, and it is where a revision's
+    result lives: outcome is applied, blocked or needs_clarification, with
+    reason for the two that are not applied. A revision that delivered nothing
+    still completes — status alone does not say which of the three happened, so
+    read this block before asking for the document.
+
     artifacts lists what this job produces, each with a ready flag. If
     artifacts is empty there will be an artifacts_blocked block naming why no
     address could be built; an empty list on its own is never the answer.
 
+    progress (fast_legal) is the step the job is on now: step and a short
+    Chinese text. To follow a fast_legal job as it runs, pass after_seq (0 on
+    the first poll, then the last_seq of the previous reply): the reply adds
+    events, only those after that number, and last_seq. Events are progress
+    steps, text (the next piece of the answer while it is being written; join
+    them in order) and a final done. The joined text is a draft: when status
+    is completed, answer_markdown is the answer and replaces it, and
+    draft_check.class says how they differ (A same, B citation / format
+    clean-up only, C rewritten by the evidence review: tell the reader the
+    shown text was replaced). A failed job's draft is not an answer. Polling
+    again with the same after_seq is safe and repeats nothing earlier. Other
+    capabilities ignore after_seq.
+
+    sources (fast_legal, completed) lists the statutes and judgments the
+    answer cites, each with retrieval saying what this run actually obtained
+    of it (text / excerpt / listed for a statute; read / excerpt / listed for
+    a judgment; cited_in_retrieved_judgment; not_retrieved, with no content).
+    Content is only what was retrieved; a statute text that was cut short has
+    text_truncated true. sources_summary counts them, and the retrieved results
+    the answer does not cite. A source being listed does not mean the answer's
+    legal analysis of it is correct. Jobs from before sources existed have
+    null.
+
+    cost / cost_status: cost is the amount the job is settled at,
+    {amount_micros, currency, final}, present when cost_status is settled —
+    fixed when the job ends; a failed job, including one interrupted by a
+    service restart, is settled at 0. not_final: the job has not ended.
+    unsupported: this capability / model has no settlement (currently
+    draft_contract and fast_legal at levels high and large are settled;
+    medium is not).
+
     Args:
         job_id: The handle returned when the job was submitted.
+        after_seq: fast_legal only: return the events after this sequence number.
+    
 ```
+
+Server-emitted strings are reproduced unchanged here. The live `capability` vocabulary also carries `revise`; the response field table below is the one to read for it. `after_seq` and the fields it adds are described in [Following a `fast_legal` job as it runs](#following-a-fast_legal-job-as-it-runs-after_seq).
 
 ### Exact input schema (verbatim)
 
 ```json
 {
-  "properties": { "job_id": { "title": "Job Id", "type": "string" } },
-  "required": ["job_id"],
+  "properties": {
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "after_seq": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "After Seq"
+    }
+  },
+  "required": [
+    "job_id"
+  ],
   "title": "get_jobArguments",
   "type": "object"
 }
@@ -421,7 +1264,7 @@ The tool returns `isError: false` and a single text content block containing thi
 |---|---|---|
 | `ok` | boolean | `true` on a resolved job; `false` on an application error (see [errors.md](errors.md)). |
 | `job_id` | string | Echo of the requested identifier. |
-| `capability` | string \| null | `review`, `draft`, or `compare`. `null` only for an unclassifiable job row, in which case `artifacts_blocked` explains. |
+| `capability` | string \| null | `review`, `draft`, `compare`, or `revise`. `null` only for an unclassifiable job row, in which case `artifacts_blocked` explains. |
 | `status` | string | Canonical status. One of the five values above. |
 | `status_recognised` | boolean | `false` when the engine's status did not map — which is what produces `status: "unknown"`. |
 | `upstream_status` | string | The raw engine value behind `status`. Observed: `"done"` for `completed`, `"error"` for `failed`. |
@@ -434,6 +1277,12 @@ The tool returns `isError: false` and a single text content block containing thi
 | `summary.have_revised` | integer \| null | Review only. |
 | `summary.not_applied` | integer \| null | Review only. |
 | `summary.states_status` | string \| null | Observed: `"ok"`. |
+| `revision` | object \| null | Revision jobs. The block below — this, not `status`, is where a revision's result is reported. |
+| `revision.outcome` | string | What the revision did. Observed: `"applied"`. The server's recognised set holds three values; the other two are `needs_clarification`, for an instruction that could not be tied to a clause, and `blocked`. |
+| `revision.outcome_recognised` | boolean | `false` when the engine's outcome did not map, as `status_recognised` is for `status`. |
+| `revision.replaced` | integer | How many clauses were replaced. Observed: `1`, for a one-clause instruction. |
+| `revision.not_applied` | integer | How many requested changes were not applied. Observed: `0`. |
+| `revision.reason` | string \| null | Why the revision was not applied; `null` when it was. |
 | `artifacts` | array | See below. Never empty without `artifacts_blocked`. |
 | `artifacts_blocked` | object \| null | Present when no artifact address could be built. Observed `null` in both captures. |
 | `failure` | object \| null | Present when `status` is `failed`. Observed: `{"error_code": "JOB_FAILED"}`. |
@@ -447,6 +1296,128 @@ Each `artifacts[]` entry:
 | `media_type` | string | Observed: `text/html`, `text/markdown`, and the OOXML wordprocessing type. |
 | `inline_text_available` | boolean | `false` for binary artifacts. |
 | `ready` | boolean | Whether this artifact has been written. |
+
+### Following a `fast_legal` job as it runs (`after_seq`)
+
+`get_job` takes an optional integer `after_seq`. Without it the reply is the one described above, so a client that only reads the finished result needs no change. With it — on a `fast_legal` job; other capabilities ignore it — the reply also carries:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `events` | array | The job's events whose `seq` is greater than `after_seq`, in order. |
+| `last_seq` | integer | The highest `seq` known for the job. Send it as `after_seq` on the next poll. It is never lower than the `after_seq` you sent. |
+
+A negative `after_seq` is refused with `INVALID_INPUT`, `context.field: "after_seq"`.
+
+Every event has `seq` (an integer starting at 1 and strictly increasing within the job), `ts` (Unix time, seconds) and `type`:
+
+| `type` | Further fields | Meaning |
+|---|---|---|
+| `progress` | `step`, `text` | The job moved on. `step` is `accepted`, `retrieval`, `answer`, `review` or `revise`; `text` is a short Chinese description, such as 「正在檢索法律資料…」 or a search label with its result count. |
+| `text` | `text` | The next piece of the answer while it is being written. Join the `text` events in `seq` order. They are sent in batches of about half a second. |
+| `done` | `status`, `text`, and `draft_check` (completed) or `run_event` (failed) | The job ended. It is always the last event. |
+
+Events carry no model reasoning and no raw tool output: a search is reported as a label and a count.
+
+While the job is `processing`, the top-level `progress` is the latest `progress` event as `{"step": ..., "text": ...}`, with or without `after_seq`. It is `null` once the job is terminal.
+
+A `processing` reply with events:
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "fast_legal",
+  "status": "processing",
+  "progress": {"step": "answer", "text": "正在撰寫回答…"},
+  "answer_markdown": null,
+  "evidence": null,
+  "draft_check": null,
+  "artifacts": [{"name": "fast_answer", "ready": false}],
+  "events": [
+    {"seq": 21, "ts": 1792258110.52, "type": "progress", "step": "answer", "text": "正在撰寫回答…"},
+    {"seq": 22, "ts": 1792258111.07, "type": "text", "text": "..."}
+  ],
+  "last_seq": 22
+}
+```
+
+#### Draft and final answer
+
+The text joined from `text` events is a **draft**, written before the evidence review has finished. When `status` is `completed`, `answer_markdown` is the answer: show it in place of the draft. Nothing is sent after `done`, so a later poll cannot overwrite the answer with draft text.
+
+`draft_check` (on a completed job, with or without `after_seq`; `null` otherwise) says how the answer differs from the draft:
+
+| `draft_check.class` | Meaning | What to show |
+|---|---|---|
+| `A` | Identical. | The answer. |
+| `B` | Only citation or format clean-up, for example an unverified judgment number omitted or a quotation marked as a paraphrase. `changes` counts them. | The answer. |
+| `C` | Rewritten by the evidence review. | The answer, and tell the reader that the text shown earlier was replaced. |
+
+When `status` is `failed`, the draft is **not** an answer and must not be presented as a completed legal answer. `answer_markdown` and `evidence` are `null`.
+
+#### Polling and reconnecting
+
+```python
+seq, draft = 0, ""
+while True:
+    job = get_job(job_id, after_seq=seq)        # one tools/call
+    for event in job["events"]:
+        if event["type"] == "progress":
+            show_progress(event["text"])
+        elif event["type"] == "text":
+            draft += event["text"]
+            show_draft(draft)
+    seq = job["last_seq"]
+    if job["status"] == "completed":
+        show_answer(job["answer_markdown"], job["sources"], job["draft_check"])
+        break
+    if job["status"] == "failed":
+        show_failure()                            # the draft is not an answer
+        break
+    time.sleep(2)
+```
+
+- Events belong to the `job_id` you poll, and `seq` counts within that job only. Keep one event list per job. When a new question starts a new job, start a new list at `after_seq` 0, and do not show an earlier job's progress or text under the new question.
+- Polling again with the same `after_seq` is safe: it returns the same events and nothing earlier. If you merge replies, de-duplicate by `seq`.
+- After a dropped connection or a restart of your client, continue with the last `last_seq` you processed. Events are kept by the service, so nothing is lost or repeated.
+- Polling every 2 seconds worked in testing. The rate limit (120 requests per 60 seconds per client IP) is shared by every client behind one IP.
+- Stop polling when `status` is `completed` or `failed`.
+
+For scale, one production job on 2026-10-17, polled every 2 seconds, received its first `text` event about 21 seconds after submission and was `completed` at about 74 seconds, after 37 polls and about 46 KB of responses in total. That is a single data point, not a service level.
+
+#### Retention
+
+Events are kept for **1 hour after the job ends**. They are removed by a sweep that runs about every 15 minutes, so they can remain for up to about 75 minutes. After that, a poll with `after_seq` returns `events: []` and `last_seq` equal to the `after_seq` you sent. `status`, `answer_markdown`, `evidence` and `draft_check` are unchanged, and the answer itself is not removed.
+
+There is no cancel operation, and no list of sources is returned.
+
+### Cost (`cost`, `cost_status`)
+
+Every `get_job` reply carries `cost_status`, and `cost` when it is settled:
+
+| `cost_status` | `cost` | Meaning |
+|---|---|---|
+| `settled` | `{"amount_micros": <int>, "currency": "USD", "final": true}` | The amount this job is settled at. Fixed when the job ends: the first `completed` / `failed` reply already carries it, and every later read returns the same value. |
+| `not_final` | `null` | The job has not ended yet. |
+| `unsupported` | `null` | This capability or model has no settlement. Keep your own accounting for it. |
+
+`amount_micros` is US dollars × 1,000,000 (an integer).
+
+**What the amount is.** The amount the job is settled at, fixed when the job ends.
+
+**Failed jobs are not charged:** a job that ends `failed` — including a draft cut short, stopped early or refused because the model was unavailable, and a job interrupted by a service restart — is settled at `amount_micros: 0`.
+
+**Support matrix** (as deployed on 2026-10-20):
+
+| Capability | Level | `cost_status` when finished |
+|---|---|---|
+| `draft_contract` | `high`, `large` | `settled` |
+| `draft_contract` | omitted / `medium` | `unsupported` |
+| `review_contract` | omitted / `medium` | `unsupported` |
+| `compare_contracts`, `revise_contract` | — | not open (`PERMISSION_DENIED`) |
+| `fast_legal` | `level: "high"` / `"large"` | `settled` (see [Levels and cost](#levels-and-cost-level-cost-cost_status)) |
+| `fast_legal` | `level` omitted / `"medium"` | `unsupported` |
+
 
 ### Canonical status field
 
@@ -704,6 +1675,10 @@ Read one artifact of a finished job.
             same contract to deliver) and draft_summary.
             A compare offers compare_redline (what changed between the two
             versions), compare_memo and compare_synthesis.
+            A revision offers revised_docx (the revised contract to deliver)
+            and redline_docx (the same revision as tracked changes). Both exist
+            only for an applied revision — read revision.outcome from get_job.
+    
 ```
 
 ### Exact input schema (verbatim)
@@ -711,10 +1686,19 @@ Read one artifact of a finished job.
 ```json
 {
   "properties": {
-    "job_id": { "title": "Job Id", "type": "string" },
-    "artifact": { "title": "Artifact", "type": "string" }
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "artifact": {
+      "title": "Artifact",
+      "type": "string"
+    }
   },
-  "required": ["job_id", "artifact"],
+  "required": [
+    "job_id",
+    "artifact"
+  ],
   "title": "get_artifactArguments",
   "type": "object"
 }
@@ -724,13 +1708,34 @@ The parameter is named `artifact`, not `artifact_type`. Both fields are required
 
 ### Artifact vocabulary, response shape, and failure behavior
 
-See [artifacts.md](artifacts.md), which carries the exact 12-value vocabulary, the response field table, and the observed responses for the available, binary, unavailable, and unknown-job cases.
+See [artifacts.md](artifacts.md), which carries the artifact vocabulary by capability, the response field table, and the observed responses for the available, binary, unavailable, and unknown-job cases.
 
 ---
 
+## Uploading a document (`/upload`)
+
+`file_ref` / `file_a_ref` / `file_b_ref` are handles to a document uploaded beforehand. Uploading is a plain HTTP request to the same host, not an MCP tool call, and carries the same `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>` header.
+
+```bash
+curl https://mcp.clawplus.pro/upload \
+  -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
+  --data-binary @contract.docx
+```
+
+- The body is the document's raw bytes — not multipart, not JSON, not base64. The `Content-Type` is not read; the file type is identified from content. No file name, query string or path segment is accepted; the name stays a tool argument (`file_name`).
+- Success is HTTP 200 with a JSON body:
+
+  ```json
+  {"ok": true, "file_ref": "<FILE_REF>", "size": 123456, "sha256": "<SHA256>",
+   "detected_kind": "docx", "integrity_status": "<STATUS>", "expires_at": "2026-01-01T00:00:00Z"}
+  ```
+
+- A `file_ref` is valid for **one hour** (`expires_at`), can be used only by the identity that uploaded it, and can be revoked early with `DELETE /upload` carrying the handle in the `x-legalos-file-ref` header (never in the URL). A ref that has expired, been revoked, or belongs to another identity is refused with `FILE_REF_NOT_USABLE`; upload the document again.
+- The same document checks apply as for base64: at most **50 MB**; `.docx`, `.pdf` or `.doc` (compare accepts `.docx` only). Refusals carry the application error body with an HTTP status: `400` (`INVALID_INPUT`, `EMPTY_FILE`, `INVALID_FILE_PAYLOAD`), `413` (`FILE_TOO_LARGE`), `415` (`UNSUPPORTED_FILE_TYPE`); any method other than `POST` / `DELETE` is `405`.
+
 ## Schema synchronization checklist
 
-Before a release of this repository, compare all five documented tools against one fresh live discovery capture. Verify:
+Before a release of this repository, compare all documented tools against one fresh live discovery capture. Verify:
 
 - exact tool names;
 - exact descriptions;
@@ -741,3 +1746,595 @@ Before a release of this repository, compare all five documented tools against o
 - response shapes;
 - public error responses;
 - any newly added or removed tools.
+
+## `fast_legal`
+
+### Purpose
+
+Answer a legal question with bounded research and report whether the evidence found was sufficient. Fast Legal performs bounded legal research using AurCounsel's legal retrieval capabilities. `level`: `medium` (the default) is free and the fastest; `high` is charged by usage; `large` is charged by usage and researches the most deeply.
+
+### Live description (verbatim)
+
+```text
+Answer a legal question with bounded research, and say whether the evidence found was sufficient.
+
+    Fast Legal performs bounded legal research using AurCounsel's legal retrieval capabilities (statutes and court
+    judgments) and returns an answer together with an evidence-sufficiency status:
+    COMPLETE — the evidence found supports the core answer (it does not mean research was exhaustive);
+    INSUFFICIENT_EVIDENCE — only part of the answer could be supported; evidence.insufficiency_reason says what and why.
+    The status is model-assessed, not a guarantee. A run usually takes one to a few minutes.
+
+    Returns immediately with a job_id. Poll get_job with that job_id; when status is completed the answer is in
+    answer_markdown and the status in evidence (also available as get_artifact(job_id, "fast_answer")). When it is
+    failed, failure.error_code says why: RETRIEVAL_FAILED — no statute or judgment could be retrieved (tried twice), so
+    no answer was written; FAST_UNAVAILABLE — the run did not complete.
+
+    Levels: medium (the default) is free and the fastest; high is charged by usage; large is charged by usage and
+    researches the most deeply. For high and large, once the job is completed or failed, get_job returns cost
+    {amount_micros, currency, final} with cost_status settled (a failed job is settled at 0). answer_markdown is the
+    answer alone; read the charge from cost.
+
+    Args:
+        question: The legal question, in the user's own words.
+        level: medium (default), high or large.
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "question": {
+      "title": "Question",
+      "type": "string"
+    },
+    "level": {
+      "default": "medium",
+      "enum": [
+        "medium",
+        "high",
+        "large"
+      ],
+      "title": "Level",
+      "type": "string"
+    }
+  },
+  "required": [
+    "question"
+  ],
+  "title": "fast_legalArguments",
+  "type": "object"
+}
+```
+
+### Parameters
+
+| Parameter | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `question` | string | yes | The legal question, in the user's own words. Empty → `INVALID_INPUT` with `context: {"field": "question"}`. |
+| `level` | string | no | `medium` (default): free, the fastest. `high`: charged by usage. `large`: charged by usage, the deepest research. Any other value → `INVALID_INPUT` with `context: {"field": "level"}`. |
+
+### Lifecycle and result
+
+The call returns immediately with `{"ok": true, "job_id": "...", "capability": "fast_legal", "status": "submitted"}`. Poll `get_job`: `status` moves from `processing` to `completed` (or `failed`); to follow the job while it runs, see [`after_seq`](#following-a-fast_legal-job-as-it-runs-after_seq). When `completed`, `answer_markdown` carries the answer as Markdown, `draft_check` says how it differs from the draft shown while it was written, `sources` lists what it cites (see [Sources](#sources-sources-sources_summary)), `evidence` carries the evidence-sufficiency status, and `artifacts` lists one artifact, `fast_answer`, which `get_artifact` returns as `text/markdown` together with the same `evidence`. Every reply also carries `level`, `cost` and `cost_status` (see [Levels and cost](#levels-and-cost-level-cost-cost_status)).
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "fast_legal",
+  "status": "completed",
+  "progress": null,
+  "answer_markdown": "...",
+  "evidence": {
+    "status": "COMPLETE",
+    "insufficiency_reason": "",
+    "review_outcome": "PASS"
+  },
+  "draft_check": {"class": "A", "changes": 0},
+  "sources": [ ... ],
+  "sources_summary": { ... },
+  "artifacts": [{"name": "fast_answer", "ready": true}],
+  "level": "medium",
+  "cost": null,
+  "cost_status": "unsupported"
+}
+```
+
+| `evidence` field | Meaning |
+| --- | --- |
+| `status` | `COMPLETE` — the evidence found supports the core answer (it does not mean the research was exhaustive). `INSUFFICIENT_EVIDENCE` — only part of the answer could be supported; the answer states what could and could not be confirmed, and why. |
+| `insufficiency_reason` | Set only for `INSUFFICIENT_EVIDENCE`: what is missing and why. |
+| `review_outcome` | Observability only: which internal review result produced the status (`PASS`, `REWRITE`, `INSUFFICIENT_EVIDENCE`, `NOT_RUN`, `UNREADABLE`). |
+
+The status is **model-assessed**, not a guarantee. `INSUFFICIENT_EVIDENCE` does not mean the proposition is false or that no authority exists; it means bounded research did not gather enough to answer reliably.
+
+**Evidence status (as of 2026-10-20).** `evidence.status` is the answer review's own result; the interim marker used from 2026-10-17 (every answer `INSUFFICIENT_EVIDENCE` with a fixed "unverified" reason) is withdrawn. The answer text carries no evidence-status line.
+
+The status is not a legal verification of the answer. How to present `evidence` is up to the client: see [Presenting evidence and sources](#presenting-evidence-and-sources).
+
+### Levels and cost (`level`, `cost`, `cost_status`)
+
+`get_job` for a `fast_legal` job returns the job's `level` (`"medium"`, `"high"` or `"large"`) together with `cost` and `cost_status` (the general rules are in [Cost](#cost-cost-cost_status)):
+
+| `level` | While `processing` | Once `completed` or `failed` |
+|---|---|---|
+| `medium` | `cost: null`, `cost_status: "unsupported"` | `cost: null`, `cost_status: "unsupported"` |
+| `high`, `large` | `cost: null`, `cost_status: "not_final"` | `cost: {"amount_micros": <int>, "currency": "USD", "final": true}`, `cost_status: "settled"`. A failed job is settled at `amount_micros: 0`. |
+
+`answer_markdown` (and the `fast_answer` artifact) is the answer alone. It does not include a cost line; read the charge from `cost`.
+
+### Presenting evidence and sources
+
+AurCounsel Fast Legal is meant to give practical, accurate legal analysis and advice. The answer in `answer_markdown` is the main content; `evidence` is supporting status information, not a score of whether the legal conclusion is correct.
+
+- **You do not have to show `evidence.status` or its reason next to the answer.** You may leave it out of the main answer area or place it in a secondary details area.
+- **Do keep real limitations accurate.** When a reply reports a genuine insufficiency (`INSUFFICIENT_EVIDENCE` with its own `insufficiency_reason`), a failed job, or another concrete limitation, do not present the answer as verified.
+- **Use `sources` for legal sources.** You can offer expandable statute text, judgment excerpts and links, and distinguish what this job retrieved from citations it did not confirm (`not_retrieved`), as recorded per entry.
+- `sources: null` means no source data is delivered for the job; it does not mean the job did no retrieval.
+- Neither the presence of sources nor any evidence status guarantees that the legal conclusion is correct.
+
+A failed `fast_legal` job is `status: "failed"` with no answer; `failure.error_code` is `RETRIEVAL_FAILED` (no statute or judgment could be retrieved, so no answer was written) or `FAST_UNAVAILABLE` (the run did not complete).
+
+An insufficient answer has the same shape, with `status: "INSUFFICIENT_EVIDENCE"` and its own `insufficiency_reason`.
+
+### Sources (`sources`, `sources_summary`)
+
+When a `fast_legal` job is `completed`, `get_job` also returns `sources`: the statutes and judgments that `answer_markdown` cites, each with what this job actually retrieved of it. `sources_summary` counts them. Both are `null` while the job is not completed, when it failed, and on jobs submitted before sources were introduced (2026-10-17). `null` means that no source data is delivered for that job; it does **not** mean the job did no retrieval.
+
+Read `answer_markdown` and `sources` together, from the same `completed` reply: that pair is the result.
+
+Sources are built from the final answer, after the evidence review and any rewrite, not from the draft streamed while the answer was being written. A citation that the review removed from the answer is not listed. Every entry's `cited_as` is text that appears in `answer_markdown`. Nothing in an entry is generated: texts, dates, courts and links are only what retrieval returned, and a citation nothing retrieved has its content `null`.
+
+**A listed source does not mean the answer's legal analysis is correct**, and it does not mean every citation was verified. Read `retrieval` on each entry, and see [Presenting evidence and sources](#presenting-evidence-and-sources).
+
+Fields of every entry:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `kind` | string | `statute`, `judgment` or `interpretation` (a constitutional interpretation, 釋字第N號). |
+| `cited_as` | string | The citation exactly as it is written in `answer_markdown`. Use it to find the citation in the answer. |
+| `retrieval` | string | What this job obtained of the source; see the tables below. |
+| `tool` | string \| null | The retrieval tool that returned it (`search_statutes`, `get_article`, `search_judgments`, `read_judgment`, …). `null` when nothing was retrieved. |
+| `arguments` | object \| null | Identity only: `{"law", "article"}` for a statute, `{"court", "case_number"}` for a judgment. Search queries are never included. |
+| `quote_not_found` | boolean \| null | The answer put a passage in quotation marks beside this source that is not in the text retrieved for it — for a statute, a passage given as the article's words with any sentence that is not in the retrieved article. `null` when nothing was retrieved to check a quote against (`retrieval` `not_retrieved` or `cited_in_retrieved_judgment`). |
+| `cited_item_not_found` | string \| null | Statutes only: the 第N項 / 第N款 the answer cites that the retrieved article does not have (e.g. `"第2項"`), else `null`. |
+| `quote_marked_as_gist` | boolean | Such a passage was turned into a paraphrase in the answer (「…」 → （意旨：…）). |
+
+Statutes:
+
+| `retrieval` | Meaning |
+|---|---|
+| `text` | The article was looked up by name (`get_article`) and its text returned. |
+| `excerpt` | A search returned the article with a passage of its text. |
+| `listed` | A search listed the article without text. |
+| `not_retrieved` | The answer cites it, but this job's retrieval record does not show it was retrieved. Treat it as not confirmed by this job. |
+
+| Statute field | Meaning |
+|---|---|
+| `law`, `article` | The act name and article number as retrieved (for example 「中華民國刑法」, 「第 277 條」). |
+| `text` | The retrieved text, or `null`. |
+| `text_truncated` | `true` when the retrieved passage was cut short (the upstream marks it with an ellipsis); the text is then **not** the full article. `null` when there is no text. |
+| `url` | The official link the upstream returned: the law's page on the national law database, not a per-article page. `null` when none. |
+| `version_date` | The version date the upstream returned, or `null`. |
+
+Interpretations (`kind: "interpretation"`): `retrieval` is `read`, `excerpt`, `listed`, `cited_in_retrieved_judgment` (named inside a retrieved judgment, not itself retrieved) or `not_retrieved`; `number` (釋字第N號), `decision_date`, `excerpt`, `url` (the Constitutional Court's page) and `full_text` come from what was retrieved, and are `null` when nothing was. Fast lists the interpretations most relevant to each judgment search it makes; an interpretation the answer names that was not retrieved is `not_retrieved`.
+
+Judgments:
+
+| `retrieval` | Meaning |
+|---|---|
+| `read` | The judgment was opened (`read_judgment`). `full_text.complete` is `true` when all of it was read, `false` when only part was; `full_text` gives `chars_read` and `total_chars`. This says what the service read. The reply itself still carries only the search `excerpt` (or none), not the text that was read. |
+| `excerpt` | A search returned the judgment with an excerpt only. |
+| `listed` | A search listed the judgment without an excerpt. |
+| `cited_in_retrieved_judgment` | Not retrieved itself; it is named inside the text of a judgment this job did retrieve. Content is `null`. |
+| `not_retrieved` | The answer cites it, but this job's retrieval record does not show it was retrieved. Content is `null`. Treat it as not confirmed by this job. |
+
+| Judgment field | Meaning |
+|---|---|
+| `court`, `case_number`, `decision_date` | As retrieved. |
+| `excerpt` | The search excerpt, or `null`. The text read with `read_judgment` is not included. |
+| `url` | The judgment's page on the Judicial Yuan's judgment system, as retrieved, or `null`. |
+| `full_text` | `{"complete", "chars_read", "total_chars"}` for a read judgment, otherwise `null`. |
+
+`sources_summary`:
+
+| Field | Meaning |
+|---|---|
+| `cited` | Number of entries in `sources`. One source cited several times is one entry. |
+| `by_retrieval` | Entries per `retrieval` value. |
+| `omitted_from_answer` | Citations the evidence review took out of the answer (an unverified case number replaced by 「一則未經本次查核的裁判（字號從略）」). They are not in `sources`. |
+| `not_in_answer` | Citations whose text is not in the delivered answer. They are not in `sources`. |
+| `retrieved_not_cited` | `{"statutes", "judgments", "interpretations"}`: distinct retrieved results the answer does not cite. Only counted; they are not in `sources`. |
+
+A completed reply observed live on 2026-10-17. `job_id` and `answer_markdown` are replaced, only three of the eight `sources` entries are kept, and their `text` / `excerpt` are shortened for this document. `text_truncated` describes the retrieved text, not this shortening:
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "fast_legal",
+  "status": "completed",
+  "progress": null,
+  "answer_markdown": "...",
+  "evidence": {
+    "status": "COMPLETE",
+    "insufficiency_reason": "",
+    "review_outcome": "PASS"
+  },
+  "draft_check": {
+    "class": "A",
+    "changes": 0
+  },
+  "sources": [
+    {
+      "kind": "statute",
+      "cited_as": "刑法第277條",
+      "retrieval": "text",
+      "law": "中華民國刑法",
+      "article": "第 277 條",
+      "text": "傷害人之身體或健康者，處五年以下有期徒刑、拘役或五十萬元以下罰金。\r\n犯…",
+      "text_truncated": false,
+      "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=C0000001",
+      "version_date": null,
+      "tool": "get_article",
+      "arguments": {
+        "law": "中華民國刑法",
+        "article": "第 277 條"
+      },
+      "quote_not_found": false,
+      "quote_marked_as_gist": false
+    },
+    {
+      "kind": "judgment",
+      "cited_as": "臺灣高等法院臺中分院101年度上易字第350號",
+      "retrieval": "excerpt",
+      "court": "臺灣高等法院臺中分院",
+      "case_number": "101年度上易字第350號",
+      "decision_date": "2012-07-24",
+      "excerpt": "[理由，推定為法院判斷] ⒈按「對於現在不法之侵害，而出於防衛自己或他人…",
+      "url": "https://judgment.judicial.gov.tw/FJUD/data.aspx?ty=JD&id=TCHM%2C101%2C%E4%B8%8A%E6%98%93%2C350%2C20120724%2C1",
+      "full_text": null,
+      "tool": "search_judgments",
+      "arguments": {
+        "court": "臺灣高等法院臺中分院",
+        "case_number": "101年度上易字第350號"
+      },
+      "quote_not_found": false,
+      "quote_marked_as_gist": false
+    },
+    {
+      "kind": "judgment",
+      "cited_as": "最高法院87年度台上字第3720號",
+      "retrieval": "cited_in_retrieved_judgment",
+      "court": null,
+      "case_number": null,
+      "decision_date": null,
+      "excerpt": null,
+      "url": null,
+      "full_text": null,
+      "tool": null,
+      "arguments": null,
+      "quote_not_found": false,
+      "quote_marked_as_gist": false
+    }
+  ],
+  "sources_summary": {
+    "cited": 8,
+    "by_retrieval": {
+      "excerpt": 5,
+      "text": 1,
+      "cited_in_retrieved_judgment": 2
+    },
+    "omitted_from_answer": 0,
+    "not_in_answer": 0,
+    "retrieved_not_cited": {
+      "statutes": 8,
+      "judgments": 2
+    }
+  },
+  "artifacts": [
+    {
+      "name": "fast_answer",
+      "ready": true
+    }
+  ]
+}
+```
+
+A citation with nothing retrieved has this shape. This entry is illustrative, not a capture:
+
+```json
+{"kind": "statute", "cited_as": "民法第184條", "retrieval": "not_retrieved", "law": null, "article": null, "text": null,
+ "text_truncated": null, "url": null, "version_date": null, "tool": null, "arguments": null,
+ "quote_not_found": false, "quote_marked_as_gist": false}
+```
+
+Sources are stored with the job's result and are readable only by the identity that submitted the job (another identity gets `403 Forbidden`). They are not removed after one hour the way streamed events are.
+
+Jobs and artifacts are scoped to the authenticated identity; another identity reading this job gets `403 Forbidden`.
+
+---
+
+## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `read_judgment`
+
+These four tools answer at once: they create no job, call no model and are not charged. They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from. Measured on 2026-10-20: `get_article` about 0.4 s, `search_statutes` about 1.3 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s.
+
+**Errors.** A refusal is `{"ok": false, "error_code": ..., "message": ..., "context": {...}}`:
+
+| `error_code` | Meaning | `context` |
+|---|---|---|
+| `NOT_FOUND` | The source has no such article or judgment. An answer about the sources, not a failure. | `reason`, and the article or case asked for |
+| `INVALID_ARGUMENT` | The arguments cannot be used: an empty or over-long (120 characters) query, an unreadable article number, a `top_k` / `max_chars` out of range, `around` together with `offset`, a judgment named by neither `doc_id` nor `court` + `case_number`. | `field` when one argument is at fault, `reason` |
+| `RETRIEVAL_FAILED` | The source failed this time; nothing is wrong with the request. Try again later. | none |
+
+A search that matches nothing is `ok: true` with an empty `results` list. **Rate limit:** the MCP endpoint's per-caller limit (120 calls a minute) applies; there is no separate limit for these tools.
+
+## `get_article`
+
+Returns `law` (the act's full name; common short names such as 勞基法 are accepted), `article`, `text` (the whole article, paragraphs and items), `status` (`in-force` when current), `level` (法律 / 命令), `amended_on` (the last amendment date when the source gives one; currently `null`), `url` and `id`.
+
+### Live description (verbatim)
+
+```text
+Read one statute article: the act's full name, the article number, its whole text (paragraphs and items), whether it is in force,
+    its last amendment date when the source gives one (null otherwise), and a link and an identifier. Common short names are accepted
+    (勞基法 → 勞動基準法). Synchronous: no job, no charge.
+
+    Args:
+        law: The act, e.g. 民法, 勞動基準法 or 勞基法.
+        article: The article number only, e.g. 184, 第184條, 第一百八十四條 or 7-2.
+
+    Errors: NOT_FOUND (no such article), INVALID_ARGUMENT (the article number cannot be read), RETRIEVAL_FAILED (the source failed).
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "law": {
+      "title": "Law",
+      "type": "string"
+    },
+    "article": {
+      "title": "Article",
+      "type": "string"
+    }
+  },
+  "required": [
+    "law",
+    "article"
+  ],
+  "title": "get_articleArguments",
+  "type": "object"
+}
+```
+
+## `search_statutes`
+
+Returns `results`, most relevant first, each with the fields of `get_article` and `score`. `law` keeps only results from that act; `level` (`law` / `order`) is applied by the source.
+
+### Live description (verbatim)
+
+```text
+Search statute articles by relevance. Each result: the act, the article number, the text (or an excerpt), the relevance score and
+    whether it is in force. Synchronous: no job, no charge.
+
+    Args:
+        query: Words a statute would use (法典的用語), e.g. 押金 租賃契約 返還; at most 120 characters.
+        law: Only results from this act (full or common short name).
+        level: law = acts only; order = administrative orders only; omitted = both.
+        top_k: How many results, 1–30 (default 10).
+
+    Errors: INVALID_ARGUMENT (an empty or over-long query, a bad top_k), RETRIEVAL_FAILED (the source failed). No match is an empty list.
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "query": {
+      "title": "Query",
+      "type": "string"
+    },
+    "law": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Law"
+    },
+    "level": {
+      "anyOf": [
+        {
+          "enum": [
+            "law",
+            "order"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Level"
+    },
+    "top_k": {
+      "default": 10,
+      "title": "Top K",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "query"
+  ],
+  "title": "search_statutesArguments",
+  "type": "object"
+}
+```
+
+## `search_judgments`
+
+Returns `results`: `court`, `case_number`, `title`, `decision_date`, `passage` (the matching passage, with the source's section labels in brackets), `passage_at` (for `read_judgment` `around`), `roles` (those labels: 「理由，推定為法院判斷」 is the court's reasoning; 「未確認為法院判斷」 may be a party's argument), `doc_id`, `url`, `score`. `court` keeps only that court's judgments.
+
+### Live description (verbatim)
+
+```text
+Search court judgments for how courts decide a point. Each result: the court, the case number, the decision date, the matching
+    passage, its position (passage_at, for read_judgment's around) and the doc_id. roles lists the section labels the source puts on the
+    passage — 「理由，推定為法院判斷」 is the court's own reasoning; 「未確認為法院判斷」 may be a party's argument. Synchronous: no job, no charge.
+
+    Args:
+        query: How a court's reasoning would put it, e.g. 共同正犯在合同意思範圍內; at most 120 characters.
+        court: Only judgments of this court, e.g. 最高法院 (matched within the court's name).
+        top_k: How many results, 1–20 (default 5).
+
+    Errors: INVALID_ARGUMENT (an empty or over-long query, a bad top_k), RETRIEVAL_FAILED (the source failed). No match is an empty list.
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "query": {
+      "title": "Query",
+      "type": "string"
+    },
+    "court": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Court"
+    },
+    "top_k": {
+      "default": 5,
+      "title": "Top K",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "query"
+  ],
+  "title": "search_judgmentsArguments",
+  "type": "object"
+}
+```
+
+## `read_judgment`
+
+Returns `disposition` (主文), `text` (one page, at most `max_chars`), `offset`, `next_offset` (null when nothing follows; pass it as `offset` to read on), `total_chars`, `cited_articles`, `court`, `case_number`, `decision_date`, `title`, `url` and `doc_id`.
+
+### Live description (verbatim)
+
+```text
+Read one judgment's original text, a page at a time: the 主文 (disposition) and the text from the start, from offset, or from around
+    (a passage_at from search_judgments). next_offset is not null when more follows — pass it as offset to read on. Identify the judgment
+    by doc_id (from search_judgments), or by court and case_number (e.g. 最高法院 and 112年度台上字第123號). Synchronous: no job, no charge.
+
+    Args:
+        doc_id: The judgment's doc_id.
+        court: The court, with case_number, when there is no doc_id.
+        case_number: The case number, with court.
+        around: Start from this passage position (search_judgments' passage_at). Not with offset.
+        offset: Start from this character; the previous page's next_offset.
+        max_chars: At most this many characters of text, 200–3000 (default 3000).
+
+    Errors: NOT_FOUND (no such judgment), INVALID_ARGUMENT (neither doc_id nor court + case_number, around with offset, a bad number),
+    RETRIEVAL_FAILED (the source failed).
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "doc_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Doc Id"
+    },
+    "court": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Court"
+    },
+    "case_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Case Number"
+    },
+    "around": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Around"
+    },
+    "offset": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Offset"
+    },
+    "max_chars": {
+      "default": 3000,
+      "title": "Max Chars",
+      "type": "integer"
+    }
+  },
+  "title": "read_judgmentArguments",
+  "type": "object"
+}
+```

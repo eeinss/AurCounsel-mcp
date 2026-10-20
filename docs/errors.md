@@ -103,11 +103,22 @@ Shape:
 | `error_code` | Observed | Meaning | `context` |
 |---|---|---|---|
 | `JOB_NOT_FOUND` | yes | No job exists with that identifier. | `{"upstream_status": 404}` |
-| `INVALID_INPUT` | yes | An argument was present but could not be used. | `{"field": "<name>"}`, plus `accepted` for `artifact` |
+| `PERMISSION_DENIED` | yes | The capability exists but is not open (此功能尚未開放). Nothing was sent, no job was created and no model was called. Currently every `compare_contracts` and `revise_contract` call, `review_contract` with `model` `high` / `large`, and a `draft_contract` level that is built but not open (in `implemented_models`, not in `models`). `get_capabilities` lists what is open. | `{"capability": "compare"}`; for a model also `"model"` |
+| `MISSING_FIELD` | yes | A field the service requires was not given; nothing was sent and no job exists. Currently: `draft_contract` without `requested_jurisdiction`. | `{"field": "jurisdiction"}` |
+| `INVALID_INPUT` (`detail: model_not_open_for_contract_type`) | yes | `draft_contract` with a model that does not draft this contract type (see `get_capabilities` `draft.<model>.contract_types`); no job was created, never switched to another model. | `{"field": "model", "submitted": "<model>", "detail": "model_not_open_for_contract_type"}` |
+| `INVALID_INPUT` | yes | An argument was missing or could not be used. For `review_contract` without `represented_party` the message is "Missing required parameter: represented_party. Please specify which party AurCounsel represents: party A (甲方), party B (乙方) or neutral." | `{"field": "<name>"}`, plus `accepted` for `artifact`; `{"field": "after_seq"}` for a negative `get_job` `after_seq`; `{"field": "level"}` for a `fast_legal` `level` other than `medium` / `high` |
 | `JOB_FAILED` | yes | Appears in `get_job`'s `failure` block, not as a top-level `error_code`. | — |
 | `PARTY_CONFIRMATION_REQUIRED` | **no** | Declared by the `review_contract` and `draft_contract` descriptions: an unresolvable `represented_party` is refused and the caller is asked which position the client holds. The one submission made during this pass sent a `represented_party` the server did resolve, so it took the success path and this code was never returned. Provoking it means deliberately submitting an unresolvable party, which was not authorised. **UNRESOLVED.** | UNRESOLVED |
+| `EMPTY_FILE` | no | The submitted document is empty. | — |
+| `FILE_TOO_LARGE` | no | The document exceeds the 50 MB limit. | — |
+| `UNSUPPORTED_FILE_TYPE` | no | The document is not `.docx` / `.pdf` / `.doc` (or not `.docx` for compare), judged by content. | — |
+| `INVALID_FILE_PAYLOAD` | no | The file is the right kind but its contents are damaged; nothing was sent — send it again. | — |
+| `FILE_REF_NOT_USABLE` | no | The `file_ref` expired, was revoked, or belongs to another identity (which one is not reported); upload again. | — |
+| `ARTIFACT_TOO_LARGE` | no | A text artifact is over the 8 MB inline limit; download it from its `url`. | size and limit |
+| `UPSTREAM_REJECTED` | no | The service rejected the submission. With `context.upstream_status: 403` it means this token is not entitled to that capability. | `{"upstream_status": <int>}` |
+| `UPSTREAM_ERROR` / `UPSTREAM_UNREACHABLE` | no | The service failed or could not be reached; transient. | — |
 
-This table lists what was observed plus the one code the live descriptions declare. It is **not** certified as the complete set — the server exposes no enumeration of its error codes.
+This table lists what was observed plus the codes the server's own error vocabulary defines. It is **not** certified as the complete set — the server exposes no enumeration of its error codes.
 
 ### Unknown job
 
@@ -129,7 +140,7 @@ An identifier that is the wrong shape is rejected before lookup:
  "context":{"field":"job_id"}}
 ```
 
-So `job_id` has two distinct rejection paths: malformed → `INVALID_INPUT`, well-formed but unknown → `JOB_NOT_FOUND`.
+So `job_id` has two distinct rejection paths inside the tool: malformed → `INVALID_INPUT`, well-formed but unknown → `JOB_NOT_FOUND`. On the public endpoint a job identifier your identity did not submit — including an unknown one — is refused earlier, with HTTP `403 Forbidden` (section 6).
 
 ### Unknown artifact name
 
@@ -139,7 +150,7 @@ So `job_id` has two distinct rejection paths: malformed → `INVALID_INPUT`, wel
  "context":{"field":"artifact",
             "accepted":["redline","original","revised","revised_docx","memo","review_comments",
                         "draft_html","draft_docx","draft_summary",
-                        "compare_redline","compare_memo","compare_synthesis"]}}
+                        "compare_redline","compare_memo","compare_synthesis","redline_docx"]}}
 ```
 
 `context.accepted` is the authoritative artifact vocabulary; [artifacts.md](artifacts.md) reproduces it.
@@ -208,13 +219,21 @@ This prevents a known UX ambiguity in which an unavailable artifact can sound me
 
 ## 6. Authentication and authorization errors
 
-**None observed.** The public endpoint served `tools/list` with no `Authorization` header at all, and served the identical five-tool list when sent `Authorization: Bearer not-a-real-token` — same HTTP 200, same tool count. No authentication is enforced at the MCP endpoint, so there is no auth error envelope to document.
+Every MCP request must carry `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>`. These refusals happen before any MCP method runs; the body is plain text, not a JSON-RPC envelope.
 
-See the caution in [quickstart.md](quickstart.md): this is a description of observed behavior, not a recommendation.
+| HTTP status | Meaning |
+| --- | --- |
+| `401 Unauthorized` | Missing or invalid bearer token. The response carries `WWW-Authenticate: Bearer`. |
+| `403 Forbidden` | Authenticated, but the identity does not have access to the requested job/artifact; or the client IP is blocked. |
+| `429 Too Many Requests` | More than 120 requests from one client IP in 60 seconds. The response carries `Retry-After: 60`. |
+
+A submission the token is not entitled to is not an HTTP refusal: the tool call succeeds and returns `ok: false`, `error_code: "UPSTREAM_REJECTED"`, `context.upstream_status: 403`.
+
+Jobs and artifacts are scoped to the authenticated identity. A job or artifact identifier alone does not grant access.
 
 ## 7. Rate limits and transient errors
 
-**UNRESOLVED.** No rate-limit headers, `retry_after` field, or throttling response was observed. The capture was small and deliberately read-only; absence here is not evidence that no limit exists.
+Requests are rate-limited per client IP: 120 requests per 60-second window. Over the limit the server answers HTTP `429 Too Many Requests` (plain text) with `Retry-After: 60`. Clients behind one egress IP share the budget. `UPSTREAM_ERROR` and `UPSTREAM_UNREACHABLE` are transient.
 
 ## 8. Recommended client messaging
 
@@ -239,3 +258,7 @@ Do not blindly retry every error.
 - `JOB_NOT_FOUND`: the identifier is wrong or the job never existed. Retrying will not change the answer.
 - request validation error (layer 2 or `INVALID_INPUT`): correct the request before retrying.
 - HTTP 406: add `Accept: application/json, text/event-stream`. Retrying unchanged will always fail.
+- HTTP 429: wait for `Retry-After`, then retry the read.
+- network errors, `UPSTREAM_ERROR`, `UPSTREAM_UNREACHABLE`: retry **reads** (`get_job`, `get_artifact`, downloads) with backoff.
+- **submissions are not idempotent.** Sending `review_contract`, `draft_contract`, `compare_contracts` or `fast_legal` again creates a second job. If a submission's response was lost, do not resend automatically.
+- there is no cancel operation; a submitted job runs to its end.

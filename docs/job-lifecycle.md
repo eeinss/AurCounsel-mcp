@@ -178,9 +178,48 @@ Client behavior:
 - read and surface `upstream_status`;
 - do not treat it as progress and do not treat it as terminal.
 
-An identifier that resolves to no job is a different outcome entirely: it returns the `JOB_NOT_FOUND` application error, documented in [errors.md](errors.md).
+An identifier your identity did not submit — including one that resolves to no job — is refused with HTTP `403 Forbidden` before the tool runs. `JOB_NOT_FOUND` is the application error for a job your identity submitted that the service can no longer find; both are documented in [errors.md](errors.md).
 
 **UNRESOLVED** — no live `unknown` response was observed. The description above is the server's own.
+
+## Fast Legal jobs
+
+A `fast_legal` job follows the same states: `submitted` → `processing` → `completed` or `failed`. It has one artifact, `fast_answer` (Markdown). When the job is `completed`, `get_job` also returns the answer inline in `answer_markdown` and the evidence-sufficiency status in `evidence`:
+
+```json
+{
+  "ok": true,
+  "job_id": "0123456789abcdef",
+  "capability": "fast_legal",
+  "status": "completed",
+  "progress": null,
+  "answer_markdown": "...",
+  "evidence": {
+    "status": "COMPLETE",
+    "insufficiency_reason": "",
+    "review_outcome": "PASS"
+  },
+  "draft_check": {"class": "A", "changes": 0},
+  "sources": [ ... ],
+  "sources_summary": { ... },
+  "artifacts": [{"name": "fast_answer", "ready": true}],
+  "level": "medium",
+  "cost": null,
+  "cost_status": "unsupported"
+}
+```
+
+> `evidence.status` is the answer review's own result (the interim marker used from 2026-10-17 is withdrawn as of 2026-10-20). An insufficient answer carries its reason in `insufficiency_reason`. The answer text itself carries no evidence-status line, and clients need not show `evidence` next to the answer. See [tools.md](tools.md#presenting-evidence-and-sources).
+
+A failed `fast_legal` job is `status: "failed"` with no answer; `failure.error_code` is `RETRIEVAL_FAILED` or `FAST_UNAVAILABLE` (see [tools.md](tools.md#presenting-evidence-and-sources)).
+
+`level` is the job's level (`medium` or `high`). A `high` job's `cost_status` is `not_final` while it is `processing` and `settled` once it is `completed` or `failed` (a failed job at 0); a `medium` job has `cost: null` and `cost_status: "unsupported"`. See [tools.md](tools.md#levels-and-cost-level-cost-cost_status).
+
+`evidence.status` is `COMPLETE` or `INSUFFICIENT_EVIDENCE`. It is separate from the job `status`: a job that answered with `INSUFFICIENT_EVIDENCE` is still `completed`. See [tools.md](tools.md#fast_legal).
+
+While a `fast_legal` job is `processing`, `progress` is its current step (`{"step", "text"}`). `get_job(job_id, after_seq)` also returns its progress events and the answer text as it is written. That text is a draft, and on `completed` the job's `answer_markdown` replaces it. Events are kept for one hour after the job ends. See [tools.md](tools.md#following-a-fast_legal-job-as-it-runs-after_seq).
+
+A `completed` `fast_legal` job also carries `sources` and `sources_summary`: what the final answer cites, and what the job actually retrieved of each. Both are `null` while the job is not completed and on jobs submitted before sources were introduced. See [tools.md](tools.md#sources-sources-sources_summary).
 
 ## State diagram
 
@@ -225,7 +264,9 @@ AurCounsel does not require a specific client polling interval. Clients should a
 
 For scale: the review jobs captured here took minutes, not seconds. The live `review_contract` description says the review "runs in the background and takes minutes." The one job polled end to end during this pass — a short, synthetic, eight-clause contract — was first read as `completed` 159 seconds after submission — that is when the tenth poll landed, not necessarily when the job finished. A longer document will take longer; that number is a single data point, not a service level.
 
-> **UNRESOLVED — retry hints and limits.** No rate-limit header, `retry_after` field, recommended interval, or throttling response was observed. Absence in a small read-only capture is not evidence that no limit exists.
+Requests are rate-limited per client IP: at most 120 requests in a 60-second window; over the limit the server answers HTTP `429 Too Many Requests` with `Retry-After: 60`. Clients that share one egress IP share that budget, so keep polling intervals moderate (for example every 2–10 s for `fast_legal` — 2 s when following its events with `after_seq` — and every 20–30 s for longer jobs).
+
+There is no cancel operation: once submitted, a job runs to its end. A client that no longer needs the result simply stops polling.
 
 ## Artifact availability is subordinate to job outcome
 
