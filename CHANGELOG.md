@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-20 — 經銷, 動產買賣 and 軟體開發委託 open at every level
+
+#### Changed
+
+- 經銷 (`distribution`), 動產買賣(採購 / 供貨) (`purchase`) and 軟體開發委託 (`sw_dev`) are on the one contract-type list (`draft.<level>.contract_types`): `high` and `large` now draft them with their minimum-content guidance instead of refusing them; `medium` is unchanged. Medical software development stays 醫療軟體開發委託.
+
+#### Removed
+
+- `draft.default_floor_types` and `draft.default_floor_models` in `get_capabilities` — those types are now listed under `draft.<level>.contract_types`. `get_capabilities` example re-captured.
+
 ### 2026-10-20 — 銷售代理・居間(招攬客戶) added to the Draft contract-type list
 
 #### Added
