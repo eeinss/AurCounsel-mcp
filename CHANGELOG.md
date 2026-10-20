@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-20 — 醫療軟體開發委託 added; 合資 limited to companies limited by shares
+
+#### Added
+
+- 醫療軟體開發委託 (`sw_dev_medical`, custom software development in a medical setting — a hospital, clinic, outpatient registration, medical records, a medical device, a pharmacy, long-term care, dentistry or health checks — representing the commissioning party) joins the contract types every open Draft level drafts with minimum-content guidance. A software-development contract in such a setting is drafted with this type's guidance at every level, the default included; one without it is unchanged.
+
+#### Changed
+
+- 合資 (`joint_venture`) applies to a joint venture forming a company limited by shares (股份有限公司); one forming a 有限公司 is no longer drafted with this type's guidance.
+
 ### 2026-10-20 — 不動產委託銷售 and 合資 added to the Draft contract-type list
 
 #### Added
