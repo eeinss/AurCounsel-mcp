@@ -533,7 +533,7 @@ Draft a new contract or legal document with LegalOS.
 
 `model` is optional and is a level: `medium` (the default), `high` or `large`. `get_capabilities` lists the levels open now under `capabilities.draft.models` (on 2026-10-20: `medium`, `high`, `large`) and the levels built under `implemented_models`. A built level that is not open is refused with `PERMISSION_DENIED`, `context: {"capability": "draft", "model": ...}`, with no job created; any other value with `INVALID_INPUT`.
 
-- **Contract types with minimum-content guidance:** one list for every open level — [`get_capabilities`](#get_capabilities) `draft.<level>.contract_types` is the same for each (on 2026-10-20: 室內裝修工程承攬, interior fit-out works; 僱傭, employment under the Labor Standards Act; 金錢借貸, money loan; 冷藏食品配送運送, refrigerated food delivery carriage; 會計師委任, engagement of a CPA; 資訊系統維運與代管服務, IT operations and hosting services; 交通事故損害賠償和解, settlement of traffic-accident damages; 不動產附負擔贈與, gift of real property subject to a burden; 設備維護保養, equipment maintenance; 不動產委託銷售, an owner's brokerage listing of real property; 合資(共同設立股份有限公司), a joint venture forming a company limited by shares; 醫療軟體開發委託, custom software development in a medical setting; Taiwan law, a represented side). Whichever open level is chosen, a contract of such a type is drafted with that type's guidance.
+- **Contract types with minimum-content guidance:** one list for every open level — [`get_capabilities`](#get_capabilities) `draft.<level>.contract_types` is the same for each (on 2026-10-20: 室內裝修工程承攬, interior fit-out works; 僱傭, employment under the Labor Standards Act; 金錢借貸, money loan; 冷藏食品配送運送, refrigerated food delivery carriage; 會計師委任, engagement of a CPA; 資訊系統維運與代管服務, IT operations and hosting services; 交通事故損害賠償和解, settlement of traffic-accident damages; 不動產附負擔贈與, gift of real property subject to a burden; 設備維護保養, equipment maintenance; 不動產委託銷售, an owner's brokerage listing of real property; 合資(共同設立股份有限公司), a joint venture forming a company limited by shares; 醫療軟體開發委託, custom software development in a medical setting; 銷售代理・居間(招攬客戶), a sales agency or brokerage soliciting customers for the principal; Taiwan law, a represented side). Whichever open level is chosen, a contract of such a type is drafted with that type's guidance.
 - **Omitted / `medium`:** the drafting default. Other contract types take the general drafting path; for distribution, sale / purchase and software-development contracts `medium` also applies those types' minimum-content guidance (`draft.default_floor_types`, `default_floor_models`).
 - **`high`, `large`:** **only** the listed contract types. With any other contract type, document type or jurisdiction the submission is refused and no job is created: `ok: false`, `error_code: "INVALID_INPUT"`, `context: {"field": "model", "submitted": ..., "detail": "model_not_open_for_contract_type"}`. It is **never switched to another level**; to draft that type, omit `model`.
 
@@ -913,6 +913,11 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "type": "sw_dev_medical",
           "name": "醫療軟體開發委託",
           "scope": "醫療領域之客製化軟體開發(承攬)契約(軟體可能屬醫療器材,或處理病歷、醫療、健康等特種個人資料;代表委託方):LS-19 Floor 驗證範圍"
+        },
+        {
+          "type": "agency",
+          "name": "銷售代理・居間(招攬客戶)",
+          "scope": "甲方委託乙方為其招攬客戶、由甲方與客戶直接締約之銷售代理(代辦商)或居間契約(乙方以佣金為報酬,不買斷、不轉售、不持有存貨;不含經銷,代表甲方):LS-23 Floor 驗證範圍"
         }
       ],
       "jurisdiction": "taiwan",
@@ -983,6 +988,11 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "type": "sw_dev_medical",
           "name": "醫療軟體開發委託",
           "scope": "醫療領域之客製化軟體開發(承攬)契約(軟體可能屬醫療器材,或處理病歷、醫療、健康等特種個人資料;代表委託方):LS-19 Floor 驗證範圍"
+        },
+        {
+          "type": "agency",
+          "name": "銷售代理・居間(招攬客戶)",
+          "scope": "甲方委託乙方為其招攬客戶、由甲方與客戶直接締約之銷售代理(代辦商)或居間契約(乙方以佣金為報酬,不買斷、不轉售、不持有存貨;不含經銷,代表甲方):LS-23 Floor 驗證範圍"
         }
       ],
       "jurisdiction": "taiwan",
@@ -1053,6 +1063,11 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "type": "sw_dev_medical",
           "name": "醫療軟體開發委託",
           "scope": "醫療領域之客製化軟體開發(承攬)契約(軟體可能屬醫療器材,或處理病歷、醫療、健康等特種個人資料;代表委託方):LS-19 Floor 驗證範圍"
+        },
+        {
+          "type": "agency",
+          "name": "銷售代理・居間(招攬客戶)",
+          "scope": "甲方委託乙方為其招攬客戶、由甲方與客戶直接締約之銷售代理(代辦商)或居間契約(乙方以佣金為報酬,不買斷、不轉售、不持有存貨;不含經銷,代表甲方):LS-23 Floor 驗證範圍"
         }
       ],
       "jurisdiction": "taiwan",

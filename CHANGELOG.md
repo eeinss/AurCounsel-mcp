@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-20 — 銷售代理・居間(招攬客戶) added to the Draft contract-type list
+
+#### Added
+
+- 銷售代理・居間(招攬客戶) (`agency`): the agent solicits customers for the principal, the principal contracts with each customer directly, and the agent is paid a commission without buying, reselling or holding stock — a sales agency (代辦商) or a brokerage (居間), representing the principal. A distributorship (經銷), a bare 代理 / 代理商, real property, shares, licences, consignment sales (代銷), leases, franchises, and marriage, insurance, securities, investment or labour brokerage are not this type. `get_capabilities` example re-captured.
+
 ### 2026-10-20 — 醫療軟體開發委託 added; 合資 limited to companies limited by shares
 
 #### Added
