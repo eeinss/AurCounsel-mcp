@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-20 — 不動產委託銷售 and 合資 added to the Draft contract-type list
+
+#### Added
+
+- 不動產委託銷售 (`brokerage_re`, an owner's brokerage listing of real property, representing the owner) and 合資(共同設立股份有限公司) (`joint_venture`, a joint venture forming a company limited by shares, representing one venturer) join the contract types every open Draft level drafts with minimum-content guidance. `get_capabilities` lists them in `draft.<level>.contract_types`; the example in docs/tools.md is re-captured.
+
 ### 2026-10-20 — model is a level; four lookup tools
 
 #### Changed

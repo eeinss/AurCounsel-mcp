@@ -533,7 +533,7 @@ Draft a new contract or legal document with LegalOS.
 
 `model` is optional and is a level: `medium` (the default), `high` or `large`. `get_capabilities` lists the levels open now under `capabilities.draft.models` (on 2026-10-20: `medium`, `high`, `large`) and the levels built under `implemented_models`. A built level that is not open is refused with `PERMISSION_DENIED`, `context: {"capability": "draft", "model": ...}`, with no job created; any other value with `INVALID_INPUT`.
 
-- **Contract types with minimum-content guidance:** one list for every open level — [`get_capabilities`](#get_capabilities) `draft.<level>.contract_types` is the same for each (on 2026-10-20: 室內裝修工程承攬, interior fit-out works; 僱傭, employment under the Labor Standards Act; 金錢借貸, money loan; 冷藏食品配送運送, refrigerated food delivery carriage; 會計師委任, engagement of a CPA; 資訊系統維運與代管服務, IT operations and hosting services; 交通事故損害賠償和解, settlement of traffic-accident damages; 不動產附負擔贈與, gift of real property subject to a burden; 設備維護保養, equipment maintenance; Taiwan law, a represented side). Whichever open level is chosen, a contract of such a type is drafted with that type's guidance.
+- **Contract types with minimum-content guidance:** one list for every open level — [`get_capabilities`](#get_capabilities) `draft.<level>.contract_types` is the same for each (on 2026-10-20: 室內裝修工程承攬, interior fit-out works; 僱傭, employment under the Labor Standards Act; 金錢借貸, money loan; 冷藏食品配送運送, refrigerated food delivery carriage; 會計師委任, engagement of a CPA; 資訊系統維運與代管服務, IT operations and hosting services; 交通事故損害賠償和解, settlement of traffic-accident damages; 不動產附負擔贈與, gift of real property subject to a burden; 設備維護保養, equipment maintenance; 不動產委託銷售, an owner's brokerage listing of real property; 合資(共同設立股份有限公司), a joint venture forming a company limited by shares; Taiwan law, a represented side). Whichever open level is chosen, a contract of such a type is drafted with that type's guidance.
 - **Omitted / `medium`:** the drafting default. Other contract types take the general drafting path; for distribution, sale / purchase and software-development contracts `medium` also applies those types' minimum-content guidance (`draft.default_floor_types`, `default_floor_models`).
 - **`high`, `large`:** **only** the listed contract types. With any other contract type, document type or jurisdiction the submission is refused and no job is created: `ok: false`, `error_code: "INVALID_INPUT"`, `context: {"field": "model", "submitted": ..., "detail": "model_not_open_for_contract_type"}`. It is **never switched to another level**; to draft that type, omit `model`.
 
@@ -898,6 +898,16 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "type": "equip_maint",
           "name": "設備維護保養",
           "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
+        },
+        {
+          "type": "brokerage_re",
+          "name": "不動產委託銷售",
+          "scope": "屋主委託不動產經紀業(仲介)銷售其不動產之居間契約(不含代銷、預售屋、租賃委託與買方委託承購,代表委託人):LS-14 Floor 驗證範圍"
+        },
+        {
+          "type": "joint_venture",
+          "name": "合資(共同設立股份有限公司)",
+          "scope": "各方共同設立股份有限公司之合資協議(股東協議,代表委託律師之合資一方):LS-21 Floor 驗證範圍"
         }
       ],
       "jurisdiction": "taiwan",
@@ -953,6 +963,16 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "type": "equip_maint",
           "name": "設備維護保養",
           "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
+        },
+        {
+          "type": "brokerage_re",
+          "name": "不動產委託銷售",
+          "scope": "屋主委託不動產經紀業(仲介)銷售其不動產之居間契約(不含代銷、預售屋、租賃委託與買方委託承購,代表委託人):LS-14 Floor 驗證範圍"
+        },
+        {
+          "type": "joint_venture",
+          "name": "合資(共同設立股份有限公司)",
+          "scope": "各方共同設立股份有限公司之合資協議(股東協議,代表委託律師之合資一方):LS-21 Floor 驗證範圍"
         }
       ],
       "jurisdiction": "taiwan",
@@ -1008,6 +1028,16 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "type": "equip_maint",
           "name": "設備維護保養",
           "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
+        },
+        {
+          "type": "brokerage_re",
+          "name": "不動產委託銷售",
+          "scope": "屋主委託不動產經紀業(仲介)銷售其不動產之居間契約(不含代銷、預售屋、租賃委託與買方委託承購,代表委託人):LS-14 Floor 驗證範圍"
+        },
+        {
+          "type": "joint_venture",
+          "name": "合資(共同設立股份有限公司)",
+          "scope": "各方共同設立股份有限公司之合資協議(股東協議,代表委託律師之合資一方):LS-21 Floor 驗證範圍"
         }
       ],
       "jurisdiction": "taiwan",
