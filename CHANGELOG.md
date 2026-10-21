@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-21 — `search_interpretations`; the change status of 釋字 and 憲判字
+
+#### Added
+
+- `search_interpretations` (synchronous, free): 司法院釋字第1號至第813號 and 憲法法庭憲判字, each result with its section (解釋爭點 / 解釋文 / 理由書; a 憲判字's own heading), a `doc_id` for `read_judgment`, and its change status.
+- Change status (`standing`: changed / supplemented / none / unknown, with `changed_by`, `supplemented_by`, `changes`, each carrying the later decision's own sentence as `evidence`) on `search_interpretations` results and on a 釋字 or 憲判字 read with `read_judgment`. Checked through 憲法法庭憲法法庭115年憲判字第7號判決 (2026-10-08); `source` names where the texts come from.
+
 ### 2026-10-20 — 經銷, 動產買賣 and 軟體開發委託 open at every level
 
 #### Changed

@@ -16,7 +16,7 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-`tools/list` returns exactly twelve tools:
+`tools/list` returns exactly thirteen tools:
 
 ```text
 review_contract
@@ -30,10 +30,11 @@ get_artifact
 get_article
 search_statutes
 search_judgments
+search_interpretations
 read_judgment
 ```
 
-No additional public tools exist beyond these twelve. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these thirteen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 Every tool's `inputSchema` is a JSON Schema `object` whose `title` has the form `<tool_name>Arguments`. Optional parameters are declared as `anyOf: [<type>, {"type": "null"}]` with `"default": null` — that is, an optional parameter may be omitted or passed explicitly as `null`.
 
@@ -2144,9 +2145,9 @@ Jobs and artifacts are scoped to the authenticated identity; another identity re
 
 ---
 
-## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `read_judgment`
+## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`
 
-These four tools answer at once: they create no job, call no model and are not charged. They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from. Measured on 2026-10-20: `get_article` about 0.4 s, `search_statutes` about 1.3 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s.
+These five tools answer at once: they create no job, call no model and are not charged. They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from. Measured on 2026-10-20: `get_article` about 0.4 s, `search_statutes` about 1.3 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s.
 
 **Errors.** A refusal is `{"ok": false, "error_code": ..., "message": ..., "context": {...}}`:
 
@@ -2326,16 +2327,86 @@ Search court judgments for how courts decide a point. Each result: the court, th
 }
 ```
 
+## `search_interpretations`
+
+Searches the constitutional decisions: 司法院大法官解釋 (釋字第1號至第813號) and 憲法法庭判決 (憲判字). Returns `results`, most relevant first, and `source` (the attribution below). Each result:
+
+| Field | Meaning |
+|---|---|
+| `doc_id` | Pass it to [`read_judgment`](#read_judgment) to read the full text, e.g. `JYIN,84,釋字,380,19950526`. |
+| `citation` | 「司法院釋字第380號解釋」 / 「111年憲判字第8號判決」. |
+| `case_number`, `decision_date`, `url`, `score` | As in `search_judgments`. |
+| `passage` | The matching passage; each segment headed by its section — 【解釋爭點】 / 【解釋文】 / 【理由書】 for a 釋字; for a 憲判字 the judgment's own heading (主文, or e.g. 參、形成主文之法律上意見). Segments are separated by `\n…\n`. |
+| `passage_sections` | The section of each segment, in order. |
+| `passage_at` | The passage's position, for `read_judgment`'s `around`. |
+| `standing` | `changed` — later changed or no longer applied by a 釋字 or 憲判字, wholly or in part; `supplemented` — supplemented and still in force; `none` — checked, and no later 釋字 or 憲判字 changed or supplemented it; `unknown` — no record (never reported as `none`). |
+| `changed_by`, `supplemented_by` | Who changed / supplemented this one. |
+| `changes` | What this decision itself changed or supplemented (earlier 釋字, or 院字 / 院解字 interpretations, whose `target_doc_id` is null). |
+| `standing_checked_through` | The last decision the status was checked against. |
+
+Each entry of `changed_by`, `supplemented_by` and `changes`: `by` (e.g. 111年憲判字第2號), `by_doc_id`, `target`, `target_doc_id`, `relation` (變更 / 不再援用 / 補充), `scope` (全部 / 部分; null when the decision does not say), and `evidence` — the later decision's own sentence, verbatim from its text (whitespace as in the source).
+
+**How the change status is made.** A table built from the full texts of every 釋字 (第1號至第813號) and every 憲判字 in the source — 憲法法庭憲法法庭115年憲判字第7號判決, decided 2026-10-08, numbering complete for each year — by reading each sentence that names an interpretation together with 變更 / 不再援用 / 補充; not inferred by a model. On 2026-10-21: 12 changed, 38 supplemented, 763 none among the 813 釋字. A 釋字 or 憲判字 decided after the last one checked is `unknown`; the table is rebuilt when new 憲判字 are published (until then a later change does not show).
+
+**Search coverage.** The 釋字 have their own index. The 憲判字 are found through the judgment index (all courts), so a 憲判字 appears when it is among the closest judgments for the query.
+
+**Source.** 「出處：司法院釋字第1號至第813號解釋取自憲法法庭網站(cons.judicial.gov.tw);憲法法庭判決取自司法院裁判書開放資料(政府資料開放授權條款第1版)。」 — the `source` field of every result says so, with the date checked through.
+
+### Live description (verbatim)
+
+```text
+Search the constitutional decisions: 司法院大法官解釋 (釋字第1號至第813號) and 憲法法庭判決 (憲判字). Each result: doc_id (pass it to
+    read_judgment), citation, case_number, decision_date, url, score, the matching passage with its section (解釋爭點 / 解釋文 / 理由書; for
+    a 憲判字 主文 / 理由) and passage_at, and the change status: standing — changed (later changed or no longer applied, wholly or in part),
+    supplemented (supplemented, still in force), none (checked, no later change or supplement), unknown (no record) — with changed_by,
+    supplemented_by (who did it, with that decision's own sentence as evidence) and changes (what this one itself changed or supplemented).
+    Read standing before relying on an interpretation: a changed one is not the law in that respect. Synchronous: no job, no charge.
+
+    Args:
+        query: A legal concept or how the decision would put it, e.g. 大學自治 學術自由 or 強制道歉 不表意自由; at most 120 characters.
+        top_k: How many results, 1–8 (default 5).
+
+    Errors: INVALID_ARGUMENT (an empty or over-long query, a bad top_k), RETRIEVAL_FAILED (the source failed). No match is an empty list.
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "query": {
+      "title": "Query",
+      "type": "string"
+    },
+    "top_k": {
+      "default": 5,
+      "title": "Top K",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "query"
+  ],
+  "title": "search_interpretationsArguments",
+  "type": "object"
+}
+```
+
 ## `read_judgment`
 
 Returns `disposition` (主文), `text` (one page, at most `max_chars`), `offset`, `next_offset` (null when nothing follows; pass it as `offset` to read on), `total_chars`, `cited_articles`, `court`, `case_number`, `decision_date`, `title`, `url` and `doc_id`.
+
+A 司法院 釋字 (e.g. `court` 司法院, `case_number` 釋字第380號) or a 憲法法庭 憲判字 (e.g. 憲法法庭, 111年憲判字第8號) also carries its change status — `standing`, `changed_by`, `supplemented_by`, `changes`, `standing_checked_through` — and `source`, exactly as in [`search_interpretations`](#search_interpretations). Any other judgment is unchanged.
 
 ### Live description (verbatim)
 
 ```text
 Read one judgment's original text, a page at a time: the 主文 (disposition) and the text from the start, from offset, or from around
     (a passage_at from search_judgments). next_offset is not null when more follows — pass it as offset to read on. Identify the judgment
-    by doc_id (from search_judgments), or by court and case_number (e.g. 最高法院 and 112年度台上字第123號). Synchronous: no job, no charge.
+    by doc_id (from search_judgments or search_interpretations), or by court and case_number (e.g. 最高法院 and 112年度台上字第123號;
+    司法院 and 釋字第380號; 憲法法庭 and 111年憲判字第8號). A 釋字 or 憲判字 also carries its change status (standing, changed_by,
+    supplemented_by, changes; see search_interpretations) and source. Synchronous: no job, no charge.
 
     Args:
         doc_id: The judgment's doc_id.

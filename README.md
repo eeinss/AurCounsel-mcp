@@ -127,6 +127,7 @@ Required arguments, by tool:
 | `get_article` | `law`, `article` (synchronous; no job, no charge) |
 | `search_statutes` | `query`; optional `law`, `level`, `top_k` (synchronous) |
 | `search_judgments` | `query`; optional `court`, `top_k` (synchronous) |
+| `search_interpretations` | `query`; optional `top_k` (synchronous). 釋字 and 憲判字, each with its change status (`standing`) |
 | `read_judgment` | `doc_id`, or `court` + `case_number`; optional `around`, `offset`, `max_chars` (synchronous) |
 | `get_job` | `job_id` (optional `after_seq` for `fast_legal`) |
 | `get_artifact` | `job_id`, `artifact` |
