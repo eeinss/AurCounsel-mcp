@@ -1385,8 +1385,16 @@ Get the state of any job submitted through this server.
     draft_check.class says how they differ (A same, B citation / format
     clean-up only, C rewritten by the evidence review: tell the reader the
     shown text was replaced). A failed job's draft is not an answer. Polling
-    again with the same after_seq is safe and repeats nothing earlier. Other
-    capabilities ignore after_seq.
+    again with the same after_seq is safe and repeats nothing earlier.
+
+    review, draft, revise and compare follow the same way (bus 9462): pass
+    after_seq and the reply adds events after it and last_seq. Each event is
+    {seq, ts, type, step, text, detail?}: type progress is a step the job
+    reached — step a fixed English code, text a short Chinese line, detail what
+    it is on (a count, or the clause number and title it is on, e.g.
+    第 12／40 條:第五條 違約金) — and the last is type done (status completed or
+    failed). progress.text is the step the job is on now, in Chinese, with or
+    without after_seq.
 
     sources (fast_legal, completed) lists the statutes and judgments the
     answer cites, each with retrieval saying what this run actually obtained
@@ -1408,7 +1416,7 @@ Get the state of any job submitted through this server.
 
     Args:
         job_id: The handle returned when the job was submitted.
-        after_seq: fast_legal only: return the events after this sequence number.
+        after_seq: Return the job's events after this sequence number (0 on the first poll, then the previous last_seq).
     
 ```
 
@@ -1486,6 +1494,8 @@ Each `artifacts[]` entry:
 | `ready` | boolean | Whether this artifact has been written. |
 
 ### Following a `fast_legal` job as it runs (`after_seq`)
+
+`review`, `draft`, `revise` and `compare` jobs take `after_seq` too (since 2026-10-21): their events are work steps (`progress`) and a final `done` — no answer text. Each capability's steps are listed in [job-lifecycle.md](job-lifecycle.md#stage-lists-all-capabilities).
 
 `get_job` takes an optional integer `after_seq`. Without it the reply is the one described above, so a client that only reads the finished result needs no change. With it — on a `fast_legal` job; other capabilities ignore it — the reply also carries:
 

@@ -6,6 +6,14 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-21 — step-by-step progress for every job
+
+#### Added
+
+- `get_job` `after_seq` for `review`, `draft`, `revise` and `compare` (as `fast_legal`): `events` after that number and `last_seq`; each event `{seq, ts, type, step, text, detail?}` — step code, Chinese text, and what the job is on (a count, or the clause number and heading being worked on), ending with `done`.
+- `progress.text`: the current step in Chinese, on every `get_job` reply.
+- docs/job-lifecycle.md: the complete stage list of each capability (code, Chinese name, fraction), per path.
+
 ### 2026-10-21 — three more review types
 
 #### Added

@@ -80,7 +80,7 @@ That last point is the one that bites. The presence of an entry in `artifacts` s
 
 `fraction` did not decrease, and it is not a time estimate: it read `0.9` on seven consecutive polls, from `t=48` to `t=143`, and the job did not finish until `t=159`. `stage_recognised` was `true` at every reading. This is one job, of one capability, on one day — treat the numbers as an existence proof that `fraction` and `stage` move, not as a timing model.
 
-**UNRESOLVED** — whether `fraction` can ever decrease, what its full stage sequence is, and how any of this behaves for `draft` or `compare` jobs.
+The full stage sequence of every capability is in [Stage lists](#stage-lists-all-capabilities) below.
 
 ### `completed`
 
@@ -252,11 +252,79 @@ JOB_NOT_FOUND = an application error, not a state
 
 ## Progress reporting
 
-`progress` carries `fraction` (a float), `stage` (a string), and `stage_recognised` (a boolean, mirroring `status_recognised` for the stage vocabulary).
+`progress` carries `fraction` (a float), `stage` (a string), `stage_recognised` (a boolean, mirroring `status_recognised` for the stage vocabulary) and `text` (the current step in Chinese).
 
-Observed stages, across all three review jobs read: `identifying` (on the failed job), `comparing`, `generating`, and `done`. `stage_recognised` was `true` at every reading.
+### Stage lists (all capabilities)
 
-**UNRESOLVED** — the stage vocabulary is not enumerated anywhere the public interface exposes. Four values were seen, on `review` jobs only; whether that is the complete review sequence, and what stages `draft` and `compare` report, is unknown. Treat `stage` as a display string, not as something to branch on.
+`progress.stage` is the job's current stage code; `progress.text` (since 2026-10-21) says the same step in Chinese, with its detail when there is one. Events (`get_job` with `after_seq`, any capability — see *Following a job's steps* below) carry a finer `step` code. Fractions are where the service sets `progress.fraction` on entering the stage.
+
+**review — general review** (no `review_type`; `medium`):
+
+| `stage` | event `step` | 中文 (`text`) | `fraction` | event `detail` |
+|---|---|---|---|---|
+| `parsing` | `parsing` | 解析合約 | 0.05 | |
+| `parsed` | `parsed` | 合約解析完成 | 0.10 | |
+| `identifying` | `classifying` | 識別合約類型與關鍵條款 | 0.15 | |
+| `identified` | `classified` | 關鍵條款識別完成 | 0.25 | |
+| `comparing` | `risk_review` | 逐條比對風險 | 0.26 → 0.53 | 共 N 條; 第 i／N 條:<clause heading> |
+| `comparing` | `redlining` | 逐條產生修訂 | 0.55 → 0.85 | 共 N 條; 第 i／N 條:<clause heading> |
+| `compared` | `analyzed` | 條款分析完成 | 0.85 | |
+| `generating` | `memo` | 撰寫審閱意見書 | 0.90 | |
+| `done` | `done` | 已完成 / 未完成 | 1.0 | |
+
+A document over the length limit ends at `refused` (1.0).
+
+**review — with `review_type`** (any level; `high` and `large` review only on this path):
+
+| `stage` | event `step` | 中文 (`text`) | `fraction` |
+|---|---|---|---|
+| `parsing` | `parsing` | 解析合約 | 0 |
+| `pass1` | `first_review` | 第一輪審閱:重要議題與修訂 | 0.20 |
+| `pass2` | `additional_review` | 依類型議題補充審閱 | 0.60 |
+| `delivering` | `redlining` | 產生修訂稿與紅線 | 0.90 |
+| `done` | `done` | 已完成 / 未完成 | 1.0 |
+
+**draft**:
+
+| `stage` | event `step` | 中文 (`text`) | `fraction` | event `detail` |
+|---|---|---|---|---|
+| `retrieving` | `retrieving` | 檢索同類型範本與相關條款 | 0.10 | |
+| `drafting` | `drafting` | 起草合約 | 0.30 | 共約 N 條, or the part being drafted, when the drafting step reports one |
+| `drafting` | `assembling` | 彙整並組裝草稿 | 0.85 | |
+| `done` | `done` | 已完成 / 未完成 | 1.0 | |
+
+**revise** (not open yet):
+
+| `stage` | event `step` | 中文 (`text`) | `fraction` | event `detail` |
+|---|---|---|---|---|
+| `locating` | `locating` | 定位要修改的條款 | 0.20 | |
+| `revising` | `revising` | 修訂條款 | 0.30 → 0.70 | 第 i／N 條:<clause heading> |
+| `assembling` | `assembling` | 組合修訂版本 | 0.75 | |
+| `redlining` | `redlining` | 產生紅線 | 0.90 | |
+| `done` | `done` | 已完成 / 未完成 | 1.0 | |
+
+**compare** (not open yet):
+
+| `stage` | event `step` | 中文 (`text`) | `fraction` | event `detail` |
+|---|---|---|---|---|
+| `parsing` | `parsing` | 解析兩份文件 | 0.05, 0.10 | 文件 A; 文件 B |
+| `aligning` | `aligning` | 對齊兩份文件的段落 | 0.15 | 文件 A n 段・文件 B m 段 |
+| `analyzing` | `analyzing` | 逐段分析差異 | 0.20 → 0.75 | 第 i／N 處變動 |
+| `synthesizing` | `synthesizing` | 撰寫比對總評 | 0.78 | |
+| `generating` | `generating` | 產生比對文件 | 0.85 | |
+| `done` | `done` | 已完成 / 未完成 | 1.0 | |
+
+`fraction` is a position, not a time estimate (a long step keeps one value for minutes), and it does not decrease. Treat `stage` as a display value, not something to branch on; branch on `status`.
+
+### Following a job's steps (`after_seq`, all capabilities)
+
+Pass `after_seq` to `get_job` (0 on the first poll, then the previous reply's `last_seq`): the reply adds `events` — only those after that number — and `last_seq`. Polling again with the same `after_seq` repeats nothing earlier, and `last_seq` never goes back. Each event is `{seq, ts, type, step, text, detail?}`: `type` `progress` is a step the job reached (from the job's own work, never a timer); the last event is `type: "done"` with `status` `completed` or `failed`. `detail` may name the clause by its number and heading from your own document, never its text. A job's events are kept for an hour after it ends. Example, a general review of a 10-clause contract (2026-10-21):
+
+```text
+1 parsing 解析合約 · 2 parsed 合約解析完成 · 3 classifying 識別合約類型與關鍵條款 · 4 classified 關鍵條款識別完成
+5 risk_review 逐條比對風險 共 10 條 · 6 risk_review 第 1／10 條:價格政策 … 15 risk_review 第 10／10 條:合約期限與終止
+16 redlining 逐條產生修訂 共 0 條 · 17 analyzed 條款分析完成 · 18 memo 撰寫審閱意見書 · 19 done 已完成
+```
 
 ## Polling guidance
 
