@@ -2346,11 +2346,13 @@ Searches the constitutional decisions: 司法院大法官解釋 (釋字第1號�
 
 Each entry of `changed_by`, `supplemented_by` and `changes`: `by` (e.g. 111年憲判字第2號), `by_doc_id`, `target`, `target_doc_id`, `relation` (變更 / 不再援用 / 補充), `scope` (全部 / 部分; null when the decision does not say), and `evidence` — the later decision's own sentence, verbatim from its text (whitespace as in the source).
 
-**How the change status is made.** A table built from the full texts of every 釋字 (第1號至第813號) and every 憲判字 in the source — 憲法法庭憲法法庭115年憲判字第7號判決, decided 2026-10-08, numbering complete for each year — by reading each sentence that names an interpretation together with 變更 / 不再援用 / 補充; not inferred by a model. On 2026-10-21: 12 changed, 38 supplemented, 763 none among the 813 釋字. A 釋字 or 憲判字 decided after the last one checked is `unknown`; the table is rebuilt when new 憲判字 are published (until then a later change does not show).
+**How the change status is made.** A table built from the full texts of every 釋字 (第1號至第813號) and every 憲判字 in the source, by reading each sentence that names an interpretation together with 變更 / 不再援用 / 補充; not inferred by a model. On 2026-10-21, checked through 憲法法庭115年憲判字第7號判決 (2026-10-08), numbering complete for each year: 12 changed, 38 supplemented, 763 none among the 813 釋字. `standing_checked_through` on every result names the last judgment checked; a 釋字 or 憲判字 decided after it is `unknown`.
+
+**How it is kept up to date.** The source is checked once a day for 憲判字 after the last one checked, in order, counting only a judgment whose full text is in the source; a missing number before a later one of the same year stops the check there. A new judgment with no sentence that names an interpretation together with 變更 / 不再援用 / 補充 is added at once and `standing_checked_through` moves past it. A new judgment with such a sentence is read and classified by a person first — it is not classified automatically — and until then the check stays before it, so a status that may have changed is not reported as `none` beyond what was read.
 
 **Search coverage.** The 釋字 have their own index. The 憲判字 are found through the judgment index (all courts), so a 憲判字 appears when it is among the closest judgments for the query.
 
-**Source.** 「出處：司法院釋字第1號至第813號解釋取自憲法法庭網站(cons.judicial.gov.tw);憲法法庭判決取自司法院裁判書開放資料(政府資料開放授權條款第1版)。」 — the `source` field of every result says so, with the date checked through.
+**Source.** 「出處：司法院釋字第1號至第813號解釋取自憲法法庭網站（cons.judicial.gov.tw）；憲法法庭判決取自司法院資料開放平臺（依該平臺授權條款註明出處）。變更狀態依上開全文整理，查核至憲法法庭115年憲判字第7號判決（2026-10-08）。」 — the `source` field of every result carries this text; the date it was checked through follows the table.
 
 ### Live description (verbatim)
 

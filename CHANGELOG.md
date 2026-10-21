@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-21 — interpretation change status kept up to date; source wording
+
+#### Changed
+
+- The change status of 釋字 and 憲判字 is checked daily against new 憲判字: a judgment with no sentence that could change or supplement an interpretation is added automatically; one with such a sentence is read by a person before the status moves past it. `standing_checked_through` always names the last judgment checked.
+- `source` now reads 「出處：司法院釋字第1號至第813號解釋取自憲法法庭網站（cons.judicial.gov.tw）；憲法法庭判決取自司法院資料開放平臺（依該平臺授權條款註明出處）。變更狀態依上開全文整理，查核至…」.
+
 ### 2026-10-21 — `search_interpretations`; the change status of 釋字 and 憲判字
 
 #### Added
