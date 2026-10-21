@@ -63,7 +63,7 @@ review_contract
 - The operation is asynchronous.
 - A successful submission identifies a job.
 - `model` is optional and is a level: omitted (or `medium`) is the default, unchanged — any contract type, `represented_party` as a position (甲方 / 乙方 / neutral). [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`.
-- **`high` and `large` review only the types in `get_capabilities` `review.review_types`** (on 2026-10-21: 住宅租賃 for 承租人, 國外團體旅遊 for 旅客, 搬家服務 for 委託搬家服務之消費者). To use them send `review_type` (one of those types) and `client_instructions` (what the client wants from the review); `represented_party` may be omitted — the type fixes it, and a different one is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `expected`). `high` or `large` without `review_type` is refused with `INVALID_INPUT`, `context: {"field": "model", "detail": "model_not_open_for_review_type", "open_review_types": [...]}`; an unknown `review_type` with `context.field: "review_type"` and `accepted`; a missing `client_instructions` with `context.field: "client_instructions"`. Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level, nor to the general review.
+- **`high` and `large` review only the types in `get_capabilities` `review.review_types`** (on 2026-10-21: 住宅租賃 for 承租人, 國外團體旅遊 for 旅客, 搬家服務 for 委託搬家服務之消費者, 經銷 for 經銷商, 買賣 for 買受人, 軟體開發委託 for 委託方). To use them send `review_type` (one of those types) and `client_instructions` (what the client wants from the review); `represented_party` may be omitted — the type fixes it, and a different one is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `expected`). `high` or `large` without `review_type` is refused with `INVALID_INPUT`, `context: {"field": "model", "detail": "model_not_open_for_review_type", "open_review_types": [...]}`; an unknown `review_type` with `context.field: "review_type"` and `accepted`; a missing `client_instructions` with `context.field: "client_instructions"`. Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level, nor to the general review.
 - `review_type` also works at `medium`: the same type-specific review on the default level. Without `review_type` a review is the general review, as before.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
 - **Deliverables of a `review_type` review:** `review_comments` (the review findings, including the additional findings), `revised_docx`, `redline`, `original`, `revised`, `memo`.
@@ -121,7 +121,7 @@ Submit one contract for full LegalOS review.
             open_review_types lists them). The review is never switched to
             another level.
         review_type: Optional. One of get_capabilities review.review_types
-            (住宅租賃 / 國外團體旅遊 / 搬家服務): the contract is reviewed for
+            (住宅租賃 / 國外團體旅遊 / 搬家服務 / 經銷 / 買賣 / 軟體開發委託): the contract is reviewed for
             that type's one represented party (listed there), with the type's
             own review steps. represented_party may then be omitted; if given
             it must be that party. Needs client_instructions. contract_type_hint
@@ -251,25 +251,6 @@ Submit one contract for full LegalOS review.
   "title": "review_contractArguments",
   "type": "object"
 }
-
-| Field | Required | Type | Notes |
-|---|---|---|---|
-| `file_name` | yes | string | Label only. File type is identified by content, not by this name. |
-| `file_b64` | one of `file_b64` / `file_ref` | string \| null | Base64 of the document. `.docx`, `.pdf`, `.doc` accepted. |
-| `file_ref` | one of `file_b64` / `file_ref` | string \| null | Handle returned by uploading the document to `/upload`. Supplying both, or neither, is refused. |
-| `represented_party` | **yes** | string | Which party AurCounsel represents: free text that must resolve to 甲方 (party A) / 乙方 (party B) / neutral. There is no automatic detection. Missing ⇒ `INVALID_INPUT` with the message "Missing required parameter: represented_party. Please specify which party AurCounsel represents…", and nothing is sent. A role name (`supplier`, `licensor`) does not resolve and is refused with `PARTY_CONFIRMATION_REQUIRED`. |
-| `requested_jurisdiction` | no | enum \| null | `taiwan`, `mainland`, `hk`, `other`. `hk` is accepted but reviewed as `other`, and the response reports that the request was degraded. |
-| `contract_type_hint` | no | string \| null | Free-text hint; an unrecognised value is harmless. |
-
-### Success response shape and `job_id` path
-
-Captured from one `review_contract` submission executed against the live endpoint on 2026-08-31. The document submitted was a synthetic contract written for this capture; it contains no real party, and it is not part of this repository.
-
-The MCP result carries exactly one content block, of type `text`. That block's `text` is itself a JSON document. `job_id` is a top-level key of that inner document:
-
-```text
-result.content[0].text  ->  parse as JSON  ->  job_id
-```
 
 The call returned in under a second. Response body, verbatim except that the job identifier is replaced with the placeholder `<JOB_ID>`:
 
@@ -1163,6 +1144,18 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
       {
         "type": "搬家服務",
         "represented_party": "委託搬家服務之消費者"
+      },
+      {
+        "type": "經銷",
+        "represented_party": "經銷商"
+      },
+      {
+        "type": "買賣",
+        "represented_party": "買受人"
+      },
+      {
+        "type": "軟體開發委託",
+        "represented_party": "委託方"
       }
     ],
     "medium": {
@@ -1182,6 +1175,18 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
         {
           "type": "搬家服務",
           "represented_party": "委託搬家服務之消費者"
+        },
+        {
+          "type": "經銷",
+          "represented_party": "經銷商"
+        },
+        {
+          "type": "買賣",
+          "represented_party": "買受人"
+        },
+        {
+          "type": "軟體開發委託",
+          "represented_party": "委託方"
         }
       ]
     },
@@ -1199,6 +1204,18 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
         {
           "type": "搬家服務",
           "represented_party": "委託搬家服務之消費者"
+        },
+        {
+          "type": "經銷",
+          "represented_party": "經銷商"
+        },
+        {
+          "type": "買賣",
+          "represented_party": "買受人"
+        },
+        {
+          "type": "軟體開發委託",
+          "represented_party": "委託方"
         }
       ]
     }

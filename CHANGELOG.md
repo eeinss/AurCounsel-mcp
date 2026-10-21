@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-21 — three more review types
+
+#### Added
+
+- `review_contract` `review_type` 經銷 (for 經銷商), 買賣 (for 買受人) and 軟體開發委託 (for 委託方), at every level (`medium`, `high`, `large`); `get_capabilities` `review.review_types` lists all six. `get_capabilities` example re-captured.
+
 ### 2026-10-21 — review at `high` and `large` for three contract types
 
 #### Added
