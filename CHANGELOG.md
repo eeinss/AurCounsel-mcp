@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-21 — review at `high` and `large` for three contract types
+
+#### Added
+
+- `review_contract` `review_type` (住宅租賃 / 國外團體旅遊 / 搬家服務, listed in `get_capabilities` `review.review_types` with each type's represented party) and `client_instructions`: the type-specific review, at any level.
+- `review_contract` `model` `high` and `large` are open, for those `review_type`s only; charged by usage like a `high` / `large` draft. Without `review_type` they are refused with `INVALID_INPUT` (`detail: model_not_open_for_review_type`, `open_review_types`). `medium` is unchanged.
+
 ### 2026-10-21 — interpretation change status kept up to date; source wording
 
 #### Changed

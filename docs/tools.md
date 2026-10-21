@@ -62,7 +62,11 @@ review_contract
 
 - The operation is asynchronous.
 - A successful submission identifies a job.
-- `model` is optional and is a level: omitted (or `medium`) is the default, unchanged. [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (only `medium`) and the levels built under `capabilities.review.implemented_models` (`medium`, `high`, `large`), each with `review.<level>.enabled`. **`high` and `large` reviews are not open:** a call with either returns `PERMISSION_DENIED` (`context: {"capability": "review", "model": ...}`) before the document is read — nothing is sent and no job is created. Any other value is refused with `INVALID_INPUT` and `context.accepted`. A review is never switched to another level.
+- `model` is optional and is a level: omitted (or `medium`) is the default, unchanged — any contract type, `represented_party` as a position (甲方 / 乙方 / neutral). [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`.
+- **`high` and `large` review only the types in `get_capabilities` `review.review_types`** (on 2026-10-21: 住宅租賃 for 承租人, 國外團體旅遊 for 旅客, 搬家服務 for 委託搬家服務之消費者). To use them send `review_type` (one of those types) and `client_instructions` (what the client wants from the review); `represented_party` may be omitted — the type fixes it, and a different one is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `expected`). `high` or `large` without `review_type` is refused with `INVALID_INPUT`, `context: {"field": "model", "detail": "model_not_open_for_review_type", "open_review_types": [...]}`; an unknown `review_type` with `context.field: "review_type"` and `accepted`; a missing `client_instructions` with `context.field: "client_instructions"`. Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level, nor to the general review.
+- `review_type` also works at `medium`: the same type-specific review on the default level. Without `review_type` a review is the general review, as before.
+- **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
+- **Deliverables of a `review_type` review:** `review_comments` (the review findings, including the additional findings), `revised_docx`, `redline`, `original`, `revised`, `memo`.
 - Completed deliverables are retrieved through the artifact interface.
 - A failed job must not expose partial/generated internal artifacts as completed deliverables.
 
@@ -111,8 +115,20 @@ Submit one contract for full LegalOS review.
             (capabilities.review.models) and those built
             (implemented_models). A built level that is not open is refused
             with PERMISSION_DENIED before the document is read; any other value
-            with INVALID_INPUT. The review is
-            never switched to another level.
+            with INVALID_INPUT. high and large review only the types in
+            get_capabilities review.review_types, so they need review_type;
+            without it the call is refused with INVALID_INPUT (field model,
+            open_review_types lists them). The review is never switched to
+            another level.
+        review_type: Optional. One of get_capabilities review.review_types
+            (住宅租賃 / 國外團體旅遊 / 搬家服務): the contract is reviewed for
+            that type's one represented party (listed there), with the type's
+            own review steps. represented_party may then be omitted; if given
+            it must be that party. Needs client_instructions. contract_type_hint
+            is not used on this path.
+        client_instructions: The client's instructions for this review, in your
+            own words (what the client wants from it). Required with
+            review_type.
     
 ```
 
@@ -202,6 +218,30 @@ Submit one contract for full LegalOS review.
       ],
       "default": null,
       "title": "Model"
+    },
+    "review_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Review Type"
+    },
+    "client_instructions": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Client Instructions"
     }
   },
   "required": [
@@ -211,7 +251,6 @@ Submit one contract for full LegalOS review.
   "title": "review_contractArguments",
   "type": "object"
 }
-```
 
 | Field | Required | Type | Notes |
 |---|---|---|---|
@@ -1112,14 +1151,56 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
       "party_b",
       "neutral"
     ],
+    "review_types": [
+      {
+        "type": "住宅租賃",
+        "represented_party": "承租人"
+      },
+      {
+        "type": "國外團體旅遊",
+        "represented_party": "旅客"
+      },
+      {
+        "type": "搬家服務",
+        "represented_party": "委託搬家服務之消費者"
+      }
+    ],
     "medium": {
       "enabled": true
     },
     "large": {
-      "enabled": false
+      "enabled": true,
+      "review_types": [
+        {
+          "type": "住宅租賃",
+          "represented_party": "承租人"
+        },
+        {
+          "type": "國外團體旅遊",
+          "represented_party": "旅客"
+        },
+        {
+          "type": "搬家服務",
+          "represented_party": "委託搬家服務之消費者"
+        }
+      ]
     },
     "high": {
-      "enabled": false
+      "enabled": true,
+      "review_types": [
+        {
+          "type": "住宅租賃",
+          "represented_party": "承租人"
+        },
+        {
+          "type": "國外團體旅遊",
+          "represented_party": "旅客"
+        },
+        {
+          "type": "搬家服務",
+          "represented_party": "委託搬家服務之消費者"
+        }
+      ]
     }
   },
   "revise": {
@@ -1164,7 +1245,9 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
       "implemented": true,
       "default_model": "medium",
       "models": [
-        "medium"
+        "medium",
+        "high",
+        "large"
       ],
       "implemented_models": [
         "medium",
