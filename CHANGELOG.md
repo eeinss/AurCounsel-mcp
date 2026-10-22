@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-22 — draft notes: statute citations checked; no summary line for a finished draft
+
+#### Changed
+
+- `draft_summary`: every statute article it cites (「<法規名>第 N 條」) is checked against the current article text before the file is written. A wrong number is corrected or removed, and a statutory term that contradicts the article is corrected. If a citation cannot be checked, its article number is removed and the law name is kept. The drafted contract itself is unchanged.
+- `get_job` `summary.line` is `null` for a finished draft (it used to be a fixed sentence with no information).
+
 ### 2026-10-22 — three more review types (最高限額抵押, 會計師委任, 不動產附負擔贈與)
 
 #### Added

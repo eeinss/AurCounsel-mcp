@@ -119,7 +119,7 @@ Observed shape — the synthetic contract submitted and polled through to comple
 
 The `artifacts` array is abridged above to one entry; the completed review job listed all six review artifacts, every one with `ready: true`. `summary` is capability-specific — the fields above are the review shape. [tools.md](tools.md) carries the same body unabridged.
 
-`summary.line` is a human-readable sentence in the document's language and its wording varies with the outcome. Display it; do not parse it. The counts next to it are the machine-readable form.
+`summary.line` is a human-readable sentence in the document's language and its wording varies with the outcome. Display it; do not parse it. It is `null` on a failed job and on a finished draft. The counts next to it are the machine-readable form.
 
 Note that `completed` does not imply every requested change succeeded. The job above applied every clause it identified, but a second, pre-existing completed review job read during this work reported `not_applied: 1` while still returning `status: "completed"` and `states_status: "ok"` — the job finished; one requested change did not land. Read `summary`, not just `status`.
 

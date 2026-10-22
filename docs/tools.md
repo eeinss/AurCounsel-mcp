@@ -1553,7 +1553,7 @@ The tool returns `isError: false` and a single text content block containing thi
 | `progress.fraction` | number | 0.0–1.0. |
 | `progress.stage` | string | Engine stage name. Observed: `"done"`, `"identifying"`. |
 | `progress.stage_recognised` | boolean | Whether the stage name mapped. |
-| `summary.line` | string \| null | Human-readable one-line summary; `null` on a failed job. |
+| `summary.line` | string \| null | Human-readable one-line summary; `null` on a failed job and on a finished draft (read `draft_summary`). |
 | `summary.clauses` | integer \| null | Review only. |
 | `summary.replaced` | integer \| null | Review only. |
 | `summary.have_revised` | integer \| null | Review only. |
