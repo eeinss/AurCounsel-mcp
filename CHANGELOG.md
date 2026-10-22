@@ -6,6 +6,21 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statute search: article numbers, short and former names, 且 / 或 / 排除, status; 釋字第804–813號 not provided
+
+#### Added
+
+- `search_statutes` reads an act and an article number (民法184, 民法第一百八十四條, 民法一八四, 刑法185-3, 民法第184條之1, 勞基法 84-1, 勞動基準法第9條第1項): the first result is that article, as `get_article` returns it. An article that does not exist is searched as words (no error). An act's name alone searches that act.
+- `search_statutes` syntax: space or `&` / `＆` = and; `+` / `＋` = or; a leading `-` / `－` excludes results whose text or act name contains the word, applied before the list is cut to `top_k`.
+- Statute results (`get_article`, `search_statutes`): `status` is `in-force`, `repealed`, `not-yet-effective` or `unknown`; `amended_on` is the act's last amendment date; `effective_note` when the act or the article's promulgated wording is not yet in force (民法第1223條). From 法務部全國法規資料庫 OpenAPI, rebuilt daily.
+- Short and former names of acts (立法院開放資料 ID301, plus common short names such as 民訴, 刑訴, 行訴, 強執法, 國賠法, 家事法, 租賃條例): accepted by `get_article`, `search_statutes` and its `law`. 電腦處理個人資料保護法 → 個人資料保護法.
+
+#### Changed
+
+- Repealed acts are marked `repealed` (出版法, 動員戡亂時期臨時條款, 基本工資審議辦法 were `in-force`), and `search_statutes` returns them with that status rather than leaving them out.
+- `search_statutes` `law` searches within that act instead of filtering a general search.
+- `search_interpretations` covers 釋字第1號至第803號. 釋字第804號至第813號 are not provided (they are not on the official 司法院資料開放平臺): not returned, `read_judgment` `NOT_FOUND`, change records from them not shown (釋字第528號 `standing` `unknown`). The `source` text states the official sources.
+
 ### 2026-10-22 — draft notes: wrong citations corrected; `get_job` `note_check`
 
 #### Added

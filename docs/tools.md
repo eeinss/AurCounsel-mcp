@@ -2344,7 +2344,24 @@ Jobs and artifacts are scoped to the authenticated identity; another identity re
 
 ## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`
 
-These five tools answer at once: they create no job, call no model and are not charged. They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from. Measured on 2026-10-20: `get_article` about 0.4 s, `search_statutes` about 1.3 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s.
+These five tools answer at once: they create no job, call no model and are not charged. They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_statutes` about 1.3 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s.
+
+### Statute names and status
+
+`get_article` and `search_statutes` (and Fast Legal's research) read two tables LegalOS rebuilds once a day, **from official APIs only**:
+
+- **Names.** Short and former names of acts from 立法院開放資料 ID301 法律名稱檔 (`lawSynonym`, `usedFor`), with common short names lawyers write (民訴, 刑訴, 行訴, 強執法, 國賠法, 家事法, 租賃條例, 勞退條例, 職安法, 性平法, 公平法, 證交法, 公寓大廈條例, 勞基法, 消保法, 個資法, 刑法, 道交條例, …). A short name that could mean more than one act is not used.
+- **Status.** 法務部全國法規資料庫 OpenAPI: `LawAbandonNote` (廢), `LawModifiedDate` and `LawEffectiveNote`.
+
+On every statute result:
+
+| Field | Meaning |
+|---|---|
+| `status` | `in-force`; `repealed` (the act is repealed: 出版法, 動員戡亂時期臨時條款, 基本工資審議辦法); `not-yet-effective` — either the act is not yet in force, or **this article's promulgated wording is not yet in force** (民法第1223條, amended 2026-08-17, in force six months after promulgation: the text returned is the new wording, and the earlier wording still applies until then); `unknown` when the source cannot say. |
+| `amended_on` | The act's last amendment date (`LawModifiedDate`), `YYYY-MM-DD`. |
+| `effective_note` | When the act or the article is not yet in force: the official note, verbatim (「一百十五年八月十七日修正公布第 1223 條條文，自公布六個月後施行。」). Absent otherwise. |
+
+When a note's date passes, the next day's rebuild takes the mark off.
 
 **Errors.** A refusal is `{"ok": false, "error_code": ..., "message": ..., "context": {...}}`:
 
@@ -2358,14 +2375,14 @@ A search that matches nothing is `ok: true` with an empty `results` list. **Rate
 
 ## `get_article`
 
-Returns `law` (the act's full name; common short names such as 勞基法 are accepted), `article`, `text` (the whole article, paragraphs and items), `status` (`in-force` when current), `level` (法律 / 命令), `amended_on` (the last amendment date when the source gives one; currently `null`), `url` and `id`.
+Returns `law` (the act's full name), `article`, `text` (the whole article, paragraphs and items), `status`, `level` (法律 / 行政命令), `amended_on` (the act's last amendment date, `YYYY-MM-DD`), `effective_note` (only when there is one), `url` and `id`. `law` accepts the act's full name, a short name (勞基法, 民訴, 租賃條例) or a former name (電腦處理個人資料保護法 → 個人資料保護法); see [Statute names and status](#statute-names-and-status).
 
 ### Live description (verbatim)
 
 ```text
-Read one statute article: the act's full name, the article number, its whole text (paragraphs and items), whether it is in force,
-    its last amendment date when the source gives one (null otherwise), and a link and an identifier. Common short names are accepted
-    (勞基法 → 勞動基準法). Synchronous: no job, no charge.
+Read one statute article: the act's full name, the article number, its whole text (paragraphs and items), status (in-force /
+    repealed / not-yet-effective / unknown), the act's last amendment date (amended_on), effective_note when there is one, and a link and
+    an identifier. Short and former names are accepted (勞基法, 民訴, 電腦處理個人資料保護法 → the act). Synchronous: no job, no charge.
 
     Args:
         law: The act, e.g. 民法, 勞動基準法 or 勞基法.
@@ -2400,16 +2417,36 @@ Read one statute article: the act's full name, the article number, its whole tex
 
 ## `search_statutes`
 
-Returns `results`, most relevant first, each with the fields of `get_article` and `score`. `law` keeps only results from that act; `level` (`law` / `order`) is applied by the source.
+Returns `results`, most relevant first, each with the fields of `get_article` and `score`. `law` (full, short or former name) searches only that act; `level` (`law` / `order`) is applied by the source.
+
+**What `query` can be** (since 2026-10-23):
+
+- **An act and an article number** — 民法184, 民法 184, 民法第184條, 民法第一百八十四條, 民法一八四, 民法第184條之1, 民法184-1, 勞基法 84-1, 勞動基準法第9條第1項 (項 and 款 are ignored; the article is returned). The first result is that article, the same as `get_article` returns. An article that does not exist (民法9999) is searched as words; no match is an empty list, not an error. A numeral inside an act's name is not an article number: 二二八事件處理及賠償條例 is searched as an act.
+- **An act's name alone** — full, short or former name (出版法, 電腦處理個人資料保護法): the articles of that act, under its current name.
+- **Words**, with 且 / 或 / 排除:
+
+| Syntax | Meaning | Example |
+|---|---|---|
+| space, `&`, `＆` | and (且) | `押金 租賃契約 返還` |
+| `+`, `＋` | or (或): each side is searched, and the results alternate | `租賃+借貸` |
+| a leading `-`, `－` | exclude (排除): no result whose text or act name contains the word | `租賃 押金 -房屋` |
+
+An exclusion is applied while searching, before the list is cut to `top_k`, so excluded results do not take places. The dash inside an article number (184-1) is not an exclusion. A query made only of excluded words is `INVALID_ARGUMENT`.
+
+Repealed acts and articles not yet in force are returned with their `status` rather than left out (a search for 出版法 shows 出版法, `repealed`).
 
 ### Live description (verbatim)
 
 ```text
-Search statute articles by relevance. Each result: the act, the article number, the text (or an excerpt), the relevance score and
-    whether it is in force. Synchronous: no job, no charge.
+Search statute articles by relevance. An act and an article number (民法184, 民法第一百八十四條, 刑法185-3, 勞基法 84-1, common short
+    names included) returns that article first, as get_article does; an act's name alone searches that act. Words separated by spaces
+    or & must all apply (且); + separates alternatives (或); a word with a leading - excludes results whose text or act name contains
+    it (排除), e.g. 租賃 押金 -房屋. Each result: the act, the article number, the text (or an excerpt), status (in-force / repealed /
+    not-yet-effective / unknown), amended_on, effective_note when there is one, level, the relevance score, a link and an identifier.
+    Synchronous: no job, no charge.
 
     Args:
-        query: Words a statute would use (法典的用語), e.g. 押金 租賃契約 返還; at most 120 characters.
+        query: Words a statute would use (法典的用語), e.g. 押金 租賃契約 返還, or an act and article; at most 120 characters.
         law: Only results from this act (full or common short name).
         level: law = acts only; order = administrative orders only; omitted = both.
         top_k: How many results, 1–30 (default 10).
@@ -2526,7 +2563,7 @@ Search court judgments for how courts decide a point. Each result: the court, th
 
 ## `search_interpretations`
 
-Searches the constitutional decisions: 司法院大法官解釋 (釋字第1號至第813號) and 憲法法庭判決 (憲判字). Returns `results`, most relevant first, and `source` (the attribution below). Each result:
+Searches the constitutional decisions: 司法院大法官解釋 (釋字第1號至第803號) and 憲法法庭判決 (憲判字). Returns `results`, most relevant first, and `source` (the attribution below). Each result:
 
 | Field | Meaning |
 |---|---|
@@ -2536,29 +2573,32 @@ Searches the constitutional decisions: 司法院大法官解釋 (釋字第1號�
 | `passage` | The matching passage; each segment headed by its section — 【解釋爭點】 / 【解釋文】 / 【理由書】 for a 釋字; for a 憲判字 the judgment's own heading (主文, or e.g. 參、形成主文之法律上意見). Segments are separated by `\n…\n`. |
 | `passage_sections` | The section of each segment, in order. |
 | `passage_at` | The passage's position, for `read_judgment`'s `around`. |
-| `standing` | `changed` — later changed or no longer applied by a 釋字 or 憲判字, wholly or in part; `supplemented` — supplemented and still in force; `none` — checked, and no later 釋字 or 憲判字 changed or supplemented it; `unknown` — no record (never reported as `none`). |
+| `standing` | `changed` — later changed or no longer applied by a 釋字 or 憲判字, wholly or in part; `supplemented` — supplemented and still in force; `none` — checked, and no later 釋字 or 憲判字 changed or supplemented it; `unknown` — no record, or a record that is not shown (see below; never reported as `none`). |
 | `changed_by`, `supplemented_by` | Who changed / supplemented this one. |
 | `changes` | What this decision itself changed or supplemented (earlier 釋字, or 院字 / 院解字 interpretations, whose `target_doc_id` is null). |
 | `standing_checked_through` | The last decision the status was checked against. |
 
 Each entry of `changed_by`, `supplemented_by` and `changes`: `by` (e.g. 111年憲判字第2號), `by_doc_id`, `target`, `target_doc_id`, `relation` (變更 / 不再援用 / 補充), `scope` (全部 / 部分; null when the decision does not say), and `evidence` — the later decision's own sentence, verbatim from its text (whitespace as in the source).
 
-**How the change status is made.** A table built from the full texts of every 釋字 (第1號至第813號) and every 憲判字 in the source, by reading each sentence that names an interpretation together with 變更 / 不再援用 / 補充; not inferred by a model. On 2026-10-21, checked through 憲法法庭115年憲判字第7號判決 (2026-10-08), numbering complete for each year: 12 changed, 38 supplemented, 763 none among the 813 釋字. `standing_checked_through` on every result names the last judgment checked; a 釋字 or 憲判字 decided after it is `unknown`.
+**How the change status is made.** A table built from the full texts of the 釋字 and every 憲判字 in the source, by reading each sentence that names an interpretation together with 變更 / 不再援用 / 補充; not inferred by a model. On 2026-10-21, checked through 憲法法庭115年憲判字第7號判決 (2026-10-08), numbering complete for each year. Among 釋字第1號至第803號: 11 changed, 38 supplemented, 753 none, 1 unknown (釋字第528號, whose change record comes from a 釋字 that is not provided — below). `standing_checked_through` on every result names the last judgment checked; a 釋字 or 憲判字 decided after it is `unknown`.
 
 **How it is kept up to date.** The source is checked once a day for 憲判字 after the last one checked, in order, counting only a judgment whose full text is in the source; a missing number before a later one of the same year stops the check there. A new judgment with no sentence that names an interpretation together with 變更 / 不再援用 / 補充 is added at once and `standing_checked_through` moves past it. A new judgment with such a sentence is read and classified by a person first — it is not classified automatically — and until then the check stays before it, so a status that may have changed is not reported as `none` beyond what was read.
 
 **Search coverage.** The 釋字 have their own index. The 憲判字 are found through the judgment index (all courts), so a 憲判字 appears when it is among the closest judgments for the query.
 
-**Source.** 「出處：司法院釋字第1號至第813號解釋取自憲法法庭網站（cons.judicial.gov.tw）；憲法法庭判決取自司法院資料開放平臺（依該平臺授權條款註明出處）。變更狀態依上開全文整理，查核至憲法法庭115年憲判字第7號判決（2026-10-08）。」 — the `source` field of every result carries this text; the date it was checked through follows the table.
+**Source.** 「出處：司法院釋字第1號至第803號解釋取自司法院資料開放平臺（類別052）；憲法法庭判決取自司法院資料開放平臺；依該平臺授權條款註明出處。釋字第804號至第813號目前未提供。變更狀態依上開全文整理，查核至憲法法庭115年憲判字第7號判決（2026-10-08）。」 — the `source` field of every result carries this text; the date it was checked through follows the table.
+
+**釋字第804號至第813號 are not provided** (since 2026-10-23). LegalOS uses official sources only, and these ten are not on the 司法院資料開放平臺. They are not returned by `search_interpretations`; `read_judgment` for one of them is `NOT_FOUND`; change records that come from them are not shown. Fast Legal's research does not see them either.
 
 ### Live description (verbatim)
 
 ```text
-Search the constitutional decisions: 司法院大法官解釋 (釋字第1號至第813號) and 憲法法庭判決 (憲判字). Each result: doc_id (pass it to
+Search the constitutional decisions: 司法院大法官解釋 (釋字第1號至第803號) and 憲法法庭判決 (憲判字). Each result: doc_id (pass it to
     read_judgment), citation, case_number, decision_date, url, score, the matching passage with its section (解釋爭點 / 解釋文 / 理由書; for
     a 憲判字 主文 / 理由) and passage_at, and the change status: standing — changed (later changed or no longer applied, wholly or in part),
-    supplemented (supplemented, still in force), none (checked, no later change or supplement), unknown (no record) — with changed_by,
-    supplemented_by (who did it, with that decision's own sentence as evidence) and changes (what this one itself changed or supplemented).
+    supplemented (supplemented, still in force), none (checked, no later change or supplement), unknown (no record, or one not shown)
+    — with changed_by, supplemented_by (who did it, with that decision's own sentence as evidence) and changes (what this one itself
+    changed or supplemented).
     Read standing before relying on an interpretation: a changed one is not the law in that respect. Synchronous: no job, no charge.
 
     Args:
