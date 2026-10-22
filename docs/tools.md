@@ -63,7 +63,7 @@ review_contract
 - The operation is asynchronous.
 - A successful submission identifies a job.
 - `model` is optional and is a level: omitted (or `medium`) is the default, unchanged — any contract type, `represented_party` as a position (甲方 / 乙方 / neutral). [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`.
-- **`high` and `large` review only the types in `get_capabilities` `review.review_types`** (on 2026-10-22: 住宅租賃 for 承租人, 國外團體旅遊 for 旅客, 搬家服務 for 委託搬家服務之消費者, 經銷 for 經銷商, 買賣 for 買受人, 軟體開發委託 for 委託方, 合夥 for 非執行業務合夥人, 收購意向書 for 出售股東, 保證 for 保證人, 金錢借貸 for 貸與人). To use them send `review_type` (one of those types) and `client_instructions` (what the client wants from the review); `represented_party` may be omitted — the type fixes it, and a different one is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `expected`). `high` or `large` without `review_type` is refused with `INVALID_INPUT`, `context: {"field": "model", "detail": "model_not_open_for_review_type", "open_review_types": [...]}`; an unknown `review_type` with `context.field: "review_type"` and `accepted`; a missing `client_instructions` with `context.field: "client_instructions"`. Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level, nor to the general review.
+- **`high` and `large` review only the types in `get_capabilities` `review.review_types`** (on 2026-10-22: 住宅租賃 for 承租人, 國外團體旅遊 for 旅客, 搬家服務 for 委託搬家服務之消費者, 經銷 for 經銷商, 買賣 for 買受人, 軟體開發委託 for 委託方, 合夥 for 非執行業務合夥人, 收購意向書 for 出售股東, 保證 for 保證人, 金錢借貸 for 貸與人, 最高限額抵押 for 抵押人, 會計師委任 for 委任人, 不動產附負擔贈與 for 贈與人). To use them send `review_type` (one of those types) and `client_instructions` (what the client wants from the review); `represented_party` may be omitted — the type fixes it, and a different one is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `expected`). `high` or `large` without `review_type` is refused with `INVALID_INPUT`, `context: {"field": "model", "detail": "model_not_open_for_review_type", "open_review_types": [...]}`; an unknown `review_type` with `context.field: "review_type"` and `accepted`; a missing `client_instructions` with `context.field: "client_instructions"`. Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level, nor to the general review.
 - `review_type` also works at `medium`: the same type-specific review on the default level. Without `review_type` a review is the general review, as before.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
 - **Deliverables of a `review_type` review:** `review_comments` (the review findings, including the additional findings), `revised_docx`, `redline`, `original`, `revised`, `memo`.
@@ -122,7 +122,8 @@ Submit one contract for full LegalOS review.
             another level.
         review_type: Optional. One of get_capabilities review.review_types
             (住宅租賃 / 國外團體旅遊 / 搬家服務 / 經銷 / 買賣 / 軟體開發委託 /
-            合夥 / 收購意向書 / 保證 / 金錢借貸): the contract is reviewed for
+            合夥 / 收購意向書 / 保證 / 金錢借貸 /
+            最高限額抵押 / 會計師委任 / 不動產附負擔贈與): the contract is reviewed for
             that type's one represented party (listed there), with the type's
             own review steps. represented_party may then be omitted; if given
             it must be that party. Needs client_instructions. contract_type_hint
@@ -840,7 +841,7 @@ Apply a requested change to one contract and produce the revised document.
 
 Read what this deployment offers right now. Read-only: it creates no job and calls no model. Everything it returns is read from the service's own capability table at call time — the same table that opens or closes a tool.
 
-### Response (live, 2026-10-20)
+### Response (live, 2026-10-22)
 
 ```json
 {
@@ -1173,6 +1174,18 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
       {
         "type": "金錢借貸",
         "represented_party": "貸與人"
+      },
+      {
+        "type": "最高限額抵押",
+        "represented_party": "抵押人"
+      },
+      {
+        "type": "會計師委任",
+        "represented_party": "委任人"
+      },
+      {
+        "type": "不動產附負擔贈與",
+        "represented_party": "贈與人"
       }
     ],
     "medium": {
@@ -1220,6 +1233,18 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
         {
           "type": "金錢借貸",
           "represented_party": "貸與人"
+        },
+        {
+          "type": "最高限額抵押",
+          "represented_party": "抵押人"
+        },
+        {
+          "type": "會計師委任",
+          "represented_party": "委任人"
+        },
+        {
+          "type": "不動產附負擔贈與",
+          "represented_party": "贈與人"
         }
       ]
     },
@@ -1265,6 +1290,18 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
         {
           "type": "金錢借貸",
           "represented_party": "貸與人"
+        },
+        {
+          "type": "最高限額抵押",
+          "represented_party": "抵押人"
+        },
+        {
+          "type": "會計師委任",
+          "represented_party": "委任人"
+        },
+        {
+          "type": "不動產附負擔贈與",
+          "represented_party": "贈與人"
         }
       ]
     }

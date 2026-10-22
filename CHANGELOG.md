@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-22 — three more review types (最高限額抵押, 會計師委任, 不動產附負擔贈與)
+
+#### Added
+
+- `review_contract` `review_type` 最高限額抵押 (for 抵押人), 會計師委任 (for 委任人) and 不動產附負擔贈與 (for 贈與人), at every level (`medium`, `high`, `large`); `get_capabilities` `review.review_types` lists all thirteen. `get_capabilities` example re-captured.
+
 ### 2026-10-22 — four more review types
 
 #### Added
