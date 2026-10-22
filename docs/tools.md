@@ -1565,6 +1565,7 @@ The tool returns `isError: false` and a single text content block containing thi
 | `revision.replaced` | integer | How many clauses were replaced. Observed: `1`, for a one-clause instruction. |
 | `revision.not_applied` | integer | How many requested changes were not applied. Observed: `0`. |
 | `revision.reason` | string \| null | Why the revision was not applied; `null` when it was. |
+| `note_check` | object \| null | Finished drafts. `{checked, corrected, removed}`: how many statute article citations in `draft_summary` were checked against the article text, how many were changed to the article that says what the sentence says, and how many article numbers were removed because they could not be confirmed (the law name stays). `null` for other capabilities and for drafts from before the check existed. |
 | `artifacts` | array | See below. Never empty without `artifacts_blocked`. |
 | `artifacts_blocked` | object \| null | Present when no artifact address could be built. Observed `null` in both captures. |
 | `failure` | object \| null | Present when `status` is `failed`. Observed: `{"error_code": "JOB_FAILED"}`. |

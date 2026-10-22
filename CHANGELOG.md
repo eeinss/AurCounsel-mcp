@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-22 — draft notes: wrong citations corrected; `get_job` `note_check`
+
+#### Added
+
+- `get_job` `note_check` on a finished draft: `{checked, corrected, removed}` for the statute citations in `draft_summary`. `null` for other capabilities and for earlier drafts.
+
+#### Changed
+
+- `draft_summary`: a citation to the wrong article is now corrected to the article that says what the sentence says, rather than having its number removed. When a number is removed, the sentence is reworded so it does not point at a missing article (no leftover 「該條」 or 「同條」). Tables and quoted blocks keep their layout.
+
 ### 2026-10-22 — draft notes: statute citations checked; no summary line for a finished draft
 
 #### Changed
