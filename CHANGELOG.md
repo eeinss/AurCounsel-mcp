@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-22 — four more review types
+
+#### Added
+
+- `review_contract` `review_type` 合夥 (for 非執行業務合夥人), 收購意向書 (for 出售股東), 保證 (for 保證人) and 金錢借貸 (for 貸與人), at every level (`medium`, `high`, `large`); `get_capabilities` `review.review_types` lists all ten. `get_capabilities` example re-captured.
+
 ### 2026-10-21 — step-by-step progress for every job
 
 #### Added
