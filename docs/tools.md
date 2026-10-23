@@ -1558,7 +1558,7 @@ The tool returns `isError: false` and a single text content block containing thi
 | Field | Type | Meaning |
 |---|---|---|
 | `ok` | boolean | `true` on a resolved job; `false` on an application error (see [errors.md](errors.md)). |
-| `job_id` | string | Echo of the requested identifier. |
+| `job_id` | string | Echo of the requested identifier. A `job_id` is an opaque string: store and send it back exactly as received, and do not parse it or assume a length or character set (it may contain characters such as `~`). |
 | `capability` | string \| null | `review`, `draft`, `compare`, or `revise`. `null` only for an unclassifiable job row, in which case `artifacts_blocked` explains. |
 | `status` | string | Canonical status. One of the five values above. |
 | `status_recognised` | boolean | `false` when the engine's status did not map — which is what produces `status: "unknown"`. |

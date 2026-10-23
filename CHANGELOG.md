@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — job outputs kept per customer; job_id is opaque
+
+#### Changed
+
+- A new review, draft, revision or comparison job's outputs are stored separately for each customer. Jobs submitted before keep their outputs and identifiers; `get_job`, `get_artifact` and downloads work for both.
+- `job_id` is documented as an opaque string: store it and send it back as received, without parsing it or assuming its length or characters (it may contain `~`).
+
 ### 2026-10-23 — keys: permitted tools and prepaid balance
 
 #### Added
