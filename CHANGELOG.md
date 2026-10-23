@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statute search: level ranks as without it; repealed after current
+
+#### Changed
+
+- `search_statutes` with `level`: ranked the same way as without `level`, then only that level kept; the same search at that level fills `top_k` if needed. 老闆不給加班費 with `level` `law` now has 勞動基準法第24條 first.
+- `search_statutes`: unless the query names an act, repealed articles come after current ones.
+
 ### 2026-10-23 — statute search: level is rewritten too; results fill top_k
 
 #### Changed
