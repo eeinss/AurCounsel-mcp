@@ -2432,6 +2432,117 @@ The result is `{"ok": true, "results": [...], "elapsed_ms": ...}`, one entry per
 
 **Full-text snapshots.** Since 2026-10-23 16:52 UTC, each daily rebuild also keeps the full text of every act (法律 and 命令) whenever its content changes, from the 法務部全國法規資料庫 OpenAPI only (`https://law.moj.gov.tw/api/Ch/Law/JSON` and `/api/Ch/Order/JSON`: the act's `LawName`, `LawLevel`, `LawURL`, `LawModifiedDate`, `LawEffectiveDate`, `LawEffectiveNote`, `LawAbandonNote`, `LawHistories` and its `LawArticles` — `ArticleNo`, `ArticleContent`), never a web page. Earlier versions are kept, not overwritten. These snapshots are what the change events (coming next) compare.
 
+## Change events: `list_law_changes`, `get_law_change` (not live yet)
+
+> **Not live yet.** These two tools go live once an act has changed in the official data since full-text snapshots began (2026-10-23); the date will be in the CHANGELOG. The fields below are final. The example is **illustrative, not a real event**: it was produced by the same comparison code from 民法 as the 法務部 OpenAPI gives it today, against an invented earlier version whose article 1223 reads 「（示意：修正前條文）」. It will be replaced by a real event, and the CHANGELOG will say so.
+
+Both are synchronous lookups (the `lookup` permission): no job, no model, no charge. Each event comes from comparing two daily snapshots of one act's official full text (法務部全國法規資料庫 OpenAPI only). Events are only ever added, never changed or removed, and are kept for at least a year.
+
+**`list_law_changes(since_seq=0, limit=100)`** returns `{"ok": true, "changes": [event, ...], "next_seq": n}`: every event with `seq` greater than `since_seq`, oldest first, at most `limit` (1–500). Send `next_seq` as `since_seq` next time; it equals `since_seq` when there is nothing new. A negative `since_seq` or a bad `limit` answers `INVALID_ARGUMENT`.
+
+| Event field | Meaning |
+|---|---|
+| `change_id` | Fixed identifier of the event. |
+| `seq` | Order of the events; only grows. |
+| `pcode`, `name` | The act's 法規代號 and current name. |
+| `old_name` | The former name when the event is `renamed`, else `null`. |
+| `types` | One or more of `amended` (an article's text changed, or the act's amendment date moved with no article change), `articles_added`, `articles_deleted` (an article disappears or its text becomes 「（刪除）」), `promulgated_not_effective` (the act's official effective note names wording promulgated and not yet in force), `now_effective` (that wording takes effect), `abolished`, `renamed`. |
+| `promulgated_on`, `amended_on` | `YYYY-MM-DD` from the official data (`LawModifiedDate`, or the date in the effective note's item). |
+| `effective_on` | `YYYY-MM-DD` when the official data gives it (`LawEffectiveDate`, or the effective note: 「自…施行」, 「自公布…個月後施行」); `null` when it does not — no date is inferred. |
+| `detected_on` | The day the change was found, `YYYY-MM-DD`. |
+| `articles` | `{"amended": [...], "added": [...], "deleted": [...], "not_yet_effective": [...], "whole_act": bool}` — article numbers written as statute results write them (「第 888 條」, 「第 15-1 條」); `not_yet_effective` lists what a `promulgated_not_effective` or `now_effective` event covers, and `whole_act` is `true` when that is the whole act. |
+| `has_diff` | Whether `get_law_change` has the article-by-article comparison. |
+| `url` | The act's page on the national law database. |
+| `refers_to` | On `now_effective`: the `change_id` of the promulgation event it follows. `null` otherwise. |
+
+A `now_effective` event is added on the day its `effective_on` comes, or — when no date was given — on the day the official note stops naming that wording.
+
+**`get_law_change(change_id)`** returns the event with `diff`: one entry per changed article, `{"article", "type" (amended / added / deleted), "old_text" (null for an added article), "new_text" (null for a deleted one), "article_url"}`. The texts are the official `ArticleContent` exactly as given, line breaks (`\r\n`) included. `has_diff` is `false` and `diff` is `[]` when there is no comparison (a `now_effective` event, or a snapshot that cannot be read); the other fields are as usual. An unknown `change_id` answers `NOT_FOUND`.
+
+Illustrative example (**示意，非真實事件**) — `list_law_changes(since_seq=0)`:
+
+```json
+{
+ "ok": true,
+ "changes": [
+  {
+   "seq": 1,
+   "change_id": "B0000001:20261102T034000-46cb83cbbc4cfd71",
+   "pcode": "B0000001",
+   "name": "民法",
+   "old_name": null,
+   "types": [
+    "amended",
+    "promulgated_not_effective"
+   ],
+   "promulgated_on": "2026-08-17",
+   "effective_on": "2027-02-17",
+   "amended_on": "2026-08-17",
+   "detected_on": "2026-11-02",
+   "articles": {
+    "amended": [
+     "第 1223 條"
+    ],
+    "added": [],
+    "deleted": [],
+    "not_yet_effective": [
+     "第 1223 條"
+    ],
+    "whole_act": false
+   },
+   "has_diff": true,
+   "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=B0000001",
+   "refers_to": null
+  }
+ ],
+ "next_seq": 1
+}
+```
+
+`get_law_change(change_id)` for that event (illustrative; the old text is a placeholder, the new text is the official article):
+
+```json
+{
+ "ok": true,
+ "seq": 1,
+ "change_id": "B0000001:20261102T034000-46cb83cbbc4cfd71",
+ "pcode": "B0000001",
+ "name": "民法",
+ "old_name": null,
+ "types": [
+  "amended",
+  "promulgated_not_effective"
+ ],
+ "promulgated_on": "2026-08-17",
+ "effective_on": "2027-02-17",
+ "amended_on": "2026-08-17",
+ "detected_on": "2026-11-02",
+ "articles": {
+  "amended": [
+   "第 1223 條"
+  ],
+  "added": [],
+  "deleted": [],
+  "not_yet_effective": [
+   "第 1223 條"
+  ],
+  "whole_act": false
+ },
+ "has_diff": true,
+ "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=B0000001",
+ "refers_to": null,
+ "diff": [
+  {
+   "article": "第 1223 條",
+   "type": "amended",
+   "old_text": "（示意：修正前條文）",
+   "new_text": "繼承人之特留分，依下列各款之規定：\r\n一、配偶之特留分，為其應繼分二分之一。\r\n二、直系血親卑親屬之特留分，為其應繼分二分之一。\r\n三、父母之特留分，為其應繼分二分之一。\r\n四、祖父母之特留分，為其應繼分三分之一。",
+   "article_url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=1223"
+  }
+ ]
+}
+```
+
 ## `get_article`
 
 Returns `law` (the act's full name), `article`, `text` (the whole article, paragraphs and items), `status`, `level` (法律 / 行政命令), `amended_on` (the act's last amendment date, `YYYY-MM-DD`), `effective_note` (only when there is one), `url` and `id`. `law` accepts the act's full name, a short name (勞基法, 民訴, 租賃條例) or a former name (電腦處理個人資料保護法 → 個人資料保護法); see [Statute names and status](#statute-names-and-status).

@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — change events documented ahead (not live yet)
+
+#### Documented
+
+- [`list_law_changes` and `get_law_change`](docs/tools.md#change-events-list_law_changes-get_law_change-not-live-yet): event fields, types and behaviour, with an **illustrative** example (not a real event). The tools go live once an act changes in the official data after 2026-10-23; that date, and the switch to a real example, will be recorded here.
+
 ### 2026-10-23 — statutes: pcode on results, get_laws; full-text snapshots begin
 
 #### Added
