@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statute search: same query, same results; `rewrite` in the result
+
+#### Added
+
+- `search_statutes` result: `rewrite` — `applied`, `timed_out`, `not_applicable` or `failed` (see [`search_statutes`](docs/tools.md#search_statutes)).
+
+#### Changed
+
+- `search_statutes`: a query's rewrite and searches are kept until the daily rebuild changes the statute tables (or the service restarts), so the same query returns the same results all day. A rewrite that did not finish in time is completed in the background and used by the next call of the same query.
+
 ### 2026-10-23 — statute search: level ranks as without it; repealed after current
 
 #### Changed
