@@ -2344,7 +2344,7 @@ Jobs and artifacts are scoped to the authenticated identity; another identity re
 
 ## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`
 
-These five tools answer at once: they create no job, call no model and are not charged. They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_statutes` about 1.3 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s.
+These five tools answer at once: they create no job and are not charged. Four of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries: an act and article number p50 0.40 s; any other query p50 1.9 s (3 of 37 took 3–6.5 s).
 
 ### Statute names and status
 
@@ -2433,6 +2433,8 @@ Returns `results`, most relevant first, each with the fields of `get_article` an
 
 An exclusion is applied while searching, before the list is cut to `top_k`, so excluded results do not take places. The dash inside an article number (184-1) is not an exclusion. A query made only of excluded words is `INVALID_ARGUMENT`.
 
+- **A legal concept or plain language** (不當得利, 老闆不給加班費) — any query that is not an article number or an act's name is first rewritten into the articles that decide it, and those are searched together with the query's own words and the headings of the acts (不當得利 is the 民法 heading over 第179條). Each suggested article is read from the source; one that does not exist is dropped. If the rewrite does not answer within about 2 seconds, the query is searched without it.
+
 Repealed acts and articles not yet in force are returned with their `status` rather than left out (a search for 出版法 shows 出版法, `repealed`).
 
 ### Live description (verbatim)
@@ -2443,7 +2445,8 @@ Search statute articles by relevance. An act and an article number (民法184, �
     or & must all apply (且); + separates alternatives (或); a word with a leading - excludes results whose text or act name contains
     it (排除), e.g. 租賃 押金 -房屋. Each result: the act, the article number, the text (or an excerpt), status (in-force / repealed /
     not-yet-effective / unknown), amended_on, effective_note when there is one, level, the relevance score, a link and an identifier.
-    Synchronous: no job, no charge.
+    Any other query may be in plain language (老闆不給加班費): besides the words, it is matched against the headings of the acts and
+    against the articles suggested for it, each read from the source. Synchronous: no job, no charge.
 
     Args:
         query: Words a statute would use (法典的用語), e.g. 押金 租賃契約 返還, or an act and article; at most 120 characters.

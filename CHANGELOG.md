@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statute search: legal concepts and plain language
+
+#### Changed
+
+- `search_statutes`: a query that is not an article number or an act's name (不當得利, 老闆不給加班費) is rewritten into the articles that decide it before searching; those articles, the headings of the acts and the query's own words are ranked together. Each suggested article is read from the source. Without an answer from the rewrite within about 2 s, the query is searched as before. Measured over 55 test queries: article numbers p50 0.40 s, other queries p50 1.9 s.
+- The five synchronous lookups no longer all "call no model": `search_statutes` does for the rewrite above; the other four do not.
+
 ### 2026-10-23 — statute search: article numbers, short and former names, 且 / 或 / 排除, status; 釋字第804–813號 not provided
 
 #### Added
