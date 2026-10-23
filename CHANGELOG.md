@@ -6,6 +6,14 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statutes: pcode on results, get_laws; full-text snapshots begin
+
+#### Added
+
+- `get_article` and `search_statutes`: each article result has `pcode`, the act's 法規代號 (`null` when the act is not on the national law database). Live 2026-10-23 16:52 UTC.
+- New tool [`get_laws`](docs/tools.md#get_laws): 1–50 pcodes or act names (full, short or former names) → each act's pcode, current name, level, status, `amended_on` and `url`, or `found: false`. Live 2026-10-23 16:52 UTC. `tools/list` now has fourteen tools.
+- Full-text snapshots of every act, taken by the daily rebuild from the 法務部 OpenAPI whenever an act changes; the first (all 11,803 acts) on 2026-10-23 16:52 UTC. Change events and the tools to read them follow when two snapshots of a changed act exist.
+
 ### 2026-10-23 — statute results: article_url
 
 #### Added

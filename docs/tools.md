@@ -16,7 +16,7 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-For a key permitted every tool, `tools/list` returns exactly thirteen tools (a key permitted fewer sees only those; see [Keys](#keys-permitted-tools-and-prepaid-balance)):
+For a key permitted every tool, `tools/list` returns exactly fourteen tools (a key permitted fewer sees only those; see [Keys](#keys-permitted-tools-and-prepaid-balance)):
 
 ```text
 review_contract
@@ -32,9 +32,10 @@ search_statutes
 search_judgments
 search_interpretations
 read_judgment
+get_laws
 ```
 
-No additional public tools exist beyond these thirteen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these fourteen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 ## Keys: permitted tools and prepaid balance
 
@@ -2368,9 +2369,9 @@ Jobs and artifacts are scoped to the authenticated identity; another identity re
 
 ---
 
-## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`
+## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`, `get_laws`
 
-These five tools answer at once: they create no job and are not charged. Four of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries with `top_k` 20, none asked before: an act and article number p50 0.4 s; any other query p50 2.2 s, with or without `level` (the slowest 4.5 s without `level`, 5.0 s with it); a query asked before answers almost at once.
+These six tools answer at once: they create no job and are not charged. Five of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries with `top_k` 20, none asked before: an act and article number p50 0.4 s; any other query p50 2.2 s, with or without `level` (the slowest 4.5 s without `level`, 5.0 s with it); a query asked before answers almost at once.
 
 ### Statute names and status
 
@@ -2385,6 +2386,7 @@ On every statute result:
 |---|---|
 | `status` | `in-force`; `repealed` (the act is repealed: 出版法, 動員戡亂時期臨時條款, 基本工資審議辦法); `not-yet-effective` — either the act is not yet in force, or **this article's promulgated wording is not yet in force** (民法第1223條, amended 2026-08-17, in force six months after promulgation: the text returned is the new wording, and the earlier wording still applies until then); `unknown` when the source cannot say. |
 | `amended_on` | The act's last amendment date (`LawModifiedDate`), `YYYY-MM-DD`. |
+| `pcode` | The act's 法規代號 on the national law database (`B0000001` for 民法), the key [`get_laws`](#get_laws) takes; `null` for an act that is not on it. |
 | `url` | The act's page on the national law database (全國法規資料庫): the whole act. |
 | `article_url` | This article's own page on the national law database — `https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=<act>&flno=<article>` (第 888 條 → `flno=888`, 第 191 條之 3 → `flno=191-3`) — for acts and administrative orders alike. `null` when there is none: a result that is a whole act, an act that is not on the national law database, or an article number that cannot be read as exactly one article. Use `url` then. |
 | `effective_note` | When the act or the article is not yet in force: the official note, verbatim (「一百十五年八月十七日修正公布第 1223 條條文，自公布六個月後施行。」). Absent otherwise. |
@@ -2400,6 +2402,35 @@ When a note's date passes, the next day's rebuild takes the mark off.
 | `RETRIEVAL_FAILED` | The source failed this time; nothing is wrong with the request. Try again later. | none |
 
 A search that matches nothing is `ok: true` with an empty `results` list. **Rate limit:** the MCP endpoint's per-caller limit (120 calls a minute) applies; there is no separate limit for these tools.
+
+## `get_laws`
+
+Look up acts by 法規代號 (`pcode`) or by name — the full name, a common short name or a former name, through the same name table as `search_statutes` — up to 50 at once. Synchronous: no job, no model, no charge; it reads the official tables rebuilt daily (see [Statute names and status](#statute-names-and-status)).
+
+Arguments: `laws` — a list of 1–50 pcodes and / or act names. An empty list, more than 50, or an entry that is not text answers `INVALID_ARGUMENT` (`context.field` `laws`).
+
+The result is `{"ok": true, "results": [...], "elapsed_ms": ...}`, one entry per query, in the order asked:
+
+| Field | Meaning |
+|---|---|
+| `query` | The pcode or name as sent. |
+| `found` | `false` when no act matches; the entry then has only `query` and `found`. |
+| `pcode` | The act's 法規代號. |
+| `name` | The act's current name (勞基法 → 勞動基準法, 電腦處理個人資料保護法 → 個人資料保護法). |
+| `level` | `法律` or `行政命令`, as on statute results. |
+| `status` | `in-force`, `repealed` or `not-yet-effective` (the act itself is not yet in force). |
+| `amended_on` | The act's last amendment date, `YYYY-MM-DD`. |
+| `url` | The act's page on the national law database. |
+
+```json
+{"ok": true, "results": [
+  {"query": "勞基法", "found": true, "pcode": "N0030001", "name": "勞動基準法", "level": "法律", "status": "in-force", "amended_on": "2024-07-31", "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001"},
+  {"query": "N0030006", "found": true, "pcode": "N0030006", "name": "勞工請假規則", "level": "行政命令", "status": "in-force", "amended_on": "2026-09-30", "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030006"},
+  {"query": "查無此法", "found": false}
+], "elapsed_ms": 1}
+```
+
+**Full-text snapshots.** Since 2026-10-23 16:52 UTC, each daily rebuild also keeps the full text of every act (法律 and 命令) whenever its content changes, from the 法務部全國法規資料庫 OpenAPI only (`https://law.moj.gov.tw/api/Ch/Law/JSON` and `/api/Ch/Order/JSON`: the act's `LawName`, `LawLevel`, `LawURL`, `LawModifiedDate`, `LawEffectiveDate`, `LawEffectiveNote`, `LawAbandonNote`, `LawHistories` and its `LawArticles` — `ArticleNo`, `ArticleContent`), never a web page. Earlier versions are kept, not overwritten. These snapshots are what the change events (coming next) compare.
 
 ## `get_article`
 
