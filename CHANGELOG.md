@@ -6,6 +6,17 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statute status: effective dates after promulgation
+
+#### Fixed
+
+- Status (`status`, `effective_note`) of articles promulgated with 「自公布日施行」: in force from the third day counting the day of promulgation (中央法規標準法第 13 條), not on the day itself. Live 2026-10-23 17:04 UTC.
+- 「自公布後 N 年施行」 is now read like 「…個月後施行」 (the same day N years later): 資源循環推動法 第 14 條、第 38 條 (promulgated 2026-06-17, two years) now show `not-yet-effective` until 2028-06-17. Live 2026-10-23 17:04 UTC.
+
+#### Documented
+
+- Change events (not live yet) gain `effective_basis` (`official_date` / `statutory_rule` / `null`) and `effective_note`; the illustrative example is updated.
+
 ### 2026-10-23 — change events documented ahead (not live yet)
 
 #### Documented

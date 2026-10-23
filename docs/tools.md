@@ -2448,7 +2448,9 @@ Both are synchronous lookups (the `lookup` permission): no job, no model, no cha
 | `old_name` | The former name when the event is `renamed`, else `null`. |
 | `types` | One or more of `amended` (an article's text changed, or the act's amendment date moved with no article change), `articles_added`, `articles_deleted` (an article disappears or its text becomes 「（刪除）」), `promulgated_not_effective` (the act's official effective note names wording promulgated and not yet in force), `now_effective` (that wording takes effect), `abolished`, `renamed`. |
 | `promulgated_on`, `amended_on` | `YYYY-MM-DD` from the official data (`LawModifiedDate`, or the date in the effective note's item). |
-| `effective_on` | `YYYY-MM-DD` when the official data gives it (`LawEffectiveDate`, or the effective note: 「自…施行」, 「自公布…個月後施行」); `null` when it does not — no date is inferred. |
+| `effective_on` | `YYYY-MM-DD`, or `null` when the official data gives no date (「施行日期，由行政院定之」). |
+| `effective_basis` | How `effective_on` was obtained: `official_date` — the date is written in the official data (`LawEffectiveDate`, or the note's 「自 X 年 X 月 X 日施行」); `statutory_rule` — worked out from the note's own wording: 「自公布日施行」 takes effect on the third day counting the day of promulgation (中央法規標準法第 13 條: promulgated 8/17 ⇒ in force 8/19), and 「自公布後 N 個月 / 年施行」 on the same day N months / years later (promulgated 2026-08-17, six months ⇒ 2027-02-17; checked against every act in the official data that also states its date); `null` when there is no date. |
+| `effective_note` | The official effective note's item this event is about, verbatim; `null` when there is none. |
 | `detected_on` | The day the change was found, `YYYY-MM-DD`. |
 | `articles` | `{"amended": [...], "added": [...], "deleted": [...], "not_yet_effective": [...], "whole_act": bool}` — article numbers written as statute results write them (「第 888 條」, 「第 15-1 條」); `not_yet_effective` lists what a `promulgated_not_effective` or `now_effective` event covers, and `whole_act` is `true` when that is the whole act. |
 | `has_diff` | Whether `get_law_change` has the article-by-article comparison. |
@@ -2477,6 +2479,8 @@ Illustrative example (**示意，非真實事件**) — `list_law_changes(since_
    ],
    "promulgated_on": "2026-08-17",
    "effective_on": "2027-02-17",
+   "effective_basis": "statutory_rule",
+   "effective_note": "一百十五年八月十七日修正公布第 1223 條條文，自公布六個月後施行。",
    "amended_on": "2026-08-17",
    "detected_on": "2026-11-02",
    "articles": {
@@ -2515,6 +2519,8 @@ Illustrative example (**示意，非真實事件**) — `list_law_changes(since_
  ],
  "promulgated_on": "2026-08-17",
  "effective_on": "2027-02-17",
+ "effective_basis": "statutory_rule",
+ "effective_note": "一百十五年八月十七日修正公布第 1223 條條文，自公布六個月後施行。",
  "amended_on": "2026-08-17",
  "detected_on": "2026-11-02",
  "articles": {
