@@ -2385,6 +2385,8 @@ On every statute result:
 |---|---|
 | `status` | `in-force`; `repealed` (the act is repealed: 出版法, 動員戡亂時期臨時條款, 基本工資審議辦法); `not-yet-effective` — either the act is not yet in force, or **this article's promulgated wording is not yet in force** (民法第1223條, amended 2026-08-17, in force six months after promulgation: the text returned is the new wording, and the earlier wording still applies until then); `unknown` when the source cannot say. |
 | `amended_on` | The act's last amendment date (`LawModifiedDate`), `YYYY-MM-DD`. |
+| `url` | The act's page on the national law database (全國法規資料庫): the whole act. |
+| `article_url` | This article's own page on the national law database — `https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=<act>&flno=<article>` (第 888 條 → `flno=888`, 第 191 條之 3 → `flno=191-3`) — for acts and administrative orders alike. `null` when there is none: a result that is a whole act, an act that is not on the national law database, or an article number that cannot be read as exactly one article. Use `url` then. |
 | `effective_note` | When the act or the article is not yet in force: the official note, verbatim (「一百十五年八月十七日修正公布第 1223 條條文，自公布六個月後施行。」). Absent otherwise. |
 
 When a note's date passes, the next day's rebuild takes the mark off.

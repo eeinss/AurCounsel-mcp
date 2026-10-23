@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statute results: article_url
+
+#### Added
+
+- `get_article` and `search_statutes`: each article result has `article_url`, the article's own page on the national law database (`LawSingle.aspx?pcode=…&flno=…`), for acts and administrative orders; `null` when there is no single-article page (a whole-act result, an act not on the database, an article number that cannot be read as one article). `url` is unchanged: the whole act's page.
+
 ### 2026-10-23 — draft_summary: a reason for every suggested term; fixed headings
 
 #### Fixed
