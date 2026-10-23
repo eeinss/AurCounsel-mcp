@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statute search: level is rewritten too; results fill top_k
+
+#### Changed
+
+- `search_statutes` with `level`: a legal concept or plain-language query is rewritten as without `level`, and the results are only of that level (`law` = acts, `order` = administrative orders).
+- `search_statutes` fills `top_k`: a plain-language query no longer returns only 1–2 articles; after the articles that match well come those that match less well, most relevant first. Fewer than `top_k` only when the source has no more.
+
 ### 2026-10-23 — statute search: legal concepts and plain language
 
 #### Changed

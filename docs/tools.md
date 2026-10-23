@@ -2344,7 +2344,7 @@ Jobs and artifacts are scoped to the authenticated identity; another identity re
 
 ## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`
 
-These five tools answer at once: they create no job and are not charged. Four of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries: an act and article number p50 0.40 s; any other query p50 1.9 s (3 of 37 took 3–6.5 s).
+These five tools answer at once: they create no job and are not charged. Four of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries with `top_k` 20: an act and article number p50 0.4 s; any other query p50 2.0 s without `level` and 2.3 s with `level` (the slowest 4.3–4.7 s).
 
 ### Statute names and status
 
@@ -2417,7 +2417,7 @@ Read one statute article: the act's full name, the article number, its whole tex
 
 ## `search_statutes`
 
-Returns `results`, most relevant first, each with the fields of `get_article` and `score`. `law` (full, short or former name) searches only that act; `level` (`law` / `order`) is applied by the source.
+Returns `results`, most relevant first, each with the fields of `get_article` and `score`. `law` (full, short or former name) searches only that act; `level` (`law` / `order`) returns only acts or only administrative orders, and a query with `level` is rewritten the same way as one without. The list is filled up to `top_k`: after the articles that match well come those that match less well, still most relevant first (look at `score`); fewer than `top_k` only when the source has no more.
 
 **What `query` can be** (since 2026-10-23):
 
@@ -2433,7 +2433,7 @@ Returns `results`, most relevant first, each with the fields of `get_article` an
 
 An exclusion is applied while searching, before the list is cut to `top_k`, so excluded results do not take places. The dash inside an article number (184-1) is not an exclusion. A query made only of excluded words is `INVALID_ARGUMENT`.
 
-- **A legal concept or plain language** (不當得利, 老闆不給加班費) — any query that is not an article number or an act's name is first rewritten into the articles that decide it, and those are searched together with the query's own words and the headings of the acts (不當得利 is the 民法 heading over 第179條). Each suggested article is read from the source; one that does not exist is dropped. If the rewrite does not answer within about 2 seconds, the query is searched without it.
+- **A legal concept or plain language** (不當得利, 老闆不給加班費) — any query that is not an article number or an act's name is first rewritten into the articles that decide it, and those are searched together with the query's own words and the headings of the acts (不當得利 is the 民法 heading over 第179條). Each suggested article is read from the source; one that does not exist is dropped. If the rewrite does not answer within about 2 seconds, the query is searched without it; what it has suggested by then is used.
 
 Repealed acts and articles not yet in force are returned with their `status` rather than left out (a search for 出版法 shows 出版法, `repealed`).
 
