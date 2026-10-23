@@ -6,6 +6,14 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — keys: permitted tools and prepaid balance
+
+#### Added
+
+- Per-key permitted tools: `tools/list` lists only the tools a key may use; any other tool returns `TOOL_NOT_PERMITTED` (`context.tool`). A change applies from the next request.
+- Prepaid balance: a prepaid key whose balance is zero or below gets `QUOTA_EXCEEDED` (`context.balance_micros`) for a charged job (`high` / `large`); `medium`, the lookups and `get_job` / `get_artifact` keep working, and running jobs finish (see [Keys](docs/tools.md#keys-permitted-tools-and-prepaid-balance)).
+- A disabled key is refused with HTTP 401, as an unknown one.
+
 ### 2026-10-23 — statute search: a new query waits for its rewrite; results fill top_k
 
 #### Changed
