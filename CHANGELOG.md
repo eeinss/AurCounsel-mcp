@@ -6,6 +6,14 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — statute search: a new query waits for its rewrite; results fill top_k
+
+#### Changed
+
+- `search_statutes`: a new legal-concept or plain-language query waits for its rewrite to finish, up to 4.5 s, so one call gets the full result (most take 1–4 s); a query asked before still answers almost at once. `timed_out` now only when the rewrite takes longer than that; calling again a little later gives the full result.
+- `search_statutes` fills `top_k` whatever `rewrite` says; with `level`, the rewrite's searches are also asked at that level. Fewer only when the source has no more. 我媽過世後發現她欠了卡債 with `level` `law` and `top_k` 10 now returns 10 articles on the first call.
+- Measured over 55 test queries none asked before, `top_k` 20: article numbers p50 0.4 s; other queries p50 2.2 s, the slowest 4.5 s (5.0 s with `level`).
+
 ### 2026-10-23 — statute search: same query, same results; `rewrite` in the result
 
 #### Added

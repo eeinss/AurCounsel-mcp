@@ -2344,7 +2344,7 @@ Jobs and artifacts are scoped to the authenticated identity; another identity re
 
 ## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`
 
-These five tools answer at once: they create no job and are not charged. Four of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries with `top_k` 20: an act and article number p50 0.4 s; any other query p50 2.0 s, with or without `level` (the slowest about 4.4 s).
+These five tools answer at once: they create no job and are not charged. Four of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries with `top_k` 20, none asked before: an act and article number p50 0.4 s; any other query p50 2.2 s, with or without `level` (the slowest 4.5 s without `level`, 5.0 s with it); a query asked before answers almost at once.
 
 ### Statute names and status
 
@@ -2433,14 +2433,14 @@ Returns `results`, most relevant first, each with the fields of `get_article` an
 
 An exclusion is applied while searching, before the list is cut to `top_k`, so excluded results do not take places. The dash inside an article number (184-1) is not an exclusion. A query made only of excluded words is `INVALID_ARGUMENT`.
 
-- **A legal concept or plain language** (不當得利, 老闆不給加班費) — any query that is not an article number or an act's name is first rewritten into the articles that decide it, and those are searched together with the query's own words and the headings of the acts (不當得利 is the 民法 heading over 第179條). Each suggested article is read from the source; one that does not exist is dropped. If the rewrite does not answer within about 2 seconds, the query is searched without it; what it has suggested by then is used. The rewrite still finishes in the background, and the next call of the same query uses all of it.
+- **A legal concept or plain language** (不當得利, 老闆不給加班費) — any query that is not an article number or an act's name is first rewritten into the articles that decide it, and those are searched together with the query's own words and the headings of the acts (不當得利 is the 民法 heading over 第179條). Each suggested article is read from the source; one that does not exist is dropped. A new query waits for its rewrite to finish, up to 4.5 seconds (most take 1–4 seconds); a query asked before answers almost at once. Only a rewrite slower than that is not waited for: what it has suggested by then is used, it still finishes in the background, and calling the same query again a little later gives the full result. Whatever `rewrite` says, the results fill `top_k` (with `level`, also from the rewrite's searches at that level); fewer only when the source has no more.
 
 **Same query, same results.** A query's rewrite and its searches are kept until the statute tables change (they are rebuilt once a day) or the service restarts, so the same query with the same arguments returns the same results all day; a repeated query also answers faster. The result's `rewrite` says what this call used:
 
 | `rewrite` | Meaning |
 |---|---|
 | `applied` | The whole rewrite was used (just made, or kept from an earlier call of the same query). |
-| `timed_out` | The rewrite was not finished within about 2 seconds; this call used only what had arrived (possibly nothing). The next call of the same query uses all of it. |
+| `timed_out` | The rewrite was not finished within 4.5 seconds; this call used what had arrived. Calling the same query again a little later uses all of it. |
 | `not_applicable` | This query is not rewritten: an article number, an act's name, or 且 / 或 / 排除 syntax. |
 | `failed` | The rewrite could not be made this time; the results come from the search alone. Not kept, so a later call tries again. |
 
