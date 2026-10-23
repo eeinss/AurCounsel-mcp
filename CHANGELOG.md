@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-23 — draft_summary: a reason for every suggested term; fixed headings
+
+#### Fixed
+
+- `draft_summary`, **建議的商業條件**: each point now gives its reason for the suggestion; it no longer carries a placeholder 「—— 理由。」 with no reason.
+- `draft_summary`: the four section headings are always written the same way — `**起草重點**`, `**建議的商業條件**`, `**仍需您決定的事項**`, `**主要風險與注意事項**` — where some summaries had them without bold. The format is now described under [`draft_summary` format](docs/tools.md#draft_summary-format); a future change to it will be recorded here before it is deployed. Summaries of drafts made before are unchanged.
+
 ### 2026-10-23 — job outputs kept per customer; job_id is opaque
 
 #### Changed

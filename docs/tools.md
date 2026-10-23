@@ -2010,6 +2010,19 @@ See [artifacts.md](artifacts.md), which carries the artifact vocabulary by capab
 
 ---
 
+### `draft_summary` format
+
+`draft_summary` is Markdown addressed to the client, in four sections, always in this order and always with these four heading lines, each a line of its own written exactly so (bold, no `#`):
+
+```text
+**起草重點**
+**建議的商業條件**
+**仍需您決定的事項**
+**主要風險與注意事項**
+```
+
+Under each heading, every point is one line starting with `*   ` (an asterisk and three spaces), with a blank line between points. Under **建議的商業條件**, each point names the article, the matter and the suggested value or arrangement, gives the reason for the suggestion, and ends with 「此為建議商業條件，可依您的需要調整。」; a section with nothing to list has the single point `*   無`. A 書狀 may end with a further bold **法律依據** block listing the statutes retrieved for it. A change to this format is recorded in the CHANGELOG before it is deployed.
+
 ## Uploading a document (`/upload`)
 
 `file_ref` / `file_a_ref` / `file_b_ref` are handles to a document uploaded beforehand. Uploading is a plain HTTP request to the same host, not an MCP tool call, and carries the same `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>` header.
