@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-24 — three more review types (勞動契約, 冷鏈運送, 保密協議)
+
+#### Added
+
+- `review_contract` `review_type` 勞動契約 (for 受僱人), 冷鏈運送 (for 託運人) and 保密協議 (a one-way non-disclosure agreement, for 接收方), at every level (`medium`, `high`, `large`); `get_capabilities` `review.review_types` lists all sixteen. Live 2026-10-24 03:02 UTC.
+
 ### 2026-10-23 — statute status: effective dates after promulgation
 
 #### Fixed
