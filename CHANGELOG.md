@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-24 — second-pass topic check for three more parties
+
+#### Added
+
+- `review_contract` with `review_type`: the second-pass topic check now also runs for 勞動契約 represented as 雇主, 經銷 as 供應商 and 買賣 as 出賣人; `get_capabilities` marks these parties `second_pass: true`. The other party of the remaining thirteen types is still reviewed with the first pass only. Live 2026-10-24 05:19 UTC.
+
 ### 2026-10-24 — review types: either party
 
 #### Changed

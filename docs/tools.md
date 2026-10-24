@@ -77,7 +77,7 @@ review_contract
 - The operation is asynchronous.
 - A successful submission identifies a job.
 - `model` is optional and is a level: omitted (or `medium`) is the default, unchanged — any contract type, `represented_party` as a position (甲方 / 乙方 / neutral). [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`.
-- **`high` and `large` review only the types in `get_capabilities` `review.review_types`** (on 2026-10-24: 住宅租賃 for 承租人 or 出租人, 國外團體旅遊 for 旅客 or 旅行業者, 搬家服務 for 委託搬家服務之消費者 or 搬家業者, 經銷 for 經銷商 or 供應商, 買賣 for 買受人 or 出賣人, 軟體開發委託 for 委託方 or 受託開發方, 合夥 for 非執行業務合夥人 or 執行業務合夥人, 收購意向書 for 出售股東 or 收購方, 保證 for 保證人 or 債權人, 金錢借貸 for 貸與人 or 借用人, 最高限額抵押 for 抵押人 or 抵押權人, 會計師委任 for 委任人 or 受任人, 不動產附負擔贈與 for 贈與人 or 受贈人, 勞動契約 for 受僱人 or 雇主, 冷鏈運送 for 託運人 or 運送人, 保密協議 for 接收方 or 揭露方; 保密協議 is a one-way non-disclosure agreement). Every type can be reviewed for either of its two parties, listed in `review_types[].represented_parties`. The second-pass topic check is so far available only for the first party of each type (`second_pass: true`); for the other the review is the complete first pass, and `get_job` `second_pass` says `not_available`. Topic checks for the other parties are being added. To use them send `review_type` (one of those types) and `client_instructions` (what the client wants from the review); `represented_party` must be one of the type's two parties — omitted, it is the first — and any other is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). `high` or `large` without `review_type` is refused with `INVALID_INPUT`, `context: {"field": "model", "detail": "model_not_open_for_review_type", "open_review_types": [...]}`; an unknown `review_type` with `context.field: "review_type"` and `accepted`; a missing `client_instructions` with `context.field: "client_instructions"`. Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level, nor to the general review.
+- **`high` and `large` review only the types in `get_capabilities` `review.review_types`** (on 2026-10-24: 住宅租賃 for 承租人 or 出租人, 國外團體旅遊 for 旅客 or 旅行業者, 搬家服務 for 委託搬家服務之消費者 or 搬家業者, 經銷 for 經銷商 or 供應商, 買賣 for 買受人 or 出賣人, 軟體開發委託 for 委託方 or 受託開發方, 合夥 for 非執行業務合夥人 or 執行業務合夥人, 收購意向書 for 出售股東 or 收購方, 保證 for 保證人 or 債權人, 金錢借貸 for 貸與人 or 借用人, 最高限額抵押 for 抵押人 or 抵押權人, 會計師委任 for 委任人 or 受任人, 不動產附負擔贈與 for 贈與人 or 受贈人, 勞動契約 for 受僱人 or 雇主, 冷鏈運送 for 託運人 or 運送人, 保密協議 for 接收方 or 揭露方; 保密協議 is a one-way non-disclosure agreement). Every type can be reviewed for either of its two parties, listed in `review_types[].represented_parties`. The second-pass topic check (`second_pass: true`) is available for the first party of each type and, since 2026-10-24, also for 勞動契約 for 雇主, 經銷 for 供應商 and 買賣 for 出賣人; for any other party the review is the complete first pass, and `get_job` `second_pass` says `not_available`. Topic checks for the remaining parties are being added. To use them send `review_type` (one of those types) and `client_instructions` (what the client wants from the review); `represented_party` must be one of the type's two parties — omitted, it is the first — and any other is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). `high` or `large` without `review_type` is refused with `INVALID_INPUT`, `context: {"field": "model", "detail": "model_not_open_for_review_type", "open_review_types": [...]}`; an unknown `review_type` with `context.field: "review_type"` and `accepted`; a missing `client_instructions` with `context.field: "client_instructions"`. Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level, nor to the general review.
 - `review_type` also works at `medium`: the same type-specific review on the default level. Without `review_type` a review is the general review, as before.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
 - **Deliverables of a `review_type` review:** `review_comments` (the review findings, including the additional findings), `revised_docx`, `redline`, `original`, `revised`, `memo`.
@@ -1200,7 +1200,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           },
           {
             "party": "供應商",
-            "second_pass": false
+            "second_pass": true
           }
         ]
       },
@@ -1213,7 +1213,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           },
           {
             "party": "出賣人",
-            "second_pass": false
+            "second_pass": true
           }
         ]
       },
@@ -1330,7 +1330,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           },
           {
             "party": "雇主",
-            "second_pass": false
+            "second_pass": true
           }
         ]
       },
@@ -1415,7 +1415,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
             },
             {
               "party": "供應商",
-              "second_pass": false
+              "second_pass": true
             }
           ]
         },
@@ -1428,7 +1428,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
             },
             {
               "party": "出賣人",
-              "second_pass": false
+              "second_pass": true
             }
           ]
         },
@@ -1545,7 +1545,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
             },
             {
               "party": "雇主",
-              "second_pass": false
+              "second_pass": true
             }
           ]
         },
@@ -1628,7 +1628,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
             },
             {
               "party": "供應商",
-              "second_pass": false
+              "second_pass": true
             }
           ]
         },
@@ -1641,7 +1641,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
             },
             {
               "party": "出賣人",
-              "second_pass": false
+              "second_pass": true
             }
           ]
         },
@@ -1758,7 +1758,7 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
             },
             {
               "party": "雇主",
-              "second_pass": false
+              "second_pass": true
             }
           ]
         },
