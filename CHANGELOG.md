@@ -6,6 +6,18 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-24 — review types: either party
+
+#### Changed
+
+- **`get_capabilities` `review.review_types`**: each entry is now `{"type", "represented_parties": [{"party", "second_pass"}, {"party", "second_pass"}]}` — the type's two parties, and whether each has the second-pass topic check. It replaces the single `represented_party`. Live 2026-10-24 03:13 UTC.
+- **`review_contract` with `review_type`**: `represented_party` may be either party of the type (omitted: the first). Another party is refused with `INVALID_INPUT` (`detail: "not_a_party_of_review_type"`, `accepted`) where it was `fixed_by_review_type` (`expected`).
+- The other party of each type (出租人, 旅行業者, 搬家業者, 供應商, 出賣人, 受託開發方, 執行業務合夥人, 收購方, 債權人, 借用人, 抵押權人, 受任人, 受贈人, 雇主, 運送人, 揭露方) is reviewed with the first pass only for now; its topic checks are being added, and each addition will be recorded here.
+
+#### Added
+
+- `get_job` `second_pass`: `completed`, `failed` or `not_available` on a finished review with `review_type`.
+
 ### 2026-10-24 — three more review types (勞動契約, 冷鏈運送, 保密協議)
 
 #### Added
