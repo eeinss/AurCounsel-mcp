@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — neutral at high and large
+
+#### Added
+
+- `review_contract` at `high` and `large`: `represented_party` may be neutral (`neutral`, `中立`, `both parties` …) — the contract is reviewed from both parties' neutral standpoint. Live 2026-10-25 06:28 UTC.
+
 ### 2026-10-25 — high and large review any contract
 
 #### Changed
