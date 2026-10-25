@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — one more review type (設備維護保養)
+
+#### Added
+
+- `review_contract` `review_type` 設備維護保養 (設備使用方 / 維護廠商), at every level (`medium`, `high`, `large`); `get_capabilities` `review.review_types` lists all twenty-two. Live 2026-10-25 14:27 UTC.
+
 ### 2026-10-25 — review_type guidance
 
 #### Changed
