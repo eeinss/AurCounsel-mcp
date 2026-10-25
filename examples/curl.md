@@ -105,12 +105,12 @@ get_artifact
 
 ```bash
 # NOT EXECUTED — creates a production job.
-# file_b64 is the base64 of a .docx file; file_name, file_b64 and represented_party are required.
+# file_b64 is the base64 of a .docx file; file_name, file_b64, represented_party and client_instructions are required.
 curl -sS -X POST https://mcp.clawplus.pro/mcp \
   -H "Authorization: Bearer $AURCOUNSEL_MCP_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"review_contract","arguments":{"file_name":"agreement.docx","file_b64":"<BASE64_DOCX>","requested_jurisdiction":"taiwan","represented_party":"Party A"}}}'
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"review_contract","arguments":{"file_name":"agreement.docx","file_b64":"<BASE64_DOCX>","represented_party":"甲方","client_instructions":"請從甲方的立場審閱這份契約。"}}}'
 ```
 
 ## 3b. Submit `fast_legal`

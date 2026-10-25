@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — review: one rule on every level
+
+#### Changed
+
+- `review_contract`: every level (`medium`, `high`, `large`) reviews any contract with the same parameters. `represented_party` (the party as the contract names it, or 甲方 / 乙方) and `client_instructions` are required on every level; with `review_type`, `represented_party` must be one of the type's two parties — it no longer defaults to the first. A `review_type` outside `get_capabilities` `review.review_types` is ignored at every level. `get_capabilities` `review` no longer lists `represented_party` values. Live 2026-10-25 13:27 UTC.
+
+#### Removed
+
+- `review_contract` arguments `contract_type_hint` and `requested_jurisdiction`, and the response fields `jurisdiction`, `represented_party_sent` and `contract_type_hint`. The review deliverables no longer carry internal reference markers.
+
 ### 2026-10-25 — review opinion: one issue list
 
 #### Changed

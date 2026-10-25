@@ -118,7 +118,7 @@ Required arguments, by tool:
 
 | Tool | Required arguments |
 | --- | --- |
-| `review_contract` | `file_name`, one of `file_b64` / `file_ref`, `represented_party`. Optional `model` (a level): `medium` (default, any type); `high` / `large` only with `review_type` (住宅租賃 / 國外團體旅遊 / 搬家服務 / 經銷 / 買賣 / 軟體開發委託, see `get_capabilities` `review.review_types`) and `client_instructions`, charged by usage |
+| `review_contract` | `file_name`, one of `file_b64` / `file_ref`, `represented_party`, `client_instructions`. Optional `model` (a level: `medium` default, `high` / `large` charged by usage — every level reviews any contract) and `review_type` (see `get_capabilities` `review.review_types`) |
 | `draft_contract` | `subject` and `requested_jurisdiction`; for a contract (no `doc_type`) also `contract_type` and `represented_party`. Optional `model` (a level): `medium` (default) / `high` / `large`. The contract types with minimum-content guidance are one list for every level, in `get_capabilities`; `high` and `large` draft only those (see [docs/tools.md](docs/tools.md#draft_contract)) |
 | `compare_contracts` | not open (`PERMISSION_DENIED`) |
 | `revise_contract` | not open (`PERMISSION_DENIED`) |

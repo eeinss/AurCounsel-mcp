@@ -76,11 +76,12 @@ review_contract
 
 - The operation is asynchronous.
 - A successful submission identifies a job.
-- `model` is optional and is a level: omitted (or `medium`) is the default, unchanged — any contract type, `represented_party` as a position (甲方 / 乙方). [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`.
-- **`high` and `large` review any contract.** Send `represented_party` — the party as the contract names it, or 甲方 / 乙方, used as written — and `client_instructions` (what the client wants from the review). For a contract of one of the types in `get_capabilities` `review.review_types` (住宅租賃, 國外團體旅遊, 搬家服務, 經銷, 買賣, 軟體開發委託, 合夥, 收購意向書, 保證, 金錢借貸, 最高限額抵押, 會計師委任, 不動產附負擔贈與, 勞動契約, 冷鏈運送, 保密協議, 不動產委託銷售, 資訊系統維運與代管服務, 室內裝修工程承攬, 交通事故損害賠償和解, 銷售代理・居間; 保密協議 is a one-way non-disclosure agreement) you may also send `review_type`: the contract is then reviewed as that type, for one of its two parties listed in `review_types[].represented_parties` — omitted, it is the first — and any other party is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). At `high` / `large` a `review_type` outside that list is ignored and the contract is reviewed like any other. A review is always for one party of the contract: at every level a neutral `represented_party` (`neutral`, `中立`, `雙方`, `both parties` …) is refused with `INVALID_INPUT` (`context.field: "represented_party"`, `detail: "represented_party_neutral"`, `choices` 甲方 / 乙方). A missing `represented_party` is refused with `INVALID_INPUT` (`context.field: "represented_party"`, `detail: "represented_party_missing"`), a missing `client_instructions` with `context.field: "client_instructions"` (`detail: "client_instructions_missing"`). Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
-- `review_type` also works at `medium`: the same type-specific review on the default level (with `client_instructions`); an unknown `review_type` is refused with `context.field: "review_type"` and `accepted`. Without `review_type` a `medium` review is the general review, as before.
+- **One rule on every level.** `model` is optional and is a level: omitted (or `medium`) is the default; [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`. Every level reviews any contract, with the same parameters.
+- **`represented_party` and `client_instructions` are required.** `represented_party` is the party of the contract to review for — the party as the contract names it, or 甲方 / 乙方, used as written; `client_instructions` is what the client wants from the review. A review is always for one party: a neutral `represented_party` (`neutral`, `中立`, `雙方`, `both parties` …) is refused with `INVALID_INPUT` (`context.field: "represented_party"`, `detail: "represented_party_neutral"`). A missing `represented_party` is refused with `detail: "represented_party_missing"`, a missing `client_instructions` with `context.field: "client_instructions"` (`detail: "client_instructions_missing"`).
+- **`review_type` (optional).** For a contract of one of the types in `get_capabilities` `review.review_types` (住宅租賃, 國外團體旅遊, 搬家服務, 經銷, 買賣, 軟體開發委託, 合夥, 收購意向書, 保證, 金錢借貸, 最高限額抵押, 會計師委任, 不動產附負擔贈與, 勞動契約, 冷鏈運送, 保密協議, 不動產委託銷售, 資訊系統維運與代管服務, 室內裝修工程承攬, 交通事故損害賠償和解, 銷售代理・居間; 保密協議 is a one-way non-disclosure agreement) send `review_type`: the contract is then reviewed as that type, and `represented_party` must be one of its two parties in `review_types[].represented_parties` — there is no default party — or the call is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). A `review_type` outside that list is ignored and the contract is reviewed like any other.
+- Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
-- **Deliverables of a `high` / `large` review and of a `review_type` review:** `review_comments` (the review findings), `revised_docx`, `redline`, `original`, `revised`, `memo`.
+- **Deliverables:** `review_comments` (the review opinion), `revised_docx`, `redline`, `original`, `revised`, `memo`.
 - Completed deliverables are retrieved through the artifact interface.
 - A failed job must not expose partial/generated internal artifacts as completed deliverables.
 
@@ -108,177 +109,39 @@ Submit one contract for full LegalOS review.
             checked when it was uploaded; that result is what this review uses.
         file_b64: The document, base64-encoded. .docx, .pdf and .doc are
             accepted and are identified by content, not by file name.
-        requested_jurisdiction: Governing law to review under. 'hk' is accepted
-            but LegalOS has no Hong Kong jurisdiction, so it is reviewed as
-            'other' and the response says the request was degraded. Omit to let
-            the engine detect the jurisdiction from the document.
-        represented_party: Which side of the contract to review from.
-            Required: there is no detection to fall back on, and a call without
-            it is refused with INVALID_INPUT before anything is sent.
-            A review is always for one party of the contract: neutral
-            ('neutral', '中立', 'both parties' …) is refused with INVALID_INPUT
-            at every level.
-            At medium without review_type, LegalOS works on position, so this
-            must resolve to party_a (甲方) or party_b (乙方) — 'party A' and
-            '乙方' both resolve. A role
-            such as 'supplier' or 'licensor' does not: which position holds
-            that role is a fact about this contract, and nothing here can read
-            it, so the call is refused with PARTY_CONFIRMATION_REQUIRED and you
-            are asked which position the client holds.
-            At high or large, the party as the contract names it (or 甲方 /
-            乙方), used as written. With review_type, one of that type's two
-            parties.
-        contract_type_hint: Contract type in free text, e.g. 'nda', 'lease',
-            '委任契約'. A hint only — an unrecognised value costs nothing.
+        represented_party: Required, at every level: the party of the contract to
+            review for — the party as the contract names it (e.g. 出租人, 委託人),
+            or 甲方 / 乙方 — used as written. A review is always for one party:
+            neutral ('neutral', '中立', 'both parties' …) is refused with
+            INVALID_INPUT. With review_type it must be one of that type's two
+            parties (review_types[].represented_parties). Omitted, the call is
+            refused with INVALID_INPUT before anything is sent.
         model: Optional. The review level: medium (the default), high or large.
             get_capabilities lists the levels open now
             (capabilities.review.models) and those built
             (implemented_models). A built level that is not open is refused
             with PERMISSION_DENIED before the document is read; any other value
-            with INVALID_INPUT. high and large review any contract and need
-            client_instructions. The review is never switched to another
-            level.
+            with INVALID_INPUT. Every level reviews any contract, with the same
+            parameters. The review is never switched to another level.
         review_type: Optional. One of get_capabilities review.review_types
             (住宅租賃 / 國外團體旅遊 / 搬家服務 / 經銷 / 買賣 / 軟體開發委託 /
             合夥 / 收購意向書 / 保證 / 金錢借貸 /
             最高限額抵押 / 會計師委任 / 不動產附負擔贈與 /
             勞動契約 / 冷鏈運送 / 保密協議 / 不動產委託銷售 /
             資訊系統維運與代管服務 / 室內裝修工程承攬 / 交通事故損害賠償和解 /
-            銷售代理・居間):
-            the contract is reviewed for one of
-            that type's two parties (review_types[].represented_parties).
-            represented_party must be one of the two; omitted, it is the first.
-            Needs client_instructions. contract_type_hint is not used on this
-            path. At medium any other value is refused with INVALID_INPUT; at
-            high or large it is ignored and the contract is reviewed as any
-            other contract.
-        client_instructions: The client's instructions for this review, in your
-            own words (what the client wants from it). Required with
-            review_type and at high or large.
+            銷售代理・居間): the contract is reviewed as that type, for one of
+            its two parties. Any other value is ignored and the contract is
+            reviewed like any other.
+        client_instructions: Required, at every level: the client's
+            instructions for this review, in your own words (what the client
+            wants from it). Omitted, the call is refused with INVALID_INPUT
+            before anything is sent.
     
 ```
 
 ### Exact input schema (verbatim)
 
-```json
-{
-  "properties": {
-    "file_name": {
-      "title": "File Name",
-      "type": "string"
-    },
-    "file_b64": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "File B64"
-    },
-    "file_ref": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "File Ref"
-    },
-    "requested_jurisdiction": {
-      "anyOf": [
-        {
-          "enum": [
-            "taiwan",
-            "mainland",
-            "hk",
-            "other"
-          ],
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Requested Jurisdiction"
-    },
-    "represented_party": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Represented Party"
-    },
-    "contract_type_hint": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Contract Type Hint"
-    },
-    "model": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Model"
-    },
-    "review_type": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Review Type"
-    },
-    "client_instructions": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Client Instructions"
-    }
-  },
-  "required": [
-    "file_name",
-    "represented_party"
-  ],
-  "title": "review_contractArguments",
-  "type": "object"
-}
-
-The call returned in under a second. Response body, verbatim except that the job identifier is replaced with the placeholder `<JOB_ID>`:
+The response to a submission has this shape (the job identifier replaced with `<JOB_ID>`):
 
 ```json
 {
@@ -286,41 +149,29 @@ The call returned in under a second. Response body, verbatim except that the job
   "job_id": "<JOB_ID>",
   "capability": "review",
   "status": "submitted",
-  "file_name": "synthetic_service_agreement.docx",
+  "file_name": "agreement.docx",
   "detected_kind": "docx",
-  "jurisdiction": {
-    "requested": "taiwan",
-    "sent_to_engine": "taiwan",
-    "degraded": false,
-    "degradation_reason": null,
-    "detected": null,
-    "effective": "not_available",
-    "note": "The engine may still override the requested jurisdiction from the document. That outcome is not exposed on the service interface."
-  },
   "represented_party": "甲方",
-  "represented_party_sent": "party_a",
-  "contract_type_hint": null
+  "review_type": null,
+  "model": "medium"
 }
 ```
 
-Field notes, all from this one capture:
-
 | Field | Note |
 |---|---|
-| `ok` | `true`. The MCP envelope also carried `isError: false`. |
+| `ok` | `true`. |
 | `job_id` | The handle. See the sensitivity note below. |
 | `capability` | `review` for this tool. |
 | `status` | `submitted` — the submission response reports the job's initial state directly. |
 | `file_name` | Echo of the `file_name` argument. |
-| `detected_kind` | `docx`. The type the server identified from content, not from the file name. |
-| `jurisdiction` | Echo plus disposition; `degraded` was `false` because `taiwan` is a supported value. `effective` was `not_available` at submission time. |
-| `represented_party` | Echo of the argument as sent (`甲方`). |
-| `represented_party_sent` | The resolved position the engine was given: `party_a`. The free-text argument is normalized, and the response shows both sides of that resolution. |
-| `contract_type_hint` | `null`; the argument was omitted. |
+| `detected_kind` | The type the server identified from content, not from the file name. |
+| `represented_party` | The party the review is for, as sent. |
+| `review_type` | The review type used, or `null`. |
+| `model` | The level asked for (`medium` when omitted). |
 
 > **Treat `job_id` as sensitive.** The server `instructions` call it "the only handle to that job" and say to treat it as a credential. Anyone holding it can read that job's state and request its deliverables. Do not paste a real `job_id`, or any artifact reference or URL returned alongside it, into a public issue, log, or chat.
 
-**What this capture does not establish.** `PARTY_CONFIRMATION_REQUIRED` was not triggered — the submission supplied a `represented_party` that resolves — so its response shape is still unobserved. One successful submission is also not a vocabulary: whether other fields appear on other inputs, or for `draft_contract` and `compare_contracts`, was not measured.
+**Earlier capture.** A first documentation pass captured a submission that sent `requested_jurisdiction` and received `jurisdiction`, `represented_party_sent` and `contract_type_hint` in the response; those arguments and fields are no longer part of `review_contract`.
 
 ### Invalid-request error shape
 
@@ -331,14 +182,14 @@ Two distinct layers were observed on the read-only tools and apply here as well;
 
 ### Verified example
 
-One submission was executed. The JSON-RPC envelope is the same as every other call on this page — `{"jsonrpc":"2.0","id":<n>,"method":"tools/call","params":{"name":"review_contract","arguments":{...}}}`. The `arguments` object sent was:
+A submission looks like this. The JSON-RPC envelope is the same as every other call on this page — `{"jsonrpc":"2.0","id":<n>,"method":"tools/call","params":{"name":"review_contract","arguments":{...}}}`. The `arguments` object sent was:
 
 ```json
 {
   "file_name": "synthetic_service_agreement.docx",
-  "file_b64": "<base64 of a .docx; 50072 characters in this call>",
-  "requested_jurisdiction": "taiwan",
-  "represented_party": "甲方"
+  "file_b64": "<base64 of a .docx>",
+  "represented_party": "甲方",
+  "client_instructions": "請從甲方的立場審閱這份契約。"
 }
 ```
 
@@ -1153,10 +1004,6 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
     }
   },
   "review": {
-    "represented_party": [
-      "party_a",
-      "party_b"
-    ],
     "review_types": [
       {
         "type": "住宅租賃",
