@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — review opinion: one issue list
+
+#### Changed
+
+- The review opinion (`review_comments`, `memo`) is one numbered list of issues under 「重要議題」. An issue not reflected in the revised contract ends with 「(此項未納入修訂稿,請評估是否修改。)」. Live 2026-10-25 13:19 UTC.
+
 ### 2026-10-25 — review: a represented party is required
 
 #### Changed
