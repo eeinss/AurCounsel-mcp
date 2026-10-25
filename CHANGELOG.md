@@ -6,35 +6,18 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
-### 2026-10-25 — second-pass topic check for three more parties
+### 2026-10-25 — high and large review any contract
 
-#### Added
+#### Changed
 
-- `review_contract` with `review_type`: the second-pass topic check now also runs for 軟體開發委託 represented as 受託開發方, 搬家服務 as 搬家業者 and 國外團體旅遊 as 旅行業者; `get_capabilities` marks these parties `second_pass: true`. The other party of 不動產附負擔贈與 (受贈人) and 保密協議 (揭露方) is still reviewed with the first pass only. Live 2026-10-25 05:00 UTC.
-
-### 2026-10-25 — second-pass topic check for eight more parties
-
-#### Added
-
-- `review_contract` with `review_type`: the second-pass topic check now also runs for 保證 represented as 債權人, 收購意向書 as 收購方, 住宅租賃 as 出租人, 合夥 as 執行業務合夥人, 金錢借貸 as 借用人, 最高限額抵押 as 抵押權人, 會計師委任 as 受任人 and 冷鏈運送 as 運送人; `get_capabilities` marks these parties `second_pass: true`. The other party of 國外團體旅遊, 搬家服務, 軟體開發委託, 不動產附負擔贈與 and 保密協議 is still reviewed with the first pass only. Live 2026-10-25 03:06 UTC.
-
-### 2026-10-24 — second-pass topic check for three more parties
-
-#### Added
-
-- `review_contract` with `review_type`: the second-pass topic check now also runs for 勞動契約 represented as 雇主, 經銷 as 供應商 and 買賣 as 出賣人; `get_capabilities` marks these parties `second_pass: true`. The other party of the remaining thirteen types is still reviewed with the first pass only. Live 2026-10-24 05:19 UTC.
+- `review_contract` at `high` and `large` reviews any contract type: send `represented_party` (the party as the contract names it, or 甲方 / 乙方) and `client_instructions`; `review_type` remains available for the types in `get_capabilities` `review.review_types`. Live 2026-10-25 06:07 UTC.
 
 ### 2026-10-24 — review types: either party
 
 #### Changed
 
-- **`get_capabilities` `review.review_types`**: each entry is now `{"type", "represented_parties": [{"party", "second_pass"}, {"party", "second_pass"}]}` — the type's two parties, and whether each has the second-pass topic check. It replaces the single `represented_party`. Live 2026-10-24 03:13 UTC.
+- **`get_capabilities` `review.review_types`**: each entry is now `{"type", "represented_parties": ["<party>", "<party>"]}` — the type's two parties. It replaces the single `represented_party`. Live 2026-10-24 03:13 UTC.
 - **`review_contract` with `review_type`**: `represented_party` may be either party of the type (omitted: the first). Another party is refused with `INVALID_INPUT` (`detail: "not_a_party_of_review_type"`, `accepted`) where it was `fixed_by_review_type` (`expected`).
-- The other party of each type (出租人, 旅行業者, 搬家業者, 供應商, 出賣人, 受託開發方, 執行業務合夥人, 收購方, 債權人, 借用人, 抵押權人, 受任人, 受贈人, 雇主, 運送人, 揭露方) is reviewed with the first pass only for now; its topic checks are being added, and each addition will be recorded here.
-
-#### Added
-
-- `get_job` `second_pass`: `completed`, `failed` or `not_available` on a finished review with `review_type`.
 
 ### 2026-10-24 — three more review types (勞動契約, 冷鏈運送, 保密協議)
 

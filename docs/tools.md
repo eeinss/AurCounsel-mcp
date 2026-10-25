@@ -77,10 +77,10 @@ review_contract
 - The operation is asynchronous.
 - A successful submission identifies a job.
 - `model` is optional and is a level: omitted (or `medium`) is the default, unchanged — any contract type, `represented_party` as a position (甲方 / 乙方 / neutral). [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`.
-- **`high` and `large` review only the types in `get_capabilities` `review.review_types`** (on 2026-10-24: 住宅租賃 for 承租人 or 出租人, 國外團體旅遊 for 旅客 or 旅行業者, 搬家服務 for 委託搬家服務之消費者 or 搬家業者, 經銷 for 經銷商 or 供應商, 買賣 for 買受人 or 出賣人, 軟體開發委託 for 委託方 or 受託開發方, 合夥 for 非執行業務合夥人 or 執行業務合夥人, 收購意向書 for 出售股東 or 收購方, 保證 for 保證人 or 債權人, 金錢借貸 for 貸與人 or 借用人, 最高限額抵押 for 抵押人 or 抵押權人, 會計師委任 for 委任人 or 受任人, 不動產附負擔贈與 for 贈與人 or 受贈人, 勞動契約 for 受僱人 or 雇主, 冷鏈運送 for 託運人 or 運送人, 保密協議 for 接收方 or 揭露方; 保密協議 is a one-way non-disclosure agreement). Every type can be reviewed for either of its two parties, listed in `review_types[].represented_parties`. The second-pass topic check (`second_pass: true`) is available for the first party of each type and also for the other party of 勞動契約 (雇主), 經銷 (供應商) and 買賣 (出賣人) since 2026-10-24, and of 保證 (債權人), 收購意向書 (收購方), 住宅租賃 (出租人), 合夥 (執行業務合夥人), 金錢借貸 (借用人), 最高限額抵押 (抵押權人), 會計師委任 (受任人), 冷鏈運送 (運送人), 軟體開發委託 (受託開發方), 搬家服務 (搬家業者) and 國外團體旅遊 (旅行業者) since 2026-10-25. For the other party of 不動產附負擔贈與 (受贈人) and 保密協議 (揭露方) the review is the complete first pass, and `get_job` `second_pass` says `not_available`. To use them send `review_type` (one of those types) and `client_instructions` (what the client wants from the review); `represented_party` must be one of the type's two parties — omitted, it is the first — and any other is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). `high` or `large` without `review_type` is refused with `INVALID_INPUT`, `context: {"field": "model", "detail": "model_not_open_for_review_type", "open_review_types": [...]}`; an unknown `review_type` with `context.field: "review_type"` and `accepted`; a missing `client_instructions` with `context.field: "client_instructions"`. Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level, nor to the general review.
-- `review_type` also works at `medium`: the same type-specific review on the default level. Without `review_type` a review is the general review, as before.
+- **`high` and `large` review any contract.** Send `represented_party` — the party as the contract names it, or 甲方 / 乙方, used as written — and `client_instructions` (what the client wants from the review). For a contract of one of the types in `get_capabilities` `review.review_types` (住宅租賃, 國外團體旅遊, 搬家服務, 經銷, 買賣, 軟體開發委託, 合夥, 收購意向書, 保證, 金錢借貸, 最高限額抵押, 會計師委任, 不動產附負擔贈與, 勞動契約, 冷鏈運送, 保密協議; 保密協議 is a one-way non-disclosure agreement) you may also send `review_type`: the contract is then reviewed as that type, for one of its two parties listed in `review_types[].represented_parties` — omitted, it is the first — and any other party is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). At `high` / `large` a `review_type` outside that list is ignored and the contract is reviewed like any other. A missing `represented_party` is refused with `INVALID_INPUT` (`context.field: "represented_party"`, `detail: "represented_party_missing"`), a missing `client_instructions` with `context.field: "client_instructions"` (`detail: "client_instructions_missing"`). Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
+- `review_type` also works at `medium`: the same type-specific review on the default level (with `client_instructions`); an unknown `review_type` is refused with `context.field: "review_type"` and `accepted`. Without `review_type` a `medium` review is the general review, as before.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
-- **Deliverables of a `review_type` review:** `review_comments` (the review findings, including the additional findings), `revised_docx`, `redline`, `original`, `revised`, `memo`.
+- **Deliverables of a `high` / `large` review and of a `review_type` review:** `review_comments` (the review findings), `revised_docx`, `redline`, `original`, `revised`, `memo`.
 - Completed deliverables are retrieved through the artifact interface.
 - A failed job must not expose partial/generated internal artifacts as completed deliverables.
 
@@ -112,16 +112,19 @@ Submit one contract for full LegalOS review.
             but LegalOS has no Hong Kong jurisdiction, so it is reviewed as
             'other' and the response says the request was degraded. Omit to let
             the engine detect the jurisdiction from the document.
-        represented_party: Which side of the contract to review from, in your
-            own words. LegalOS works on position, so this must resolve to one
-            of party_a (甲方), party_b (乙方) or neutral — 'party A', '乙方',
-            'both parties' and 'neutral' all resolve. A role such as
-            'supplier' or 'licensor' does not: which position holds that role
-            is a fact about this contract, and nothing here can read it, so the
-            call is refused with PARTY_CONFIRMATION_REQUIRED and you are asked
-            which position the client holds. Required: there is no detection to
-            fall back on, and a call without it is refused with INVALID_INPUT
-            before anything is sent.
+        represented_party: Which side of the contract to review from.
+            Required: there is no detection to fall back on, and a call without
+            it is refused with INVALID_INPUT before anything is sent.
+            At medium without review_type, LegalOS works on position, so this
+            must resolve to one of party_a (甲方), party_b (乙方) or neutral —
+            'party A', '乙方', 'both parties' and 'neutral' all resolve. A role
+            such as 'supplier' or 'licensor' does not: which position holds
+            that role is a fact about this contract, and nothing here can read
+            it, so the call is refused with PARTY_CONFIRMATION_REQUIRED and you
+            are asked which position the client holds.
+            At high or large without review_type, the party as the contract
+            names it (or 甲方 / 乙方), used as written.
+            With review_type, one of that type's two parties.
         contract_type_hint: Contract type in free text, e.g. 'nda', 'lease',
             '委任契約'. A hint only — an unrecognised value costs nothing.
         model: Optional. The review level: medium (the default), high or large.
@@ -129,25 +132,23 @@ Submit one contract for full LegalOS review.
             (capabilities.review.models) and those built
             (implemented_models). A built level that is not open is refused
             with PERMISSION_DENIED before the document is read; any other value
-            with INVALID_INPUT. high and large review only the types in
-            get_capabilities review.review_types, so they need review_type;
-            without it the call is refused with INVALID_INPUT (field model,
-            open_review_types lists them). The review is never switched to
-            another level.
+            with INVALID_INPUT. high and large review any contract and need
+            client_instructions. The review is never switched to another
+            level.
         review_type: Optional. One of get_capabilities review.review_types
             (住宅租賃 / 國外團體旅遊 / 搬家服務 / 經銷 / 買賣 / 軟體開發委託 /
             合夥 / 收購意向書 / 保證 / 金錢借貸 /
             最高限額抵押 / 會計師委任 / 不動產附負擔贈與 /
             勞動契約 / 冷鏈運送 / 保密協議): the contract is reviewed for one of
-            that type's two parties (review_types[].represented_parties), with
-            the type's own review steps. represented_party must be one of the
-            two; omitted, it is the first (the party with the second-pass topic
-            check). A party whose second_pass is false gets the first pass only
-            for now — get_job second_pass then says not_available. Needs
-            client_instructions. contract_type_hint is not used on this path.
+            that type's two parties (review_types[].represented_parties).
+            represented_party must be one of the two; omitted, it is the first.
+            Needs client_instructions. contract_type_hint is not used on this
+            path. At medium any other value is refused with INVALID_INPUT; at
+            high or large it is ignored and the contract is reviewed as any
+            other contract.
         client_instructions: The client's instructions for this review, in your
             own words (what the client wants from it). Required with
-            review_type.
+            review_type and at high or large.
     
 ```
 
@@ -1155,209 +1156,113 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
       {
         "type": "住宅租賃",
         "represented_parties": [
-          {
-            "party": "承租人",
-            "second_pass": true
-          },
-          {
-            "party": "出租人",
-            "second_pass": true
-          }
+          "承租人",
+          "出租人"
         ]
       },
       {
         "type": "國外團體旅遊",
         "represented_parties": [
-          {
-            "party": "旅客",
-            "second_pass": true
-          },
-          {
-            "party": "旅行業者",
-            "second_pass": true
-          }
+          "旅客",
+          "旅行業者"
         ]
       },
       {
         "type": "搬家服務",
         "represented_parties": [
-          {
-            "party": "委託搬家服務之消費者",
-            "second_pass": true
-          },
-          {
-            "party": "搬家業者",
-            "second_pass": true
-          }
+          "委託搬家服務之消費者",
+          "搬家業者"
         ]
       },
       {
         "type": "經銷",
         "represented_parties": [
-          {
-            "party": "經銷商",
-            "second_pass": true
-          },
-          {
-            "party": "供應商",
-            "second_pass": true
-          }
+          "經銷商",
+          "供應商"
         ]
       },
       {
         "type": "買賣",
         "represented_parties": [
-          {
-            "party": "買受人",
-            "second_pass": true
-          },
-          {
-            "party": "出賣人",
-            "second_pass": true
-          }
+          "買受人",
+          "出賣人"
         ]
       },
       {
         "type": "軟體開發委託",
         "represented_parties": [
-          {
-            "party": "委託方",
-            "second_pass": true
-          },
-          {
-            "party": "受託開發方",
-            "second_pass": true
-          }
+          "委託方",
+          "受託開發方"
         ]
       },
       {
         "type": "合夥",
         "represented_parties": [
-          {
-            "party": "非執行業務合夥人",
-            "second_pass": true
-          },
-          {
-            "party": "執行業務合夥人",
-            "second_pass": true
-          }
+          "非執行業務合夥人",
+          "執行業務合夥人"
         ]
       },
       {
         "type": "收購意向書",
         "represented_parties": [
-          {
-            "party": "出售股東",
-            "second_pass": true
-          },
-          {
-            "party": "收購方",
-            "second_pass": true
-          }
+          "出售股東",
+          "收購方"
         ]
       },
       {
         "type": "保證",
         "represented_parties": [
-          {
-            "party": "保證人",
-            "second_pass": true
-          },
-          {
-            "party": "債權人",
-            "second_pass": true
-          }
+          "保證人",
+          "債權人"
         ]
       },
       {
         "type": "金錢借貸",
         "represented_parties": [
-          {
-            "party": "貸與人",
-            "second_pass": true
-          },
-          {
-            "party": "借用人",
-            "second_pass": true
-          }
+          "貸與人",
+          "借用人"
         ]
       },
       {
         "type": "最高限額抵押",
         "represented_parties": [
-          {
-            "party": "抵押人",
-            "second_pass": true
-          },
-          {
-            "party": "抵押權人",
-            "second_pass": true
-          }
+          "抵押人",
+          "抵押權人"
         ]
       },
       {
         "type": "會計師委任",
         "represented_parties": [
-          {
-            "party": "委任人",
-            "second_pass": true
-          },
-          {
-            "party": "受任人",
-            "second_pass": true
-          }
+          "委任人",
+          "受任人"
         ]
       },
       {
         "type": "不動產附負擔贈與",
         "represented_parties": [
-          {
-            "party": "贈與人",
-            "second_pass": true
-          },
-          {
-            "party": "受贈人",
-            "second_pass": false
-          }
+          "贈與人",
+          "受贈人"
         ]
       },
       {
         "type": "勞動契約",
         "represented_parties": [
-          {
-            "party": "受僱人",
-            "second_pass": true
-          },
-          {
-            "party": "雇主",
-            "second_pass": true
-          }
+          "受僱人",
+          "雇主"
         ]
       },
       {
         "type": "冷鏈運送",
         "represented_parties": [
-          {
-            "party": "託運人",
-            "second_pass": true
-          },
-          {
-            "party": "運送人",
-            "second_pass": true
-          }
+          "託運人",
+          "運送人"
         ]
       },
       {
         "type": "保密協議",
         "represented_parties": [
-          {
-            "party": "接收方",
-            "second_pass": true
-          },
-          {
-            "party": "揭露方",
-            "second_pass": false
-          }
+          "接收方",
+          "揭露方"
         ]
       }
     ],
@@ -1370,209 +1275,113 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
         {
           "type": "住宅租賃",
           "represented_parties": [
-            {
-              "party": "承租人",
-              "second_pass": true
-            },
-            {
-              "party": "出租人",
-              "second_pass": true
-            }
+            "承租人",
+            "出租人"
           ]
         },
         {
           "type": "國外團體旅遊",
           "represented_parties": [
-            {
-              "party": "旅客",
-              "second_pass": true
-            },
-            {
-              "party": "旅行業者",
-              "second_pass": true
-            }
+            "旅客",
+            "旅行業者"
           ]
         },
         {
           "type": "搬家服務",
           "represented_parties": [
-            {
-              "party": "委託搬家服務之消費者",
-              "second_pass": true
-            },
-            {
-              "party": "搬家業者",
-              "second_pass": true
-            }
+            "委託搬家服務之消費者",
+            "搬家業者"
           ]
         },
         {
           "type": "經銷",
           "represented_parties": [
-            {
-              "party": "經銷商",
-              "second_pass": true
-            },
-            {
-              "party": "供應商",
-              "second_pass": true
-            }
+            "經銷商",
+            "供應商"
           ]
         },
         {
           "type": "買賣",
           "represented_parties": [
-            {
-              "party": "買受人",
-              "second_pass": true
-            },
-            {
-              "party": "出賣人",
-              "second_pass": true
-            }
+            "買受人",
+            "出賣人"
           ]
         },
         {
           "type": "軟體開發委託",
           "represented_parties": [
-            {
-              "party": "委託方",
-              "second_pass": true
-            },
-            {
-              "party": "受託開發方",
-              "second_pass": true
-            }
+            "委託方",
+            "受託開發方"
           ]
         },
         {
           "type": "合夥",
           "represented_parties": [
-            {
-              "party": "非執行業務合夥人",
-              "second_pass": true
-            },
-            {
-              "party": "執行業務合夥人",
-              "second_pass": true
-            }
+            "非執行業務合夥人",
+            "執行業務合夥人"
           ]
         },
         {
           "type": "收購意向書",
           "represented_parties": [
-            {
-              "party": "出售股東",
-              "second_pass": true
-            },
-            {
-              "party": "收購方",
-              "second_pass": true
-            }
+            "出售股東",
+            "收購方"
           ]
         },
         {
           "type": "保證",
           "represented_parties": [
-            {
-              "party": "保證人",
-              "second_pass": true
-            },
-            {
-              "party": "債權人",
-              "second_pass": true
-            }
+            "保證人",
+            "債權人"
           ]
         },
         {
           "type": "金錢借貸",
           "represented_parties": [
-            {
-              "party": "貸與人",
-              "second_pass": true
-            },
-            {
-              "party": "借用人",
-              "second_pass": true
-            }
+            "貸與人",
+            "借用人"
           ]
         },
         {
           "type": "最高限額抵押",
           "represented_parties": [
-            {
-              "party": "抵押人",
-              "second_pass": true
-            },
-            {
-              "party": "抵押權人",
-              "second_pass": true
-            }
+            "抵押人",
+            "抵押權人"
           ]
         },
         {
           "type": "會計師委任",
           "represented_parties": [
-            {
-              "party": "委任人",
-              "second_pass": true
-            },
-            {
-              "party": "受任人",
-              "second_pass": true
-            }
+            "委任人",
+            "受任人"
           ]
         },
         {
           "type": "不動產附負擔贈與",
           "represented_parties": [
-            {
-              "party": "贈與人",
-              "second_pass": true
-            },
-            {
-              "party": "受贈人",
-              "second_pass": false
-            }
+            "贈與人",
+            "受贈人"
           ]
         },
         {
           "type": "勞動契約",
           "represented_parties": [
-            {
-              "party": "受僱人",
-              "second_pass": true
-            },
-            {
-              "party": "雇主",
-              "second_pass": true
-            }
+            "受僱人",
+            "雇主"
           ]
         },
         {
           "type": "冷鏈運送",
           "represented_parties": [
-            {
-              "party": "託運人",
-              "second_pass": true
-            },
-            {
-              "party": "運送人",
-              "second_pass": true
-            }
+            "託運人",
+            "運送人"
           ]
         },
         {
           "type": "保密協議",
           "represented_parties": [
-            {
-              "party": "接收方",
-              "second_pass": true
-            },
-            {
-              "party": "揭露方",
-              "second_pass": false
-            }
+            "接收方",
+            "揭露方"
           ]
         }
       ]
@@ -1583,209 +1392,113 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
         {
           "type": "住宅租賃",
           "represented_parties": [
-            {
-              "party": "承租人",
-              "second_pass": true
-            },
-            {
-              "party": "出租人",
-              "second_pass": true
-            }
+            "承租人",
+            "出租人"
           ]
         },
         {
           "type": "國外團體旅遊",
           "represented_parties": [
-            {
-              "party": "旅客",
-              "second_pass": true
-            },
-            {
-              "party": "旅行業者",
-              "second_pass": true
-            }
+            "旅客",
+            "旅行業者"
           ]
         },
         {
           "type": "搬家服務",
           "represented_parties": [
-            {
-              "party": "委託搬家服務之消費者",
-              "second_pass": true
-            },
-            {
-              "party": "搬家業者",
-              "second_pass": true
-            }
+            "委託搬家服務之消費者",
+            "搬家業者"
           ]
         },
         {
           "type": "經銷",
           "represented_parties": [
-            {
-              "party": "經銷商",
-              "second_pass": true
-            },
-            {
-              "party": "供應商",
-              "second_pass": true
-            }
+            "經銷商",
+            "供應商"
           ]
         },
         {
           "type": "買賣",
           "represented_parties": [
-            {
-              "party": "買受人",
-              "second_pass": true
-            },
-            {
-              "party": "出賣人",
-              "second_pass": true
-            }
+            "買受人",
+            "出賣人"
           ]
         },
         {
           "type": "軟體開發委託",
           "represented_parties": [
-            {
-              "party": "委託方",
-              "second_pass": true
-            },
-            {
-              "party": "受託開發方",
-              "second_pass": true
-            }
+            "委託方",
+            "受託開發方"
           ]
         },
         {
           "type": "合夥",
           "represented_parties": [
-            {
-              "party": "非執行業務合夥人",
-              "second_pass": true
-            },
-            {
-              "party": "執行業務合夥人",
-              "second_pass": true
-            }
+            "非執行業務合夥人",
+            "執行業務合夥人"
           ]
         },
         {
           "type": "收購意向書",
           "represented_parties": [
-            {
-              "party": "出售股東",
-              "second_pass": true
-            },
-            {
-              "party": "收購方",
-              "second_pass": true
-            }
+            "出售股東",
+            "收購方"
           ]
         },
         {
           "type": "保證",
           "represented_parties": [
-            {
-              "party": "保證人",
-              "second_pass": true
-            },
-            {
-              "party": "債權人",
-              "second_pass": true
-            }
+            "保證人",
+            "債權人"
           ]
         },
         {
           "type": "金錢借貸",
           "represented_parties": [
-            {
-              "party": "貸與人",
-              "second_pass": true
-            },
-            {
-              "party": "借用人",
-              "second_pass": true
-            }
+            "貸與人",
+            "借用人"
           ]
         },
         {
           "type": "最高限額抵押",
           "represented_parties": [
-            {
-              "party": "抵押人",
-              "second_pass": true
-            },
-            {
-              "party": "抵押權人",
-              "second_pass": true
-            }
+            "抵押人",
+            "抵押權人"
           ]
         },
         {
           "type": "會計師委任",
           "represented_parties": [
-            {
-              "party": "委任人",
-              "second_pass": true
-            },
-            {
-              "party": "受任人",
-              "second_pass": true
-            }
+            "委任人",
+            "受任人"
           ]
         },
         {
           "type": "不動產附負擔贈與",
           "represented_parties": [
-            {
-              "party": "贈與人",
-              "second_pass": true
-            },
-            {
-              "party": "受贈人",
-              "second_pass": false
-            }
+            "贈與人",
+            "受贈人"
           ]
         },
         {
           "type": "勞動契約",
           "represented_parties": [
-            {
-              "party": "受僱人",
-              "second_pass": true
-            },
-            {
-              "party": "雇主",
-              "second_pass": true
-            }
+            "受僱人",
+            "雇主"
           ]
         },
         {
           "type": "冷鏈運送",
           "represented_parties": [
-            {
-              "party": "託運人",
-              "second_pass": true
-            },
-            {
-              "party": "運送人",
-              "second_pass": true
-            }
+            "託運人",
+            "運送人"
           ]
         },
         {
           "type": "保密協議",
           "represented_parties": [
-            {
-              "party": "接收方",
-              "second_pass": true
-            },
-            {
-              "party": "揭露方",
-              "second_pass": false
-            }
+            "接收方",
+            "揭露方"
           ]
         }
       ]
@@ -2051,7 +1764,6 @@ The tool returns `isError: false` and a single text content block containing thi
 | `revision.not_applied` | integer | How many requested changes were not applied. Observed: `0`. |
 | `revision.reason` | string \| null | Why the revision was not applied; `null` when it was. |
 | `note_check` | object \| null | Finished drafts. `{checked, corrected, removed}`: how many statute article citations in `draft_summary` were checked against the article text, how many were changed to the article that says what the sentence says, and how many article numbers were removed because they could not be confirmed (the law name stays). `null` for other capabilities and for drafts from before the check existed. |
-| `second_pass` | string \| null | Finished reviews with `review_type`: `completed` (the second-pass topic check ran, with or without supplemental findings), `failed` (it did not complete; the first-pass review is delivered) or `not_available` (the represented party has no topic check yet, so the review is the complete first pass — not a failure). `null` otherwise. |
 | `artifacts` | array | See below. Never empty without `artifacts_blocked`. |
 | `artifacts_blocked` | object \| null | Present when no artifact address could be built. Observed `null` in both captures. |
 | `failure` | object \| null | Present when `status` is `failed`. Observed: `{"error_code": "JOB_FAILED"}`. |
