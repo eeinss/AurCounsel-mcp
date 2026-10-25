@@ -77,7 +77,7 @@ review_contract
 - The operation is asynchronous.
 - A successful submission identifies a job.
 - `model` is optional and is a level: omitted (or `medium`) is the default, unchanged — any contract type, `represented_party` as a position (甲方 / 乙方 / neutral). [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`.
-- **`high` and `large` review any contract.** Send `represented_party` — the party as the contract names it, or 甲方 / 乙方, used as written, or neutral (`neutral`, `中立`, `both parties` …) for a review from both parties' neutral standpoint (as any contract, without `review_type`) — and `client_instructions` (what the client wants from the review). For a contract of one of the types in `get_capabilities` `review.review_types` (住宅租賃, 國外團體旅遊, 搬家服務, 經銷, 買賣, 軟體開發委託, 合夥, 收購意向書, 保證, 金錢借貸, 最高限額抵押, 會計師委任, 不動產附負擔贈與, 勞動契約, 冷鏈運送, 保密協議, 不動產委託銷售, 資訊系統維運與代管服務, 室內裝修工程承攬, 交通事故損害賠償和解; 保密協議 is a one-way non-disclosure agreement) you may also send `review_type`: the contract is then reviewed as that type, for one of its two parties listed in `review_types[].represented_parties` — omitted, it is the first — and any other party is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). At `high` / `large` a `review_type` outside that list is ignored and the contract is reviewed like any other. A missing `represented_party` is refused with `INVALID_INPUT` (`context.field: "represented_party"`, `detail: "represented_party_missing"`), a missing `client_instructions` with `context.field: "client_instructions"` (`detail: "client_instructions_missing"`). Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
+- **`high` and `large` review any contract.** Send `represented_party` — the party as the contract names it, or 甲方 / 乙方, used as written, or neutral (`neutral`, `中立`, `both parties` …) for a review from both parties' neutral standpoint (as any contract, without `review_type`) — and `client_instructions` (what the client wants from the review). For a contract of one of the types in `get_capabilities` `review.review_types` (住宅租賃, 國外團體旅遊, 搬家服務, 經銷, 買賣, 軟體開發委託, 合夥, 收購意向書, 保證, 金錢借貸, 最高限額抵押, 會計師委任, 不動產附負擔贈與, 勞動契約, 冷鏈運送, 保密協議, 不動產委託銷售, 資訊系統維運與代管服務, 室內裝修工程承攬, 交通事故損害賠償和解, 銷售代理・居間; 保密協議 is a one-way non-disclosure agreement) you may also send `review_type`: the contract is then reviewed as that type, for one of its two parties listed in `review_types[].represented_parties` — omitted, it is the first — and any other party is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). At `high` / `large` a `review_type` outside that list is ignored and the contract is reviewed like any other. A missing `represented_party` is refused with `INVALID_INPUT` (`context.field: "represented_party"`, `detail: "represented_party_missing"`), a missing `client_instructions` with `context.field: "client_instructions"` (`detail: "client_instructions_missing"`). Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
 - `review_type` also works at `medium`: the same type-specific review on the default level (with `client_instructions`); an unknown `review_type` is refused with `context.field: "review_type"` and `accepted`. Without `review_type` a `medium` review is the general review, as before.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
 - **Deliverables of a `high` / `large` review and of a `review_type` review:** `review_comments` (the review findings), `revised_docx`, `redline`, `original`, `revised`, `memo`.
@@ -142,7 +142,8 @@ Submit one contract for full LegalOS review.
             合夥 / 收購意向書 / 保證 / 金錢借貸 /
             最高限額抵押 / 會計師委任 / 不動產附負擔贈與 /
             勞動契約 / 冷鏈運送 / 保密協議 / 不動產委託銷售 /
-            資訊系統維運與代管服務 / 室內裝修工程承攬 / 交通事故損害賠償和解):
+            資訊系統維運與代管服務 / 室內裝修工程承攬 / 交通事故損害賠償和解 /
+            銷售代理・居間):
             the contract is reviewed for one of
             that type's two parties (review_types[].represented_parties).
             represented_party must be one of the two; omitted, it is the first.
@@ -1296,6 +1297,13 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "受害人",
           "加害人"
         ]
+      },
+      {
+        "type": "銷售代理・居間",
+        "represented_parties": [
+          "委託方",
+          "代理商"
+        ]
       }
     ],
     "medium": {
@@ -1443,6 +1451,13 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
             "受害人",
             "加害人"
           ]
+        },
+        {
+          "type": "銷售代理・居間",
+          "represented_parties": [
+            "委託方",
+            "代理商"
+          ]
         }
       ]
     },
@@ -1587,6 +1602,13 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "represented_parties": [
             "受害人",
             "加害人"
+          ]
+        },
+        {
+          "type": "銷售代理・居間",
+          "represented_parties": [
+            "委託方",
+            "代理商"
           ]
         }
       ]

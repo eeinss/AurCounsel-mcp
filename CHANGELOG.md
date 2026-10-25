@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — one more review type (銷售代理・居間)
+
+#### Added
+
+- `review_contract` `review_type` 銷售代理・居間 (委託方 / 代理商), at every level (`medium`, `high`, `large`); `get_capabilities` `review.review_types` lists all twenty-one. Live 2026-10-25 11:04 UTC.
+
 ### 2026-10-25 — four more review types
 
 #### Added
