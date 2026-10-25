@@ -143,7 +143,7 @@ Choose one operation. For example, a contract review:
 review_contract(file_name, file_b64, represented_party, [requested_jurisdiction], [contract_type_hint])
 ```
 
-`file_name`, `file_b64` and `represented_party` are required; `file_b64` is the base64 of a `.docx`, and `represented_party` says which party AurCounsel represents (甲方 / party A, 乙方 / party B, or neutral). A call without `represented_party` is refused with `INVALID_INPUT` before anything is sent. The full schema for each submission tool is in [tools.md](tools.md).
+`file_name`, `file_b64` and `represented_party` are required; `file_b64` is the base64 of a `.docx`, and `represented_party` says which party of the contract AurCounsel represents (甲方 / party A or 乙方 / party B; neutral is refused). A call without `represented_party` is refused with `INVALID_INPUT` before anything is sent. The full schema for each submission tool is in [tools.md](tools.md).
 
 On the wire, that submission is:
 

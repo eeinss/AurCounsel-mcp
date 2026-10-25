@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — review: a represented party is required
+
+#### Changed
+
+- `review_contract` no longer accepts a neutral `represented_party` (`neutral`, `中立`, `雙方`, `both parties` …) at any level (`medium`, `high`, `large`): a review is always for one party of the contract. Such a call is refused with `INVALID_INPUT` (`context.field: "represented_party"`, `detail: "represented_party_neutral"`, `choices` 甲方 / 乙方) before anything is sent; no job is created. `get_capabilities` `review.represented_party` is now `["party_a", "party_b"]`. `draft_contract` is unchanged (neutral still drafts for both sides in balance). Live 2026-10-25 11:31 UTC.
+
+#### Removed
+
+- The neutral review at `high` and `large` (added earlier today).
+
 ### 2026-10-25 — one more review type (銷售代理・居間)
 
 #### Added
