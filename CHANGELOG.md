@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — four more review types
+
+#### Added
+
+- `review_contract` `review_type` 不動產委託銷售 (委託人 / 不動產經紀業者), 資訊系統維運與代管服務 (服務使用方 / 服務提供方), 室內裝修工程承攬 (定作人 / 承攬人) and 交通事故損害賠償和解 (受害人 / 加害人), at every level (`medium`, `high`, `large`); `get_capabilities` `review.review_types` lists all twenty. Live 2026-10-25 10:31 UTC.
+
 ### 2026-10-25 — neutral at high and large
 
 #### Added
