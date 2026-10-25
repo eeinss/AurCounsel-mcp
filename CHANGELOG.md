@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — review_type guidance
+
+#### Changed
+
+- `review_contract` description: when the contract is one of the listed types (judged by its content, not only its title), send `review_type` with one of that type's two parties as `represented_party`; otherwise do not send it. Live 2026-10-25 13:37 UTC.
+
 ### 2026-10-25 — review: one rule on every level
 
 #### Changed
