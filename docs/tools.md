@@ -141,6 +141,98 @@ Submit one contract for full LegalOS review.
 
 ### Exact input schema (verbatim)
 
+```json
+{
+  "properties": {
+    "file_name": {
+      "title": "File Name",
+      "type": "string"
+    },
+    "file_b64": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File B64"
+    },
+    "file_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File Ref"
+    },
+    "represented_party": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Represented Party"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "review_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Review Type"
+    },
+    "client_instructions": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Client Instructions"
+    }
+  },
+  "required": [
+    "file_name",
+    "represented_party",
+    "client_instructions"
+  ],
+  "title": "review_contractArguments",
+  "type": "object"
+}
+```
+
+### Success response shape
+
 The response to a submission has this shape (the job identifier replaced with `<JOB_ID>`):
 
 ```json
