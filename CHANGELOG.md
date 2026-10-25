@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-25 — second-pass topic check for eight more parties
+
+#### Added
+
+- `review_contract` with `review_type`: the second-pass topic check now also runs for 保證 represented as 債權人, 收購意向書 as 收購方, 住宅租賃 as 出租人, 合夥 as 執行業務合夥人, 金錢借貸 as 借用人, 最高限額抵押 as 抵押權人, 會計師委任 as 受任人 and 冷鏈運送 as 運送人; `get_capabilities` marks these parties `second_pass: true`. The other party of 國外團體旅遊, 搬家服務, 軟體開發委託, 不動產附負擔贈與 and 保密協議 is still reviewed with the first pass only. Live 2026-10-25 03:06 UTC.
+
 ### 2026-10-24 — second-pass topic check for three more parties
 
 #### Added
