@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-26 — `search_judgments`: case category, decision kind and year; court filter result
+
+#### Added
+
+- `search_judgments` results carry `case_category` (民事 / 刑事 / 行政), `decision_kind` (判決 / 裁定) and `decision_year` (ROC year), each `null` when it cannot be read; with `court`, the answer carries `court_filter` (`requested`, `matched`, `searched`, and a `note` when nothing matched). Existing fields unchanged. Live 2026-10-26 05:34 UTC.
+
 ### 2026-10-26 — `search_rulings`
 
 #### Added

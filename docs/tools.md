@@ -2956,16 +2956,30 @@ Search statute articles by relevance. An act and an article number (民法184, �
 
 Returns `results`: `court`, `case_number`, `title`, `decision_date`, `passage` (the matching passage, with the source's section labels in brackets), `passage_at` (for `read_judgment` `around`), `roles` (those labels: 「理由，推定為法院判斷」 is the court's reasoning; 「未確認為法院判斷」 may be a party's argument), `doc_id`, `url`, `score`. `court` keeps only that court's judgments.
 
+Each result also carries three fields read from the judgment itself — never guessed, `null` when they cannot be read:
+
+| Field | Meaning |
+|---|---|
+| `case_category` | 民事 / 刑事 / 行政, from the court code that begins `doc_id`. |
+| `decision_kind` | 判決 / 裁定, from `title`. |
+| `decision_year` | The ROC year (an integer), from `case_number` (「112年度…」 ⇒ `112`). |
+
+**`court` filters the search's top results.** The search returns its closest judgments first and `court` keeps those of that court, so a long query whose closest judgments come from other courts can leave none. With `court`, the answer carries `court_filter`: `requested`, `matched` (how many were of that court), `searched` (how many were searched) and, when `matched` is 0, `note` — 「前 N 筆結果中沒有該法院的判決;可縮短或改寫查詢再試」. A 0 there means the filter found none among those results, not that the court has no such judgment; shorten or reword the query and try again.
+
 ### Live description (verbatim)
 
 ```text
 Search court judgments for how courts decide a point. Each result: the court, the case number, the decision date, the matching
     passage, its position (passage_at, for read_judgment's around) and the doc_id. roles lists the section labels the source puts on the
-    passage — 「理由，推定為法院判斷」 is the court's own reasoning; 「未確認為法院判斷」 may be a party's argument. Synchronous: no job, no charge.
+    passage — 「理由，推定為法院判斷」 is the court's own reasoning; 「未確認為法院判斷」 may be a party's argument. Each result also gives
+    case_category (民事 / 刑事 / 行政, from the doc_id's court code), decision_kind (判決 / 裁定, from the title) and decision_year (the
+    ROC year, from the case number) — each null when it cannot be read from the judgment. Synchronous: no job, no charge.
 
     Args:
         query: How a court's reasoning would put it, e.g. 共同正犯在合同意思範圍內; at most 120 characters.
-        court: Only judgments of this court, e.g. 最高法院 (matched within the court's name).
+        court: Only judgments of this court, e.g. 最高法院 (matched within the court's name). It filters the search's top results
+            (at most 20 fetched), so a long query whose top results come from other courts can leave none; court_filter then says
+            how many were searched and matched — shorten or reword the query and try again.
         top_k: How many results, 1–20 (default 5).
 
     Errors: INVALID_ARGUMENT (an empty or over-long query, a bad top_k), RETRIEVAL_FAILED (the source failed). No match is an empty list.
