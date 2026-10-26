@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-26 — drafting: every level
+
+#### Changed
+
+- `draft_contract`: `high` and `large` draft any contract for one party (甲方 / 乙方) under Taiwan law; a court or lawyer's document, a neutral draft or another jurisdiction at those levels is refused with `INVALID_INPUT` (`detail: "level_drafts_contracts_for_one_party"`, was `model_not_open_for_contract_type`). `medium` is unchanged. `get_capabilities` no longer lists `draft.<level>.contract_types`. Live 2026-10-26 18:00 UTC.
+
 ### 2026-10-26 — `search_judgments` filters
 
 #### Added

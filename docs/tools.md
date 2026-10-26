@@ -352,9 +352,9 @@ Draft a new contract or legal document with LegalOS.
             Pass it only when the user has said which side they represent; do
             not infer it from the same kind of clues, ask the user instead.
         model: Optional. The drafting level: medium (the default; free), high or large.
-            省略 model 時為 medium(擬約預設);經銷、買賣及軟體開發委託契約另套用該契約類型的最低必要事項指引。
-            high、large 只開放已驗證的契約類型(台灣、代表一方),各自開放的類型以 get_capabilities 的 draft.high / draft.large 的
-            contract_types 為準;其他類型指定該等級會被拒絕(INVALID_INPUT,context.field model),不會改用其他等級。
+            省略 model 時為 medium(擬約預設),可擬合約與書狀、函件等文件。
+            high、large 可擬任何合約(代表甲方或乙方、依中華民國法律);書狀、函件等文件、中立立場或其他法域請用 medium,
+            指定 high / large 會被拒絕(INVALID_INPUT,context.field model),不會改用其他等級。
             A level that is built but not open now (in get_capabilities implemented_models, not in models) is refused with
             PERMISSION_DENIED; any other value with INVALID_INPUT. A request is never switched to another level.
 
@@ -367,7 +367,7 @@ Draft a new contract or legal document with LegalOS.
                            special='分三期付款;系統上線後提供三個月保固。',
                            requested_jurisdiction='taiwan', represented_party='party_a')
 
-        2. large, for a contract type open at that level (get_capabilities draft.large.contract_types):
+        2. large (a contract for one party, Taiwan):
             draft_contract(subject='住家室內裝修工程', contract_type='室內裝修工程承攬契約',
                            party_a='王小明', party_b='乙川室內裝修有限公司',
                            amount='新臺幣八十萬元(含稅)', term='自開工日起六十日',
@@ -527,9 +527,8 @@ Draft a new contract or legal document with LegalOS.
 
 `model` is optional and is a level: `medium` (the default), `high` or `large`. `get_capabilities` lists the levels open now under `capabilities.draft.models` (on 2026-10-20: `medium`, `high`, `large`) and the levels built under `implemented_models`. A built level that is not open is refused with `PERMISSION_DENIED`, `context: {"capability": "draft", "model": ...}`, with no job created; any other value with `INVALID_INPUT`.
 
-- **Contract types with minimum-content guidance:** one list for every open level — [`get_capabilities`](#get_capabilities) `draft.<level>.contract_types` is the same for each (on 2026-10-20: 室內裝修工程承攬, interior fit-out works; 僱傭, employment under the Labor Standards Act; 金錢借貸, money loan; 冷藏食品配送運送, refrigerated food delivery carriage; 會計師委任, engagement of a CPA; 資訊系統維運與代管服務, IT operations and hosting services; 交通事故損害賠償和解, settlement of traffic-accident damages; 不動產附負擔贈與, gift of real property subject to a burden; 設備維護保養, equipment maintenance; 不動產委託銷售, an owner's brokerage listing of real property; 合資(共同設立股份有限公司), a joint venture forming a company limited by shares; 醫療軟體開發委託, custom software development in a medical setting; 銷售代理・居間(招攬客戶), a sales agency or brokerage soliciting customers for the principal; 經銷, distribution; 動產買賣(採購 / 供貨), sale, purchase and supply of goods; 軟體開發委託, commissioned software development; Taiwan law, a represented side). Whichever open level is chosen, a contract of such a type is drafted with that type's guidance.
-- **Omitted / `medium`:** the drafting default. Other contract types take the general drafting path.
-- **`high`, `large`:** **only** the listed contract types. With any other contract type, document type or jurisdiction the submission is refused and no job is created: `ok: false`, `error_code: "INVALID_INPUT"`, `context: {"field": "model", "submitted": ..., "detail": "model_not_open_for_contract_type"}`. It is **never switched to another level**; to draft that type, omit `model`.
+- **Omitted / `medium`:** the drafting default — any contract or document.
+- **`high`, `large`:** any contract for one party (`represented_party` 甲方 / 乙方) under Taiwan law (`requested_jurisdiction: "taiwan"`). A court or lawyer's document, a neutral draft or another jurisdiction is refused and no job is created: `ok: false`, `error_code: "INVALID_INPUT"`, `context: {"field": "model", "submitted": ..., "detail": "level_drafts_contracts_for_one_party"}`. It is **never switched to another level**; to draft it, omit `model`.
 
 ### Success response shape and `job_id` path
 
@@ -812,7 +811,7 @@ Apply a requested change to one contract and produce the revised document.
 
 Read what this deployment offers right now. Read-only: it creates no job and calls no model. Everything it returns is read from the service's own capability table at call time — the same table that opens or closes a tool.
 
-### Response (live, 2026-10-22)
+### Response (live, 2026-10-26)
 
 ```json
 {
@@ -829,179 +828,10 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
       "neutral"
     ],
     "medium": {
-      "enabled": true,
-      "contract_types": [
-        {
-          "type": "fitout",
-          "name": "室內裝修工程承攬",
-          "scope": "室內裝修工程承攬契約(既有建物,代表定作人):LS-08 Floor 驗證範圍"
-        },
-        {
-          "type": "employment",
-          "name": "僱傭(勞動契約)",
-          "scope": "勞動基準法適用之僱傭契約(不定期・全職,代表雇主):LS-01 Floor 驗證範圍"
-        },
-        {
-          "type": "loan",
-          "name": "金錢借貸",
-          "scope": "金錢消費借貸契約(個人貸與公司・附息・定期,代表貸與人):LS-13 Floor 驗證範圍"
-        },
-        {
-          "type": "carriage_cold",
-          "name": "冷藏食品配送運送",
-          "scope": "企業間冷藏食品之長期配送運送契約(公路汽車運輸,代表託運人):LS-06 Floor 驗證範圍"
-        },
-        {
-          "type": "mandate",
-          "name": "會計師委任",
-          "scope": "企業委任會計師或會計師事務所提供查核簽證、稅務申報等專業服務之委任契約(代表委任人):LS-09 Floor 驗證範圍"
-        },
-        {
-          "type": "service",
-          "name": "資訊系統維運與代管服務",
-          "scope": "企業間雲端代管、系統維運與技術支援等持續性服務契約(得併含客製開發,代表服務使用方):LS-15 Floor 驗證範圍"
-        },
-        {
-          "type": "settlement",
-          "name": "交通事故損害賠償和解",
-          "scope": "交通事故侵權損害賠償之和解契約(代表受害人,和解金受領方):LS-11 Floor 驗證範圍"
-        },
-        {
-          "type": "gift",
-          "name": "不動產附負擔贈與",
-          "scope": "以不動產(房屋及其基地應有部分)為標的之附負擔贈與契約(代表贈與人):LS-10 Floor 驗證範圍"
-        },
-        {
-          "type": "equip_maint",
-          "name": "設備維護保養",
-          "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
-        },
-        {
-          "type": "brokerage_re",
-          "name": "不動產委託銷售",
-          "scope": "屋主委託不動產經紀業(仲介)銷售其不動產之居間契約(不含代銷、預售屋、租賃委託與買方委託承購,代表委託人):LS-14 Floor 驗證範圍"
-        },
-        {
-          "type": "joint_venture",
-          "name": "合資(共同設立股份有限公司)",
-          "scope": "各方共同設立股份有限公司之合資協議(股東協議,代表委託律師之合資一方):LS-21 Floor 驗證範圍"
-        },
-        {
-          "type": "sw_dev_medical",
-          "name": "醫療軟體開發委託",
-          "scope": "醫療領域之客製化軟體開發(承攬)契約(軟體可能屬醫療器材,或處理病歷、醫療、健康等特種個人資料;代表委託方):LS-19 Floor 驗證範圍"
-        },
-        {
-          "type": "agency",
-          "name": "銷售代理・居間(招攬客戶)",
-          "scope": "甲方委託乙方為其招攬客戶、由甲方與客戶直接締約之銷售代理(代辦商)或居間契約(乙方以佣金為報酬,不買斷、不轉售、不持有存貨;不含經銷,代表甲方):LS-23 Floor 驗證範圍"
-        },
-        {
-          "type": "distribution",
-          "name": "經銷",
-          "scope": "以「經銷」命名的契約(經銷 / 獨家經銷 / 經銷代理):經銷模組驗證範圍"
-        },
-        {
-          "type": "purchase",
-          "name": "動產買賣(採購 / 供貨)",
-          "scope": "動產買賣、採購與長期供貨契約:買賣模組驗證範圍"
-        },
-        {
-          "type": "sw_dev",
-          "name": "軟體開發委託",
-          "scope": "軟體 / 系統委託開發契約:軟體開發委託模組驗證範圍"
-        }
-      ],
-      "jurisdiction": "taiwan",
-      "represented_party": [
-        "party_a",
-        "party_b"
-      ]
+      "enabled": true
     },
     "large": {
       "enabled": true,
-      "contract_types": [
-        {
-          "type": "fitout",
-          "name": "室內裝修工程承攬",
-          "scope": "室內裝修工程承攬契約(既有建物,代表定作人):LS-08 Floor 驗證範圍"
-        },
-        {
-          "type": "employment",
-          "name": "僱傭(勞動契約)",
-          "scope": "勞動基準法適用之僱傭契約(不定期・全職,代表雇主):LS-01 Floor 驗證範圍"
-        },
-        {
-          "type": "loan",
-          "name": "金錢借貸",
-          "scope": "金錢消費借貸契約(個人貸與公司・附息・定期,代表貸與人):LS-13 Floor 驗證範圍"
-        },
-        {
-          "type": "carriage_cold",
-          "name": "冷藏食品配送運送",
-          "scope": "企業間冷藏食品之長期配送運送契約(公路汽車運輸,代表託運人):LS-06 Floor 驗證範圍"
-        },
-        {
-          "type": "mandate",
-          "name": "會計師委任",
-          "scope": "企業委任會計師或會計師事務所提供查核簽證、稅務申報等專業服務之委任契約(代表委任人):LS-09 Floor 驗證範圍"
-        },
-        {
-          "type": "service",
-          "name": "資訊系統維運與代管服務",
-          "scope": "企業間雲端代管、系統維運與技術支援等持續性服務契約(得併含客製開發,代表服務使用方):LS-15 Floor 驗證範圍"
-        },
-        {
-          "type": "settlement",
-          "name": "交通事故損害賠償和解",
-          "scope": "交通事故侵權損害賠償之和解契約(代表受害人,和解金受領方):LS-11 Floor 驗證範圍"
-        },
-        {
-          "type": "gift",
-          "name": "不動產附負擔贈與",
-          "scope": "以不動產(房屋及其基地應有部分)為標的之附負擔贈與契約(代表贈與人):LS-10 Floor 驗證範圍"
-        },
-        {
-          "type": "equip_maint",
-          "name": "設備維護保養",
-          "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
-        },
-        {
-          "type": "brokerage_re",
-          "name": "不動產委託銷售",
-          "scope": "屋主委託不動產經紀業(仲介)銷售其不動產之居間契約(不含代銷、預售屋、租賃委託與買方委託承購,代表委託人):LS-14 Floor 驗證範圍"
-        },
-        {
-          "type": "joint_venture",
-          "name": "合資(共同設立股份有限公司)",
-          "scope": "各方共同設立股份有限公司之合資協議(股東協議,代表委託律師之合資一方):LS-21 Floor 驗證範圍"
-        },
-        {
-          "type": "sw_dev_medical",
-          "name": "醫療軟體開發委託",
-          "scope": "醫療領域之客製化軟體開發(承攬)契約(軟體可能屬醫療器材,或處理病歷、醫療、健康等特種個人資料;代表委託方):LS-19 Floor 驗證範圍"
-        },
-        {
-          "type": "agency",
-          "name": "銷售代理・居間(招攬客戶)",
-          "scope": "甲方委託乙方為其招攬客戶、由甲方與客戶直接締約之銷售代理(代辦商)或居間契約(乙方以佣金為報酬,不買斷、不轉售、不持有存貨;不含經銷,代表甲方):LS-23 Floor 驗證範圍"
-        },
-        {
-          "type": "distribution",
-          "name": "經銷",
-          "scope": "以「經銷」命名的契約(經銷 / 獨家經銷 / 經銷代理):經銷模組驗證範圍"
-        },
-        {
-          "type": "purchase",
-          "name": "動產買賣(採購 / 供貨)",
-          "scope": "動產買賣、採購與長期供貨契約:買賣模組驗證範圍"
-        },
-        {
-          "type": "sw_dev",
-          "name": "軟體開發委託",
-          "scope": "軟體 / 系統委託開發契約:軟體開發委託模組驗證範圍"
-        }
-      ],
       "jurisdiction": "taiwan",
       "represented_party": [
         "party_a",
@@ -1010,88 +840,6 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
     },
     "high": {
       "enabled": true,
-      "contract_types": [
-        {
-          "type": "fitout",
-          "name": "室內裝修工程承攬",
-          "scope": "室內裝修工程承攬契約(既有建物,代表定作人):LS-08 Floor 驗證範圍"
-        },
-        {
-          "type": "employment",
-          "name": "僱傭(勞動契約)",
-          "scope": "勞動基準法適用之僱傭契約(不定期・全職,代表雇主):LS-01 Floor 驗證範圍"
-        },
-        {
-          "type": "loan",
-          "name": "金錢借貸",
-          "scope": "金錢消費借貸契約(個人貸與公司・附息・定期,代表貸與人):LS-13 Floor 驗證範圍"
-        },
-        {
-          "type": "carriage_cold",
-          "name": "冷藏食品配送運送",
-          "scope": "企業間冷藏食品之長期配送運送契約(公路汽車運輸,代表託運人):LS-06 Floor 驗證範圍"
-        },
-        {
-          "type": "mandate",
-          "name": "會計師委任",
-          "scope": "企業委任會計師或會計師事務所提供查核簽證、稅務申報等專業服務之委任契約(代表委任人):LS-09 Floor 驗證範圍"
-        },
-        {
-          "type": "service",
-          "name": "資訊系統維運與代管服務",
-          "scope": "企業間雲端代管、系統維運與技術支援等持續性服務契約(得併含客製開發,代表服務使用方):LS-15 Floor 驗證範圍"
-        },
-        {
-          "type": "settlement",
-          "name": "交通事故損害賠償和解",
-          "scope": "交通事故侵權損害賠償之和解契約(代表受害人,和解金受領方):LS-11 Floor 驗證範圍"
-        },
-        {
-          "type": "gift",
-          "name": "不動產附負擔贈與",
-          "scope": "以不動產(房屋及其基地應有部分)為標的之附負擔贈與契約(代表贈與人):LS-10 Floor 驗證範圍"
-        },
-        {
-          "type": "equip_maint",
-          "name": "設備維護保養",
-          "scope": "設備使用方場所內實體設備之年度維護保養契約(定期保養、故障叫修、遠端診斷與零件供應;不含資訊系統維運,代表設備使用方):LS-20 Floor 驗證範圍"
-        },
-        {
-          "type": "brokerage_re",
-          "name": "不動產委託銷售",
-          "scope": "屋主委託不動產經紀業(仲介)銷售其不動產之居間契約(不含代銷、預售屋、租賃委託與買方委託承購,代表委託人):LS-14 Floor 驗證範圍"
-        },
-        {
-          "type": "joint_venture",
-          "name": "合資(共同設立股份有限公司)",
-          "scope": "各方共同設立股份有限公司之合資協議(股東協議,代表委託律師之合資一方):LS-21 Floor 驗證範圍"
-        },
-        {
-          "type": "sw_dev_medical",
-          "name": "醫療軟體開發委託",
-          "scope": "醫療領域之客製化軟體開發(承攬)契約(軟體可能屬醫療器材,或處理病歷、醫療、健康等特種個人資料;代表委託方):LS-19 Floor 驗證範圍"
-        },
-        {
-          "type": "agency",
-          "name": "銷售代理・居間(招攬客戶)",
-          "scope": "甲方委託乙方為其招攬客戶、由甲方與客戶直接締約之銷售代理(代辦商)或居間契約(乙方以佣金為報酬,不買斷、不轉售、不持有存貨;不含經銷,代表甲方):LS-23 Floor 驗證範圍"
-        },
-        {
-          "type": "distribution",
-          "name": "經銷",
-          "scope": "以「經銷」命名的契約(經銷 / 獨家經銷 / 經銷代理):經銷模組驗證範圍"
-        },
-        {
-          "type": "purchase",
-          "name": "動產買賣(採購 / 供貨)",
-          "scope": "動產買賣、採購與長期供貨契約:買賣模組驗證範圍"
-        },
-        {
-          "type": "sw_dev",
-          "name": "軟體開發委託",
-          "scope": "軟體 / 系統委託開發契約:軟體開發委託模組驗證範圍"
-        }
-      ],
       "jurisdiction": "taiwan",
       "represented_party": [
         "party_a",
@@ -1666,11 +1414,11 @@ What this deployment offers right now, read from the service's own table (nothin
         (`implemented` — a capability can be built and still not open, in which case its tool answers PERMISSION_DENIED), its default
         level (`default_model`, used when `model` is omitted), `models` — the levels open to you now — and `implemented_models` — the
         levels built; a level listed only in implemented_models is refused with PERMISSION_DENIED.
-      draft / review / revise / compare: per implemented level, `{"enabled": true|false}`. For a level limited to some contract types
-        (draft.high, draft.large) also `contract_types` (the types open now), `jurisdiction` and `represented_party`: draft_contract
-        at that level accepts only those; any other request is refused (INVALID_INPUT, context.field model), never switched to another
-        level.
-      draft also: accepted jurisdictions and represented_party values. review also: accepted represented_party values.
+      draft / review / revise / compare: per implemented level, `{"enabled": true|false}`. draft.high and draft.large also give
+        `jurisdiction` and `represented_party`: at those levels draft_contract drafts a contract for one party under that law; any
+        other request is refused (INVALID_INPUT, context.field model), never switched to another level.
+      draft also: accepted jurisdictions and represented_party values. review also: `review_types` — the types with their own review, each with its
+        two parties (`represented_parties`), for review_contract review_type; every level reviews any other contract too.
     
 ```
 
