@@ -16,7 +16,7 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-For a key permitted every tool, `tools/list` returns exactly fourteen tools (a key permitted fewer sees only those; see [Keys](#keys-permitted-tools-and-prepaid-balance)):
+For a key permitted every tool, `tools/list` returns exactly fifteen tools (a key permitted fewer sees only those; see [Keys](#keys-permitted-tools-and-prepaid-balance)):
 
 ```text
 review_contract
@@ -31,11 +31,12 @@ get_article
 search_statutes
 search_judgments
 search_interpretations
+search_rulings
 read_judgment
 get_laws
 ```
 
-No additional public tools exist beyond these fourteen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these fifteen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 ## Keys: permitted tools and prepaid balance
 
@@ -2626,9 +2627,9 @@ Jobs and artifacts are scoped to the authenticated identity; another identity re
 
 ---
 
-## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`, `get_laws`
+## Synchronous lookups: `get_article`, `search_statutes`, `search_judgments`, `search_interpretations`, `search_rulings`, `read_judgment`, `get_laws`
 
-These six tools answer at once: they create no job and are not charged. The arguments of each lookup call (and of `fast_legal`) and a summary of what it returned (how many results, and each result's identifiers and score) are retained on the service side for quality maintenance. Five of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries with `top_k` 20, none asked before: an act and article number p50 0.4 s; any other query p50 2.2 s, with or without `level` (the slowest 4.5 s without `level`, 5.0 s with it); a query asked before answers almost at once.
+These seven tools answer at once: they create no job and are not charged. The arguments of each lookup call (and of `fast_legal`) and a summary of what it returned (how many results, and each result's identifiers and score) are retained on the service side for quality maintenance. Six of them call no model; `search_statutes` rewrites a legal concept or a plain-language query before searching (see [`search_statutes`](#search_statutes)). They read the same statute and judgment sources Fast Legal's research reads, so an article read here is the same text Fast Legal works from, with the same act names and status. Measured on 2026-10-20: `get_article` about 0.4 s, `search_judgments` about 1.8 s, `read_judgment` about 0.4–1 s. `search_statutes` measured on 2026-10-23 over 55 test queries with `top_k` 20, none asked before: an act and article number p50 0.4 s; any other query p50 2.2 s, with or without `level` (the slowest 4.5 s without `level`, 5.0 s with it); a query asked before answers almost at once.
 
 ### Statute names and status
 
@@ -3073,6 +3074,65 @@ Search the constitutional decisions: 司法院大法官解釋 (釋字第1號至�
     "query"
   ],
   "title": "search_interpretationsArguments",
+  "type": "object"
+}
+```
+
+## `search_rulings`
+
+Searches the Ministry of Finance's tax rulings (財政部各稅法令函釋) and its annual amount announcements (年度金額公告): how the tax authority reads a tax provision — exemption thresholds, how an item is classified, the yearly amounts. Returns `results`, most relevant first, `note` and `source`. Requires the `lookup` permission; synchronous, no job, no charge.
+
+| Field | Meaning |
+|---|---|
+| `document_number` | The ruling's 發文字號, e.g. 「財政部74/05/29台財稅第16713號函」. Cite a ruling by it. |
+| `summary` | The ruling's 要旨. |
+| `tax` | The tax it belongs to (稅目), e.g. 所得稅法. |
+| `article` | The provision it belongs to (所屬條次), e.g. 第14條; `null` when the source gives none. |
+| `passage` | The relevant passage of the ruling. |
+| `doc_id`, `url`, `score` | The ruling's identifier in the source, its page, and the relevance score. |
+| `source` | The attribution, on every result. |
+
+**A ruling is not law.** It is the tax authority's interpretation of a provision. Cite it by its `document_number` and rest the point on the provision itself; `note` says the same.
+
+**Source.** Every result, and the answer as a whole, carries `source`: 「財政部各稅法令函釋檢索系統（政府資料開放授權條款第1版）；年度金額公告：行政院公報」. The licence requires this attribution wherever a ruling is shown, so show it with the ruling.
+
+### Live description (verbatim)
+
+```text
+Search the Ministry of Finance's tax rulings (財政部各稅法令函釋) and its annual amount announcements (年度金額公告) — how the tax
+    authority reads a tax provision: exemption thresholds, how an item is classified, the yearly amounts (basic exemptions, deduction
+    caps). Each result: document_number (發文字號), summary (要旨), tax (稅目), article (the provision it belongs to), passage, url,
+    score and source. A ruling is the authority's interpretation, not law: cite it by its document_number and rest the point on the
+    provision itself. Every result carries source, the attribution its licence requires wherever the ruling is shown. For an amount,
+    write the year in the query, e.g. 115年 贈與稅 免稅額. Synchronous: no job, no charge.
+
+    Args:
+        query: The tax question in a ruling's words, e.g. 員工加班費 免稅 限額.
+        top_k: How many results, 1–10 (default 6).
+
+    Errors: INVALID_ARGUMENT (an empty or over-long query, a bad top_k), RETRIEVAL_FAILED (the source failed). No match is an empty list.
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "query": {
+      "title": "Query",
+      "type": "string"
+    },
+    "top_k": {
+      "default": 6,
+      "title": "Top K",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "query"
+  ],
+  "title": "search_rulingsArguments",
   "type": "object"
 }
 ```

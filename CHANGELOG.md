@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-26 — `search_rulings`
+
+#### Added
+
+- `search_rulings` (the `lookup` permission; synchronous, no charge): the Ministry of Finance's tax rulings (財政部各稅法令函釋) and annual amount announcements — each result with `document_number` (發文字號), `summary`, `tax`, `article`, `passage`, `url`, `score` and `source` (the attribution the licence requires). A ruling is not law. Live 2026-10-26 05:16 UTC.
+
 ### 2026-10-26 — lookup calls retained for quality maintenance
 
 #### Changed
