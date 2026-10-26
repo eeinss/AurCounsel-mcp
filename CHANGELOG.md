@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-26 — `search_judgments` filters
+
+#### Added
+
+- `search_judgments` takes `case_category` (民事 / 刑事 / 行政 / 家事 / 懲戒 / 其他), `decided_from` / `decided_to` (ROC or AD year) and `cites_article` (judgments whose reasoning cites an article), applied in the search itself; each result carries `case_status` (and `takedown` when the judgment is on the takedown list). `court` 最高法院 / 最高行政法院 is now applied in the search itself; `court_filter` gains `filtered_in_search`. At most 10 judgments are searched per call. Live 2026-10-26 05:47 UTC.
+
 ### 2026-10-26 — `search_judgments`: case category, decision kind and year; court filter result
 
 #### Added

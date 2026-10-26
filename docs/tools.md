@@ -2963,8 +2963,19 @@ Each result also carries three fields read from the judgment itself — never gu
 | `case_category` | 民事 / 刑事 / 行政, from the court code that begins `doc_id`. |
 | `decision_kind` | 判決 / 裁定, from `title`. |
 | `decision_year` | The ROC year (an integer), from `case_number` (「112年度…」 ⇒ `112`). |
+| `case_status` | Where the case stands: `final` (this is the case's last decision), `same_case` (the same case has other documents at that court), or another status the source gives; `null` when it gives none. |
+| `takedown` | Present only for a judgment on the Judicial Yuan's takedown list: the source's label (e.g. `deleted_on`), shown rather than hidden. |
 
-**`court` filters the search's top results.** The search returns its closest judgments first and `court` keeps those of that court, so a long query whose closest judgments come from other courts can leave none. With `court`, the answer carries `court_filter`: `requested`, `matched` (how many were of that court), `searched` (how many were searched) and, when `matched` is 0, `note` — 「前 N 筆結果中沒有該法院的判決;可縮短或改寫查詢再試」. A 0 there means the filter found none among those results, not that the court has no such judgment; shorten or reword the query and try again.
+**Filters** (all optional; the search itself is filtered, so they do not use up the result limit):
+
+| Argument | Meaning |
+|---|---|
+| `case_category` | Only this kind of case: 民事, 刑事, 行政, 家事, 懲戒 or 其他. |
+| `decided_from`, `decided_to` | Only judgments decided in or after / in or before this year — an ROC year (`110`) or an AD year (`2021`). |
+| `cites_article` | Only judgments whose reasoning cites this article, or every article of a list: 「民法第252條」, 「民法 252」, 「土地法第34條之1」. `query` is still required. |
+
+At most **10** judgments are searched per call, whatever `top_k` asks.
+**How `court` is applied.** For 最高法院 and 最高行政法院 the search itself is limited to the supreme level, and each result's court is then checked by name (`filtered_in_search: true`). Any other court filters the search's top results, so a long query whose closest judgments come from other courts can leave none (`filtered_in_search: false`). With `court`, the answer carries `court_filter`: `requested`, `matched` (how many were of that court), `searched` (how many were searched), `filtered_in_search` and, when `matched` is 0, `note` — 「前 N 筆結果中沒有該法院的判決;可縮短或改寫查詢再試」. A 0 there means the filter found none among those results, not that the court has no such judgment; shorten or reword the query and try again.
 
 ### Live description (verbatim)
 
@@ -2972,17 +2983,27 @@ Each result also carries three fields read from the judgment itself — never gu
 Search court judgments for how courts decide a point. Each result: the court, the case number, the decision date, the matching
     passage, its position (passage_at, for read_judgment's around) and the doc_id. roles lists the section labels the source puts on the
     passage — 「理由，推定為法院判斷」 is the court's own reasoning; 「未確認為法院判斷」 may be a party's argument. Each result also gives
-    case_category (民事 / 刑事 / 行政, from the doc_id's court code), decision_kind (判決 / 裁定, from the title) and decision_year (the
-    ROC year, from the case number) — each null when it cannot be read from the judgment. Synchronous: no job, no charge.
+    case_category (民事 / 刑事 / 行政, from the doc_id's court code), decision_kind (判決 / 裁定, from the title), decision_year (the
+    ROC year, from the case number) — each null when it cannot be read from the judgment — and case_status, where the case stands
+    (e.g. final; same_case: the same case has other documents at that court; null when not given). At most 10 judgments are searched.
+    Synchronous: no job, no charge.
 
     Args:
-        query: How a court's reasoning would put it, e.g. 共同正犯在合同意思範圍內; at most 120 characters.
-        court: Only judgments of this court, e.g. 最高法院 (matched within the court's name). It filters the search's top results
-            (at most 20 fetched), so a long query whose top results come from other courts can leave none; court_filter then says
-            how many were searched and matched — shorten or reword the query and try again.
+        query: How a court's reasoning would put it, e.g. 共同正犯在合同意思範圍內; at most 120 characters. Required, also with
+            cites_article.
+        court: Only judgments of this court, e.g. 最高法院 (matched within the court's name). 最高法院 and 最高行政法院 are filtered in the
+            search itself (both are the supreme level, so each result's court is then checked by name); any other court filters the
+            search's top results, so a long query whose top results come from other courts can leave none. court_filter says how many
+            were searched and matched and whether the search itself was filtered — shorten or reword the query and try again.
         top_k: How many results, 1–20 (default 5).
+        case_category: Only this kind of case: 民事, 刑事, 行政, 家事, 懲戒 or 其他.
+        decided_from: Only judgments decided in or after this year — an ROC year (e.g. 110) or an AD year (e.g. 2021).
+        decided_to: Only judgments decided in or before this year, written the same way.
+        cites_article: Only judgments whose reasoning cites this article (or every one of a list), e.g. 民法第252條, 勞基法第11條 or
+            土地法第34條之1.
 
-    Errors: INVALID_ARGUMENT (an empty or over-long query, a bad top_k), RETRIEVAL_FAILED (the source failed). No match is an empty list.
+    Errors: INVALID_ARGUMENT (an empty or over-long query, a bad top_k, case_category, year or article), RETRIEVAL_FAILED (the source
+    failed, or its filters could not be applied this time). No match is an empty list.
     
 ```
 
@@ -3011,6 +3032,60 @@ Search court judgments for how courts decide a point. Each result: the court, th
       "default": 5,
       "title": "Top K",
       "type": "integer"
+    },
+    "case_category": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Case Category"
+    },
+    "decided_from": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decided From"
+    },
+    "decided_to": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decided To"
+    },
+    "cites_article": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cites Article"
     }
   },
   "required": [
