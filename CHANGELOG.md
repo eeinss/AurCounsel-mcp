@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-26 — lookup calls retained for quality maintenance
+
+#### Changed
+
+- The arguments of the lookup tools (`get_article`, `get_laws`, `search_statutes`, `search_judgments`, `search_interpretations`, `read_judgment`) and `fast_legal`, and a summary of what each call returned (result count, each result's identifiers and score), are retained on the service side for quality maintenance. Tool arguments and responses are unchanged. From 2026-10-26 05:12 UTC.
+
 ### 2026-10-25 — one more review type (設備維護保養)
 
 #### Added

@@ -134,6 +134,8 @@ Required arguments, by tool:
 
 The complete input schemas, the optional arguments, and the constraints the schemas themselves do not express are in [docs/tools.md](docs/tools.md).
 
+The arguments of the lookup tools and `fast_legal`, and a summary of what each call returned, are retained on the service side for quality maintenance.
+
 `file_ref` handles come from uploading the document to `/upload` first; see [docs/tools.md](docs/tools.md#uploading-a-document-upload).
 
 ## Five-minute mental model
