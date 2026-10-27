@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-27 — review: scanned PDFs
+
+#### Added
+
+- `review_contract` accepts a scanned PDF (or a PDF with scanned pages): the pages without a text layer are read from their images, in the contract's own script, and the review opinion opens with 「本合約由掃描檔辨識,金額、日期、名稱請對照原件。」. A scan that cannot be read is refused with `UPSTREAM_REJECTED` (`upstream_status: 400`), as a text-less PDF was before. Text PDFs and `.docx` / `.doc` are read as before. Live 2026-10-27 11:25 UTC.
+
 ### 2026-10-27 — drafting: every level drafts any document
 
 #### Changed

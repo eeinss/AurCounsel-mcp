@@ -83,6 +83,7 @@ review_contract
 - Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
 - **Deliverables:** `review_comments` (the review opinion), `revised_docx`, `redline`, `original`, `revised`, `memo`.
+- **Scanned PDFs.** A scanned PDF, or a PDF with some scanned pages, is accepted: the pages without a text layer are read from their images, in the contract's own script (a simplified-Chinese contract stays simplified), the other pages as before; reading a scan adds roughly ten seconds to a minute. The review opinion of such a contract opens with 「本合約由掃描檔辨識,金額、日期、名稱請對照原件。」 — amounts, dates and names read from a scan should be checked against the original. A scan that cannot be read (or one over 200 scanned pages) is refused before a job is created, with `UPSTREAM_REJECTED` (`upstream_status: 400`).
 - Completed deliverables are retrieved through the artifact interface.
 - A failed job must not expose partial/generated internal artifacts as completed deliverables.
 
