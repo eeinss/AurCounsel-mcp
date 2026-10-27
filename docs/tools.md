@@ -352,9 +352,8 @@ Draft a new contract or legal document with LegalOS.
             Pass it only when the user has said which side they represent; do
             not infer it from the same kind of clues, ask the user instead.
         model: Optional. The drafting level: medium (the default; free), high or large.
-            省略 model 時為 medium(擬約預設),可擬合約與書狀、函件等文件。
-            high、large 可擬任何合約(代表甲方或乙方、依中華民國法律);書狀、函件等文件、中立立場或其他法域請用 medium,
-            指定 high / large 會被拒絕(INVALID_INPUT,context.field model),不會改用其他等級。
+            省略 model 時為 medium(擬約預設)。三個等級都可擬任何合約與書狀、函件等文件,代表甲方、乙方或中立,
+            法域 taiwan / mainland / other 皆可;high、large 為較高等級,依用量計費。
             A level that is built but not open now (in get_capabilities implemented_models, not in models) is refused with
             PERMISSION_DENIED; any other value with INVALID_INPUT. A request is never switched to another level.
 
@@ -527,8 +526,7 @@ Draft a new contract or legal document with LegalOS.
 
 `model` is optional and is a level: `medium` (the default), `high` or `large`. `get_capabilities` lists the levels open now under `capabilities.draft.models` (on 2026-10-20: `medium`, `high`, `large`) and the levels built under `implemented_models`. A built level that is not open is refused with `PERMISSION_DENIED`, `context: {"capability": "draft", "model": ...}`, with no job created; any other value with `INVALID_INPUT`.
 
-- **Omitted / `medium`:** the drafting default — any contract or document.
-- **`high`, `large`:** any contract for one party (`represented_party` 甲方 / 乙方) under Taiwan law (`requested_jurisdiction: "taiwan"`). A court or lawyer's document, a neutral draft or another jurisdiction is refused and no job is created: `ok: false`, `error_code: "INVALID_INPUT"`, `context: {"field": "model", "submitted": ..., "detail": "level_drafts_contracts_for_one_party"}`. It is **never switched to another level**; to draft it, omit `model`.
+- **Every level** (omitted / `medium`, `high`, `large`) drafts any contract or document — for either party or neutral (`represented_party`), under any of `draft.jurisdictions` (`taiwan`, `mainland`, `other`). A request is **never switched to another level**.
 
 ### Success response shape and `job_id` path
 
@@ -811,7 +809,7 @@ Apply a requested change to one contract and produce the revised document.
 
 Read what this deployment offers right now. Read-only: it creates no job and calls no model. Everything it returns is read from the service's own capability table at call time — the same table that opens or closes a tool.
 
-### Response (live, 2026-10-26)
+### Response (live, 2026-10-27)
 
 ```json
 {
@@ -831,20 +829,10 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
       "enabled": true
     },
     "large": {
-      "enabled": true,
-      "jurisdiction": "taiwan",
-      "represented_party": [
-        "party_a",
-        "party_b"
-      ]
+      "enabled": true
     },
     "high": {
-      "enabled": true,
-      "jurisdiction": "taiwan",
-      "represented_party": [
-        "party_a",
-        "party_b"
-      ]
+      "enabled": true
     }
   },
   "review": {
@@ -1414,9 +1402,8 @@ What this deployment offers right now, read from the service's own table (nothin
         (`implemented` — a capability can be built and still not open, in which case its tool answers PERMISSION_DENIED), its default
         level (`default_model`, used when `model` is omitted), `models` — the levels open to you now — and `implemented_models` — the
         levels built; a level listed only in implemented_models is refused with PERMISSION_DENIED.
-      draft / review / revise / compare: per implemented level, `{"enabled": true|false}`. draft.high and draft.large also give
-        `jurisdiction` and `represented_party`: at those levels draft_contract drafts a contract for one party under that law; any
-        other request is refused (INVALID_INPUT, context.field model), never switched to another level.
+      draft / review / revise / compare: per implemented level, `{"enabled": true|false}`. Every draft level drafts any contract or
+        document, for either party or neutral, under any of draft.jurisdictions.
       draft also: accepted jurisdictions and represented_party values. review also: `review_types` — the types with their own review, each with its
         two parties (`represented_parties`), for review_contract review_type; every level reviews any other contract too.
     

@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-27 — drafting: every level drafts any document
+
+#### Changed
+
+- `draft_contract` at `high` and `large` now also drafts court and lawyer's documents (`doc_type`), neutral drafts and drafts under `mainland` / `other` law — every level drafts any contract or document. The `level_drafts_contracts_for_one_party` refusal is gone. Live 2026-10-27 09:15 UTC.
+
 ### 2026-10-26 — drafting: every level
 
 #### Changed
