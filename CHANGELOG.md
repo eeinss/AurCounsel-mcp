@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-28 — Fast Legal: judgment searches by court, case type, year and cited article
+
+#### Changed
+
+- `fast_legal` research may limit a judgment search to the supreme courts (最高法院 / 最高行政法院), to one kind of case, to a range of decision dates or to judgments citing a given article, as `search_judgments` already allows. A judgment search is no longer held back until a provision has been read, so a question about a doctrine or a court practice with no provision of its own is researched from the judgments directly. The lookups are unchanged.
+
 ### 2026-10-28 — `search_rulings`: every ministry's rulings
 
 #### Changed
