@@ -6,6 +6,15 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-28 — `search_rulings`: every ministry's rulings
+
+#### Changed
+
+- `search_rulings` searches the rulings of the Ministry of Labor, the Ministry of Economic Affairs (Company Act, Business Registration Act), the Ministry of Justice, the Financial Supervisory Commission, the Fair Trade Commission and the Personal Data Protection Commission Preparatory Office as well as the Ministry of Finance's; more ministries may be added.
+- Each result gives `agency`, `date`, `status` (現行 / 停止適用 / 已廢止) with `status_date` and `status_note`, and `related_articles`, where the ruling's source gives them. A ruling no longer applied is returned with its status.
+- `source` is on each result, the attribution of that ruling's own licence (CC BY 4.0 for the Personal Data Protection Commission Preparatory Office, 政府資料開放授權條款第1版 for the others); the response no longer carries one `source` for all results.
+- A Ministry of Finance ruling's tax is `act` (was `tax`); its values are unchanged.
+
 ### 2026-10-27 — review: scanned PDFs
 
 #### Added

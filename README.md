@@ -128,7 +128,7 @@ Required arguments, by tool:
 | `search_statutes` | `query`; optional `law`, `level`, `top_k` (synchronous) |
 | `search_judgments` | `query`; optional `court`, `top_k` (synchronous) |
 | `search_interpretations` | `query`; optional `top_k` (synchronous). 釋字 and 憲判字, each with its change status (`standing`) |
-| `search_rulings` | `query`; optional `top_k` (synchronous). 財政部各稅法令函釋 and 年度金額公告, each with its 發文字號 and `source`; a ruling is not law |
+| `search_rulings` | `query`; optional `top_k` (synchronous). The ministries' rulings (函釋) — Finance (with 年度金額公告), Labor, Economic Affairs, Justice, the FSC, the FTC, the PDPC Preparatory Office, more to come — each with its 發文字號, agency, date, status (現行 / 停止適用 / 已廢止) and `source`; a ruling is not law |
 | `read_judgment` | `doc_id`, or `court` + `case_number`; optional `around`, `offset`, `max_chars` (synchronous) |
 | `get_job` | `job_id` (optional `after_seq` for `fast_legal`) |
 | `get_artifact` | `job_id`, `artifact` |

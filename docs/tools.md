@@ -2905,34 +2905,45 @@ Search the constitutional decisions: 司法院大法官解釋 (釋字第1號至�
 
 ## `search_rulings`
 
-Searches the Ministry of Finance's tax rulings (財政部各稅法令函釋) and its annual amount announcements (年度金額公告): how the tax authority reads a tax provision — exemption thresholds, how an item is classified, the yearly amounts. Returns `results`, most relevant first, `note` and `source`. Requires the `lookup` permission; synchronous, no job, no charge.
+Searches the ministries' rulings (函釋): how the authority in charge reads a provision — what counts, the standard, how it is applied. Covers the Ministry of Finance (tax rulings, 財政部各稅法令函釋, and its annual amount announcements, 年度金額公告), the Ministry of Labor, the Ministry of Economic Affairs (Company Act, Business Registration Act), the Ministry of Justice, the Financial Supervisory Commission, the Fair Trade Commission and the Personal Data Protection Commission Preparatory Office; more ministries may be added. Returns `results`, most relevant first, and `note`. Requires the `lookup` permission; synchronous, no job, no charge.
 
 | Field | Meaning |
 |---|---|
-| `document_number` | The ruling's 發文字號, e.g. 「財政部74/05/29台財稅第16713號函」. Cite a ruling by it. |
-| `summary` | The ruling's 要旨. |
-| `tax` | The tax it belongs to (稅目), e.g. 所得稅法. |
-| `article` | The provision it belongs to (所屬條次), e.g. 第14條; `null` when the source gives none. |
+| `document_number` | The ruling's 發文字號, e.g. 「財政部74/05/29台財稅第16713號函」. Cite a ruling by its agency and document number. |
+| `summary` | The ruling's 要旨 (or its subject). |
+| `agency` | The issuing authority (發文機關), e.g. 勞動部, 行政院勞工委員會; `null` on a Ministry of Finance ruling. |
+| `date` | The date it was issued (發文日期), as the source writes it; `null` when the source gives none. |
+| `status` | 現行, 停止適用 or 已廢止, as the source marks it; `null` on a Ministry of Finance ruling. |
+| `status_date`, `status_note` | When the status took effect, and the source's own note on it (e.g. that the source marks no validity and lists every ruling as current); `null` when the source gives none. |
+| `act`, `article` | A Ministry of Finance ruling's tax (稅目, e.g. 所得稅法) and the provision it is filed under (所屬條次, e.g. 第14條); `null` otherwise. |
+| `related_articles` | The provisions the ruling interprets, as the source lists them: `law`, `article`, `citation`; empty when none is given. |
 | `passage` | The relevant passage of the ruling. |
 | `doc_id`, `url`, `score` | The ruling's identifier in the source, its page, and the relevance score. |
-| `source` | The attribution, on every result. |
+| `source` | The attribution its licence requires, on every result. |
 
-**A ruling is not law.** It is the tax authority's interpretation of a provision. Cite it by its `document_number` and rest the point on the provision itself; `note` says the same.
+**A ruling is not law.** It is the authority's interpretation of a provision. Cite it by its agency and `document_number` and rest the point on the provision itself; `note` says the same.
 
-**Source.** Every result, and the answer as a whole, carries `source`: 「財政部各稅法令函釋檢索系統（政府資料開放授權條款第1版）；年度金額公告：行政院公報」. The licence requires this attribution wherever a ruling is shown, so show it with the ruling.
+**A ruling no longer applied is still returned.** Its `status` is 停止適用 or 已廢止: say so when citing it; it is not the authority's current view.
+
+**Source.** Every result carries its own `source`: the ruling's collection, the site it is published on and its licence — e.g. 「勞動部函釋（laws.mol.gov.tw；政府資料開放授權條款第1版）」, 「個人資料保護委員會籌備處函釋（www.pdpc.gov.tw；CC BY 4.0）」; a Ministry of Finance ruling's is 「財政部各稅法令函釋檢索系統（政府資料開放授權條款第1版）；年度金額公告：行政院公報」. The licence requires this attribution wherever a ruling is shown, so show each ruling's with it.
 
 ### Live description (verbatim)
 
 ```text
-Search the Ministry of Finance's tax rulings (財政部各稅法令函釋) and its annual amount announcements (年度金額公告) — how the tax
-    authority reads a tax provision: exemption thresholds, how an item is classified, the yearly amounts (basic exemptions, deduction
-    caps). Each result: document_number (發文字號), summary (要旨), tax (稅目), article (the provision it belongs to), passage, url,
-    score and source. A ruling is the authority's interpretation, not law: cite it by its document_number and rest the point on the
-    provision itself. Every result carries source, the attribution its licence requires wherever the ruling is shown. For an amount,
-    write the year in the query, e.g. 115年 贈與稅 免稅額. Synchronous: no job, no charge.
+Search the ministries' rulings (函釋) — how the authority in charge reads a provision: what counts, the standard, how it is
+    applied. Covers the Ministry of Finance (tax rulings and its annual amount announcements, 年度金額公告), the Ministry of Labor, the
+    Ministry of Economic Affairs (Company Act, Business Registration Act), the Ministry of Justice, the Financial Supervisory Commission,
+    the Fair Trade Commission and the Personal Data Protection Commission Preparatory Office; more ministries may be added. Each result:
+    document_number (發文字號), summary (要旨), passage, url, score and source; agency (發文機關), date (發文日期), status (現行 / 停止適用 /
+    已廢止, with status_date and status_note, the source's own note on it) and related_articles where the ruling's source gives them;
+    a Ministry of Finance ruling instead gives act (稅目) and article (the provision it is filed under). A ruling no longer applied is
+    returned with its status: say so when citing it. A ruling is the authority's interpretation, not law: cite it by its agency and
+    document_number and rest the point on the provision itself. Every result carries source, the attribution its licence requires
+    wherever the ruling is shown. For an annual amount, write the year in the query, e.g. 115年 贈與稅 免稅額. Synchronous: no job, no
+    charge.
 
     Args:
-        query: The tax question in a ruling's words, e.g. 員工加班費 免稅 限額.
+        query: The question in a ruling's words, e.g. 員工加班費 免稅 限額 or 特別休假 未休 工資.
         top_k: How many results, 1–10 (default 6).
 
     Errors: INVALID_ARGUMENT (an empty or over-long query, a bad top_k), RETRIEVAL_FAILED (the source failed). No match is an empty list.
