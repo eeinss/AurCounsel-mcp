@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-30 — law change events: `text_corrected`
+
+#### Added
+
+- Event type `text_corrected` (官方資料更正): an article's text changed while the official amendment date (`LawModifiedDate`) stayed the same — the official data was corrected, the act was not amended. `amended_on` is `null`; the changed articles are listed as for `amended`. The four first events of this kind (seq 1, 2, 3, 5), first reported as `amended`, now read `text_corrected`; their `seq`, `change_id` and other fields are unchanged.
+
 ### 2026-10-30 — `list_law_changes`, `get_law_change` live
 
 #### Added
