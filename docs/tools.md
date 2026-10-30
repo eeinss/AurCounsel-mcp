@@ -16,7 +16,7 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-For a key permitted every tool, `tools/list` returns exactly fifteen tools (a key permitted fewer sees only those; see [Keys](#keys-permitted-tools-and-prepaid-balance)):
+For a key permitted every tool, `tools/list` returns exactly seventeen tools (a key permitted fewer sees only those; see [Keys](#keys-permitted-tools-and-prepaid-balance)):
 
 ```text
 review_contract
@@ -34,15 +34,17 @@ search_interpretations
 search_rulings
 read_judgment
 get_laws
+list_law_changes
+get_law_change
 ```
 
-No additional public tools exist beyond these fifteen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these seventeen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 ## Keys: permitted tools and prepaid balance
 
 Each key is issued with the tools it may use and, for a prepaid key, a total balance; both can be changed by whoever issued it, and a change applies from the next request, with no reconnect needed.
 
-- **Permitted tools.** `tools/list` lists only the tools the key may use. Calling any other tool returns `ok: false`, `error_code: "TOOL_NOT_PERMITTED"`, `context.tool` naming it: nothing is sent and no job is created. `get_capabilities`, `get_job` and `get_artifact` come with any of `review_contract`, `draft_contract`, `compare_contracts`, `revise_contract` or `fast_legal`; the five lookups are granted together.
+- **Permitted tools.** `tools/list` lists only the tools the key may use. Calling any other tool returns `ok: false`, `error_code: "TOOL_NOT_PERMITTED"`, `context.tool` naming it: nothing is sent and no job is created. `get_capabilities`, `get_job` and `get_artifact` come with any of `review_contract`, `draft_contract`, `compare_contracts`, `revise_contract` or `fast_legal`; the lookups are granted together.
 - **Prepaid balance.** A prepaid key starts a charged job (`model` / `level` `high` or `large`) only while its balance is above zero; the balance is its top-ups minus the settled `cost` of its jobs. At zero or below, such a call returns `ok: false`, `error_code: "QUOTA_EXCEEDED"`, `context.balance_micros` (micros of the currency in `cost`): nothing is sent and no job is created. Level `medium`, the lookups, `get_job` and `get_artifact` keep working, and a job already running is finished and settled, so a balance can end below zero. A key that is not prepaid has no balance limit.
 - **A disabled key** is refused at the door like an unknown one: HTTP 401.
 
