@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-30 — review: `findings`
+
+#### Added
+
+- A review offers the artifact `findings`: the opinion's important issues (重要議題) as JSON items, in the page's order and wording, each with the contract clauses it names (the original clause text, and whether and how the revised contract changed it), the statutes it cites as {law, article} and the judgment numbers it cites. Reviews completed before 2026-10-30 have none.
+
 ### 2026-10-28 — Fast Legal: judgment searches by court, case type, year and cited article
 
 #### Changed
