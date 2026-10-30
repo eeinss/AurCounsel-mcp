@@ -2431,9 +2431,9 @@ The result is `{"ok": true, "results": [...], "elapsed_ms": ...}`, one entry per
 
 **Full-text snapshots.** Since 2026-10-23 16:52 UTC, each daily rebuild also keeps the full text of every act (法律 and 命令) whenever its content changes, from the 法務部全國法規資料庫 OpenAPI only (`https://law.moj.gov.tw/api/Ch/Law/JSON` and `/api/Ch/Order/JSON`: the act's `LawName`, `LawLevel`, `LawURL`, `LawModifiedDate`, `LawEffectiveDate`, `LawEffectiveNote`, `LawAbandonNote`, `LawHistories` and its `LawArticles` — `ArticleNo`, `ArticleContent`), never a web page. Earlier versions are kept, not overwritten. These snapshots are what the change events (coming next) compare.
 
-## Change events: `list_law_changes`, `get_law_change` (not live yet)
+## Change events: `list_law_changes`, `get_law_change`
 
-> **Not live yet.** These two tools go live once an act has changed in the official data since full-text snapshots began (2026-10-23); the date will be in the CHANGELOG. The fields below are final. The example is **illustrative, not a real event**: it was produced by the same comparison code from 民法 as the 法務部 OpenAPI gives it today, against an invented earlier version whose article 1223 reads 「（示意：修正前條文）」. It will be replaced by a real event, and the CHANGELOG will say so.
+> **Live since 2026-10-30 21:21 UTC.** The first events are the acts whose official data changed between the snapshots of 2026-10-23 and 2026-10-30. The example below is a real event, as the tools returned it.
 
 Both are synchronous lookups (the `lookup` permission): no job, no model, no charge. Each event comes from comparing two daily snapshots of one act's official full text (法務部全國法規資料庫 OpenAPI only). Events are only ever added, never changed or removed, and are kept for at least a year.
 
@@ -2460,89 +2460,105 @@ A `now_effective` event is added on the day its `effective_on` comes, or — whe
 
 **`get_law_change(change_id)`** returns the event with `diff`: one entry per changed article, `{"article", "type" (amended / added / deleted), "old_text" (null for an added article), "new_text" (null for a deleted one), "article_url"}`. The texts are the official `ArticleContent` exactly as given, line breaks (`\r\n`) included. `has_diff` is `false` and `diff` is `[]` when there is no comparison (a `now_effective` event, or a snapshot that cannot be read); the other fields are as usual. An unknown `change_id` answers `NOT_FOUND`.
 
-Illustrative example (**示意，非真實事件**) — `list_law_changes(since_seq=0)`:
+Example (a real event: 個人資料保護委員會籌備處辦事細則, amended 2026-10-21, found 2026-10-30) — `list_law_changes(since_seq=7, limit=1)`:
 
 ```json
 {
  "ok": true,
  "changes": [
   {
-   "seq": 1,
-   "change_id": "B0000001:20261102T034000-46cb83cbbc4cfd71",
-   "pcode": "B0000001",
-   "name": "民法",
+   "seq": 8,
+   "change_id": "I0010101:20261030T114001-cc9a1ded23e8dbbc",
+   "pcode": "I0010101",
+   "name": "個人資料保護委員會籌備處辦事細則",
    "old_name": null,
    "types": [
     "amended",
-    "promulgated_not_effective"
+    "articles_added"
    ],
-   "promulgated_on": "2026-08-17",
-   "effective_on": "2027-02-17",
-   "effective_basis": "statutory_rule",
-   "effective_note": "一百十五年八月十七日修正公布第 1223 條條文，自公布六個月後施行。",
-   "amended_on": "2026-08-17",
-   "detected_on": "2026-11-02",
+   "promulgated_on": "2026-10-21",
+   "effective_on": null,
+   "effective_basis": null,
+   "effective_note": null,
+   "amended_on": "2026-10-21",
+   "detected_on": "2026-10-30",
    "articles": {
     "amended": [
-     "第 1223 條"
+     "第 3 條",
+     "第 12 條"
     ],
-    "added": [],
+    "added": [
+     "第 9-1 條"
+    ],
     "deleted": [],
-    "not_yet_effective": [
-     "第 1223 條"
-    ],
+    "not_yet_effective": [],
     "whole_act": false
    },
    "has_diff": true,
-   "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=B0000001",
+   "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=I0010101",
    "refers_to": null
   }
  ],
- "next_seq": 1
+ "next_seq": 8
 }
 ```
 
-`get_law_change(change_id)` for that event (illustrative; the old text is a placeholder, the new text is the official article):
+`get_law_change(change_id)` for that event — the old and new texts are the official `ArticleContent` of the two snapshots, verbatim:
 
 ```json
 {
  "ok": true,
- "seq": 1,
- "change_id": "B0000001:20261102T034000-46cb83cbbc4cfd71",
- "pcode": "B0000001",
- "name": "民法",
+ "seq": 8,
+ "change_id": "I0010101:20261030T114001-cc9a1ded23e8dbbc",
+ "pcode": "I0010101",
+ "name": "個人資料保護委員會籌備處辦事細則",
  "old_name": null,
  "types": [
   "amended",
-  "promulgated_not_effective"
+  "articles_added"
  ],
- "promulgated_on": "2026-08-17",
- "effective_on": "2027-02-17",
- "effective_basis": "statutory_rule",
- "effective_note": "一百十五年八月十七日修正公布第 1223 條條文，自公布六個月後施行。",
- "amended_on": "2026-08-17",
- "detected_on": "2026-11-02",
+ "promulgated_on": "2026-10-21",
+ "effective_on": null,
+ "effective_basis": null,
+ "effective_note": null,
+ "amended_on": "2026-10-21",
+ "detected_on": "2026-10-30",
  "articles": {
   "amended": [
-   "第 1223 條"
+   "第 3 條",
+   "第 12 條"
   ],
-  "added": [],
+  "added": [
+   "第 9-1 條"
+  ],
   "deleted": [],
-  "not_yet_effective": [
-   "第 1223 條"
-  ],
+  "not_yet_effective": [],
   "whole_act": false
  },
  "has_diff": true,
- "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=B0000001",
+ "url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=I0010101",
  "refers_to": null,
  "diff": [
   {
-   "article": "第 1223 條",
+   "article": "第 3 條",
    "type": "amended",
-   "old_text": "（示意：修正前條文）",
-   "new_text": "繼承人之特留分，依下列各款之規定：\r\n一、配偶之特留分，為其應繼分二分之一。\r\n二、直系血親卑親屬之特留分，為其應繼分二分之一。\r\n三、父母之特留分，為其應繼分二分之一。\r\n四、祖父母之特留分，為其應繼分三分之一。",
-   "article_url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=1223"
+   "old_text": "本處設下列組、室：\r\n一、綜合企劃組，分二科辦事。\r\n二、法制事務組，分三科辦事。\r\n三、查核規劃組，分三科辦事。\r\n四、隱私科技組，分三科辦事。\r\n五、秘書室。\r\n六、人事室。\r\n七、主計室。",
+   "new_text": "本處設下列組、室：\r\n一、綜合企劃組，分二科辦事。\r\n二、法制事務組，分三科辦事。\r\n三、查核規劃組，分三科辦事。\r\n四、隱私科技組，分三科辦事。\r\n五、秘書室。\r\n六、人事室。\r\n七、政風室。\r\n八、主計室。",
+   "article_url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0010101&flno=3"
+  },
+  {
+   "article": "第 9-1 條",
+   "type": "added",
+   "old_text": null,
+   "new_text": "政風室掌理本處政風事項。",
+   "article_url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0010101&flno=9-1"
+  },
+  {
+   "article": "第 12 條",
+   "type": "amended",
+   "old_text": "本細則施行日期，由行政院定之。",
+   "new_text": "本細則施行日期，由行政院定之。\r\n本細則修正條文自發布日施行。",
+   "article_url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=I0010101&flno=12"
   }
  ]
 }

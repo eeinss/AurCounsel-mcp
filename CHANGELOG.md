@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-10-30 — `list_law_changes`, `get_law_change` live
+
+#### Added
+
+- `list_law_changes` and `get_law_change` are live (2026-10-30 21:21 UTC): change events of acts, from comparing daily snapshots of the official full text. The first 11 events are the acts whose official data changed between the snapshots of 2026-10-23 and 2026-10-30.
+- The illustrative example in docs/tools.md is replaced by a real event (個人資料保護委員會籌備處辦事細則: two articles amended, one added).
+
 ### 2026-10-30 — review: `findings`
 
 #### Added
