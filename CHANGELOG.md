@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-01 — judgments: court-only search, citation counts, case history
+
+#### Added
+
+- `search_judgments` takes `court_only` (search only the court's own reasoning and 主文) and `order_by` (`relevance`, `cited_by`, `relevance_and_cited_by`), and each result carries `final_doc_id`, `cited_by_count` and `cited_by_levels`.
+- `read_judgment` carries `case_history`: the case's upper and lower instances and its other documents.
+
 ### 2026-10-30 — law change events: `text_corrected`
 
 #### Added
