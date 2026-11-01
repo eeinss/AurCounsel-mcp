@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-01 — reviews without findings
+
+#### Changed
+
+- A completed review that has no `findings` no longer lists it as ready: `get_job` shows `findings` with `ready: false`, and `get_artifact(job_id, "findings")` answers `NOT_FOUND` with `detail: "review_has_no_findings"` — final, not to be retried. It used to answer `UPSTREAM_ERROR` (`artifact_missing_though_ready`), which reads as transient. Every other artifact is unchanged.
+
 ### 2026-11-01 — judgments: court-only search, citation counts, case history
 
 #### Added

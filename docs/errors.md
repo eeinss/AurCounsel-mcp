@@ -115,6 +115,7 @@ Shape:
 | `FILE_REF_NOT_USABLE` | no | The `file_ref` expired, was revoked, or belongs to another identity (which one is not reported); upload again. | — |
 | `ARTIFACT_TOO_LARGE` | no | A text artifact is over the 8 MB inline limit; download it from its `url`. | size and limit |
 | `UPSTREAM_REJECTED` | no | The service rejected the submission. With `context.upstream_status: 403` it means this token is not entitled to that capability. | `{"upstream_status": <int>}` |
+| `NOT_FOUND` | yes | From `get_artifact`: a completed review has no `findings` and never will (`get_job` lists it `ready: false`). Final — do not retry; the opinion is in `review_comments`. The download URL answers HTTP 404. (The lookup tools use the same code for an article or judgment that does not exist.) | `{"detail": "review_has_no_findings", "artifact": "findings"}` |
 | `UPSTREAM_ERROR` / `UPSTREAM_UNREACHABLE` | no | The service failed or could not be reached; transient. | — |
 
 This table lists what was observed plus the codes the server's own error vocabulary defines. It is **not** certified as the complete set — the server exposes no enumeration of its error codes.
@@ -216,6 +217,8 @@ else:
 
 This prevents a known UX ambiguity in which an unavailable artifact can sound merely premature even though the job has already failed.
 
+A completed job can also have an artifact that will never exist. Today that is one case: a review without `findings`. `get_job` lists `findings` with `ready: false`, and `get_artifact` answers `NOT_FOUND` with `detail: "review_has_no_findings"`. Do not poll or retry for it; show the review's other deliverables (`review_comments` carries the same opinion). `ready: false` on a job that is not yet `completed` still means "not written yet".
+
 ## 6. Authentication and authorization errors
 
 Every MCP request must carry `Authorization: Bearer <AURCOUNSEL_MCP_TOKEN>`. These refusals happen before any MCP method runs; the body is plain text, not a JSON-RPC envelope.
@@ -255,6 +258,7 @@ Do not blindly retry every error.
 - `failed`: stop status polling; submit a new job only when appropriate for the calling application.
 - `unknown`: read `upstream_status` and surface it; do not treat it as progress.
 - `JOB_NOT_FOUND`: the identifier is wrong or the job never existed. Retrying will not change the answer.
+- `NOT_FOUND` with `detail: "review_has_no_findings"`: this review has no findings and never will. Retrying will not change the answer.
 - request validation error (layer 2 or `INVALID_INPUT`): correct the request before retrying.
 - HTTP 406: add `Accept: application/json, text/event-stream`. Retrying unchanged will always fail.
 - HTTP 429: wait for `Retry-After`, then retry the read.
