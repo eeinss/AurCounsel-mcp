@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-01 — findings version 2: judgments with their court
+
+#### Changed
+
+- `findings` is `version` 2. Each entry of an item's `judgments` is now `{court, case_number, ref}` instead of the case number as a string: `court` is the court written right before the case number, named as `read_judgment` takes it (`null` when none is written or it is ambiguous; a 釋字 is 司法院's, a 憲判字 憲法法庭's), so `read_judgment(court, case_number)` opens it. Findings already written were rebuilt in the new shape.
+
 ### 2026-11-01 — reviews without findings
 
 #### Changed
