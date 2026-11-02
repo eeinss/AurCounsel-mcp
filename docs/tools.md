@@ -317,7 +317,10 @@ Submit a contract drafting request to AurCounsel.
 Draft a new contract or legal document with LegalOS.
 
     Returns immediately with a job_id; the drafting runs in the background and
-    takes minutes. Poll get_job with that job_id.
+    takes minutes. Poll get_job with that job_id. A finished draft says what
+    it is in get_job draft.outcome: drafted (the contract) or declined (the
+    request should not be drafted, e.g. an unlawful transaction; the reasons
+    are in draft_summary). Only drafted has draft_html / draft_docx.
 
     Any field left blank is written into the document as a placeholder such as
     [甲方] and is not invented by the engine, so it is better to omit a term you
@@ -360,6 +363,10 @@ Draft a new contract or legal document with LegalOS.
             法域 taiwan / mainland / other 皆可;high、large 為較高等級,依用量計費。
             A level that is built but not open now (in get_capabilities implemented_models, not in models) is refused with
             PERMISSION_DENIED; any other value with INVALID_INPUT. A request is never switched to another level.
+        language: Optional, contracts only: 'en' writes the whole contract and its notes in English; 'zh_en' writes each
+            clause in Chinese followed by its English (notes in Chinese). Omitted: the jurisdiction's own (taiwan 繁體,
+            mainland 简体). Every level. The type checklists behind the drafts were validated in Chinese only. A
+            doc_type document with a language is refused with INVALID_INPUT.
 
     Examples (one Taiwan request; the two calls differ only in model):
 
@@ -514,6 +521,22 @@ Draft a new contract or legal document with LegalOS.
       ],
       "default": null,
       "title": "Model"
+    },
+    "language": {
+      "anyOf": [
+        {
+          "enum": [
+            "en",
+            "zh_en"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Language"
     }
   },
   "required": [
@@ -531,6 +554,12 @@ Draft a new contract or legal document with LegalOS.
 `model` is optional and is a level: `medium` (the default), `high` or `large`. `get_capabilities` lists the levels open now under `capabilities.draft.models` (on 2026-10-20: `medium`, `high`, `large`) and the levels built under `implemented_models`. A built level that is not open is refused with `PERMISSION_DENIED`, `context: {"capability": "draft", "model": ...}`, with no job created; any other value with `INVALID_INPUT`.
 
 - **Every level** (omitted / `medium`, `high`, `large`) drafts any contract or document — for either party or neutral (`represented_party`), under any of `draft.jurisdictions` (`taiwan`, `mainland`, `other`). A request is **never switched to another level**.
+
+`language` is optional and for contracts only (`get_capabilities` lists the values under `draft.languages`): `en` writes the whole contract and its notes in English; `zh_en` writes each clause in Chinese followed by its English, notes in Chinese. Omitted, the contract is in the jurisdiction's own script (taiwan 繁體, mainland 简体). Every level. The type checklists behind the drafts were validated in Chinese only. A `language` with a `doc_type` document, or a value outside the list, is refused with `INVALID_INPUT` (`context.field: "language"`).
+
+A `subject` with no text (only punctuation or spaces) is refused with `INVALID_INPUT`, `context: {"field": "subject", "reason": "no text"}`, before anything is sent.
+
+A finished draft says what it is in `get_job` → `draft.outcome`: `drafted` (the contract: `draft_html`, `draft_docx`, `draft_summary`) or `declined` (not drafted — the request should not be, e.g. an unlawful transaction; `draft_summary` carries the reasons, and `draft_html` / `draft_docx` are not ready and answer `NOT_FOUND` `draft_not_drafted`). A declined draft is `completed`, not `failed`. A contract that stops mid-sentence is not delivered: the job fails.
 
 ### Success response shape and `job_id` path
 
@@ -1408,7 +1437,7 @@ What this deployment offers right now, read from the service's own table (nothin
         levels built; a level listed only in implemented_models is refused with PERMISSION_DENIED.
       draft / review / revise / compare: per implemented level, `{"enabled": true|false}`. Every draft level drafts any contract or
         document, for either party or neutral, under any of draft.jurisdictions.
-      draft also: accepted jurisdictions and represented_party values. review also: `review_types` — the types with their own review, each with its
+      draft also: accepted jurisdictions, represented_party values and languages (draft_contract language; omitted = the jurisdiction's own). review also: `review_types` — the types with their own review, each with its
         two parties (`represented_parties`), for review_contract review_type; every level reviews any other contract too.
     
 ```
@@ -1467,6 +1496,17 @@ Get the state of any job submitted through this server.
     reason for the two that are not applied. A revision that delivered nothing
     still completes — status alone does not say which of the three happened, so
     read this block before asking for the document.
+
+    draft is present on a finished draft: outcome is drafted (the contract)
+    or declined (not drafted — the request should not be, e.g. an unlawful
+    transaction; draft_summary has the reasons and there is no draft_html /
+    draft_docx). A declined draft is completed, not failed.
+
+    note_check is present on a finished draft: {checked, corrected, removed}
+    counts the statute article citations in the draft's notes — each one was
+    read against the statute text; a wrong number is corrected, one that cannot
+    be confirmed is removed (the law name stays). Null for other jobs and for
+    drafts from before the check existed.
 
     artifacts lists what this job produces, each with a ready flag. If
     artifacts is empty there will be an artifacts_blocked block naming why no
@@ -1992,7 +2032,11 @@ Read one artifact of a finished job.
             lists findings as not ready, and asking for it answers NOT_FOUND
             (detail review_has_no_findings) — final, do not retry.
             A draft offers draft_html (the drafted contract), draft_docx (the
-            same contract to deliver) and draft_summary.
+            same contract to deliver) and draft_summary (the notes for the
+            client; for a draft that is not a contract, the reasons). A draft
+            whose get_job draft.outcome is not drafted lists draft_html and
+            draft_docx as not ready, and asking for them answers NOT_FOUND
+            (detail draft_not_drafted) — final, do not retry.
             A compare offers compare_redline (what changed between the two
             versions), compare_memo and compare_synthesis.
             A revision offers revised_docx (the revised contract to deliver)

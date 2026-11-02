@@ -6,6 +6,19 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-02 — draft language, declined drafts, blank subject
+
+#### Added
+
+- `draft_contract` `language` (contracts only, every level): `en` — the whole contract and its notes in English; `zh_en` — each clause in Chinese followed by its English. Omitted: as before (the jurisdiction's own script). `get_capabilities` lists the values under `draft.languages`. The type checklists behind the drafts were validated in Chinese only.
+- `get_job` `draft` on a finished draft: `outcome` `drafted` or `declined`. A declined draft (the request should not be drafted, e.g. an unlawful transaction) is `completed`; `draft_summary` carries the reasons; `draft_html` / `draft_docx` are not ready and `get_artifact` answers `NOT_FOUND` `draft_not_drafted`.
+
+#### Changed
+
+- `draft_contract` refuses a `subject` with no text (only punctuation or spaces) with `INVALID_INPUT` (`field: "subject"`), before anything is sent.
+- Every level drafts a contract the same way, from the request alone: no clauses or party header added by the system. A contract that stops mid-sentence fails instead of being delivered. A Taiwan draft is in Traditional script throughout. Tables in the request are Word tables in `draft_docx`.
+- A review memo carries the review date and the notice 「本備忘由 AI 生成,為草稿,未經律師審核簽署。」; the letter-style date, addressee, closing and signature lines are no longer included.
+
 ### 2026-11-02 — every review's revised_docx has tracked changes
 
 #### Changed
