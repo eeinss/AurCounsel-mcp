@@ -85,7 +85,7 @@ review_contract
 - Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
 - **Deliverables:** `review_comments` (the review opinion), `findings` (its important issues as JSON items), `revised_docx`, `redline`, `original`, `revised`, `memo`.
-- **`revised_docx` when the uploaded contract already has tracked changes.** Every tracked change already in the upload is kept, with its author and date, and this review's changes are added as tracked changes by the author **AurCounsel** (dated when the review ran): accepting every change gives the revised contract this review proposes; rejecting only AurCounsel's gives back the upload as it was, the other side's tracked changes included. Text the other side inserted and this review deletes is shown as AurCounsel's deletion inside their insertion, as Word shows it. A paragraph this review does not change is left exactly as uploaded. An upload without tracked changes is revised as before: the changes are written in, not tracked. `revised` (the HTML view) shows the revised contract with every change accepted.
+- **`revised_docx` is always a tracked-changes document.** It is the uploaded contract with this review's changes as tracked changes by the author **AurCounsel** (dated when the review ran), so each can be accepted or rejected in Word: accepting every change gives the revised contract this review proposes; rejecting only AurCounsel's gives back the upload as it was. Tracked changes already in the upload are kept, with their author and date; text the other side inserted and this review deletes is shown as AurCounsel's deletion inside their insertion, as Word shows it. A paragraph this review does not change is left exactly as uploaded, and a review that changes nothing returns the upload itself. `revised` (the HTML view) shows the revised contract with every change accepted, and `original` shows the upload with its own tracked changes accepted — the text the review read.
 - **Scanned PDFs.** A scanned PDF, or a PDF with some scanned pages, is accepted: the pages without a text layer are read from their images, in the contract's own script (a simplified-Chinese contract stays simplified), the other pages as before; reading a scan adds roughly ten seconds to a minute. The review opinion of such a contract opens with 「本合約由掃描檔辨識,金額、日期、名稱請對照原件。」 — amounts, dates and names read from a scan should be checked against the original. A scan that cannot be read (or one over 200 scanned pages) is refused before a job is created, with `UPSTREAM_REJECTED` (`upstream_status: 400`).
 - Completed deliverables are retrieved through the artifact interface.
 - A failed job must not expose partial/generated internal artifacts as completed deliverables.
@@ -1980,8 +1980,12 @@ Read one artifact of a finished job.
         job_id: The handle returned when the job was submitted.
         artifact: A public artifact name for this job's capability.
             A review offers redline (tracked-change view of the changes),
-            original, revised, revised_docx (the revised contract to deliver),
-            memo (the opinion document), review_comments (the review opinion
+            original (the uploaded contract, showing the text with its own
+            tracked changes accepted), revised, revised_docx (the revised
+            contract to deliver, always with tracked changes: any tracked
+            changes already in the upload are kept, and this review's changes
+            are tracked changes by AurCounsel — accept all in Word for the
+            revised contract), memo (the opinion document), review_comments (the review opinion
             the LegalOS UI shows the lawyer) and findings (the same opinion's
             important issues as a JSON list of items, each with the contract
             clauses, statutes and judgments it cites). A review without findings

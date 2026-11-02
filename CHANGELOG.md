@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-02 — every review's revised_docx has tracked changes
+
+#### Changed
+
+- `revised_docx` is now always the upload with this review's changes as tracked changes by AurCounsel, also when the upload has no tracked changes (it used to be a clean copy then); accept all ⇒ the revised contract, reject only AurCounsel's ⇒ the upload. A review that changes nothing returns the upload itself.
+- `original` shows the upload with its own tracked changes accepted; the other side's deleted text is no longer shown as ordinary text.
+
 ### 2026-11-02 — reviews of a contract that already has tracked changes
 
 #### Changed
