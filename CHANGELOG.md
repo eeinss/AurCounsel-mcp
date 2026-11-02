@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-02 — drafts can ask first
+
+#### Added
+
+- `get_job` `draft.outcome` `needs_input`: the request lacks or contradicts what the contract needs (for example a total that does not match its instalments, or a date that does not exist), so nothing is drafted; `draft.questions` lists what to ask the user, the full reply is `draft_summary`. Submit again with the answers. A complete request is drafted as before.
+- A contract whose sections are numbered 一、二、… instead of 第X條 (for example a consent form) is delivered as a contract.
+
 ### 2026-11-02 — draft language, declined drafts, blank subject
 
 #### Added

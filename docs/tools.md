@@ -317,10 +317,13 @@ Submit a contract drafting request to AurCounsel.
 Draft a new contract or legal document with LegalOS.
 
     Returns immediately with a job_id; the drafting runs in the background and
-    takes minutes. Poll get_job with that job_id. A finished draft says what
-    it is in get_job draft.outcome: drafted (the contract) or declined (the
-    request should not be drafted, e.g. an unlawful transaction; the reasons
-    are in draft_summary). Only drafted has draft_html / draft_docx.
+    takes minutes. Poll get_job with that job_id. A finished draft is one of
+    three outcomes (get_job draft.outcome): drafted (the contract), declined
+    (the request should not be drafted, e.g. an unlawful transaction; the
+    reasons are in draft_summary) or needs_input (the request lacks or
+    contradicts what the contract needs; draft.questions lists what to ask the
+    user — submit again with the answers). Only drafted has draft_html /
+    draft_docx.
 
     Any field left blank is written into the document as a placeholder such as
     [甲方] and is not invented by the engine, so it is better to omit a term you
@@ -559,7 +562,7 @@ Draft a new contract or legal document with LegalOS.
 
 A `subject` with no text (only punctuation or spaces) is refused with `INVALID_INPUT`, `context: {"field": "subject", "reason": "no text"}`, before anything is sent.
 
-A finished draft says what it is in `get_job` → `draft.outcome`: `drafted` (the contract: `draft_html`, `draft_docx`, `draft_summary`) or `declined` (not drafted — the request should not be, e.g. an unlawful transaction; `draft_summary` carries the reasons, and `draft_html` / `draft_docx` are not ready and answer `NOT_FOUND` `draft_not_drafted`). A declined draft is `completed`, not `failed`. A contract that stops mid-sentence is not delivered: the job fails.
+A finished draft says what it is in `get_job` → `draft.outcome`: `drafted` (the contract: `draft_html`, `draft_docx`, `draft_summary`), `declined` (not drafted — the request should not be, e.g. an unlawful transaction; `draft_summary` carries the reasons) or `needs_input` (not drafted — the request lacks or contradicts what the contract needs; `draft.questions` lists what to ask the user, the full reply is `draft_summary`; submit again with the answers). For `declined` and `needs_input`, `draft_html` / `draft_docx` are not ready and answer `NOT_FOUND` `draft_not_drafted`. Both are `completed`, not `failed`. A contract that stops mid-sentence is not delivered: the job fails.
 
 ### Success response shape and `job_id` path
 
@@ -1497,10 +1500,13 @@ Get the state of any job submitted through this server.
     still completes — status alone does not say which of the three happened, so
     read this block before asking for the document.
 
-    draft is present on a finished draft: outcome is drafted (the contract)
-    or declined (not drafted — the request should not be, e.g. an unlawful
-    transaction; draft_summary has the reasons and there is no draft_html /
-    draft_docx). A declined draft is completed, not failed.
+    draft is present on a finished draft: outcome is drafted (the contract),
+    declined (not drafted — the request should not be, e.g. an unlawful
+    transaction; draft_summary has the reasons) or needs_input (not drafted —
+    the request lacks or contradicts what the contract needs; questions lists
+    what to ask the user, then submit again with the answers). Only drafted
+    has draft_html / draft_docx. declined and needs_input are completed, not
+    failed.
 
     note_check is present on a finished draft: {checked, corrected, removed}
     counts the statute article citations in the draft's notes — each one was
@@ -2033,7 +2039,8 @@ Read one artifact of a finished job.
             (detail review_has_no_findings) — final, do not retry.
             A draft offers draft_html (the drafted contract), draft_docx (the
             same contract to deliver) and draft_summary (the notes for the
-            client; for a draft that is not a contract, the reasons). A draft
+            client; for a draft that is not a contract, the reasons or the
+            questions). A draft
             whose get_job draft.outcome is not drafted lists draft_html and
             draft_docx as not ready, and asking for them answers NOT_FOUND
             (detail draft_not_drafted) — final, do not retry.
