@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-02 — reviews of a contract that already has tracked changes
+
+#### Changed
+
+- `revised_docx` of a review whose upload already has tracked changes keeps every one of them (author and date included) and adds this review's changes as tracked changes by the author AurCounsel: accept all ⇒ the revised contract; reject only AurCounsel's ⇒ the upload as it was. An upload without tracked changes is revised as before. `revised` shows the revised contract with every change accepted.
+
 ### 2026-11-02 — read_judgment reads only the court asked for
 
 #### Changed
