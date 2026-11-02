@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-02 — eight consumer review types
+
+#### Added
+
+- `review_contract` `review_type`: 健身中心, 短期補習班, 婚紗攝影服務, 新車買賣, 國內團體旅遊, 殯葬服務, 安養, 路外停車場租用 (every level). Each is reviewed with the competent authority's 應記載及不得記載事項 for that kind of contract. `get_capabilities` lists them under `review.review_types` with their two parties: 消費者 / 健身中心業者, 學生 / 短期補習班, 消費者 / 婚紗攝影業者, 買受人 / 出賣人, 旅客 / 旅行業者, 消費者 / 殯葬服務業者, 消費者 / 安養機構, 停車位租用人 / 停車場經營業者. 新車買賣 is the sale of a new car; another sale is 買賣.
+
 ### 2026-11-02 — drafts can ask first
 
 #### Added

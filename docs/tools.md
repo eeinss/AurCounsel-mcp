@@ -81,7 +81,7 @@ review_contract
 - A successful submission identifies a job.
 - **One rule on every level.** `model` is optional and is a level: omitted (or `medium`) is the default; [`get_capabilities`](#get_capabilities) lists the levels open now under `capabilities.review.models` (`medium`, `high`, `large`), each with `review.<level>.enabled`. Every level reviews any contract, with the same parameters.
 - **`represented_party` and `client_instructions` are required.** `represented_party` is the party of the contract to review for — the party as the contract names it, or 甲方 / 乙方, used as written; `client_instructions` is what the client wants from the review. A review is always for one party: a neutral `represented_party` (`neutral`, `中立`, `雙方`, `both parties` …) is refused with `INVALID_INPUT` (`context.field: "represented_party"`, `detail: "represented_party_neutral"`). A missing `represented_party` is refused with `detail: "represented_party_missing"`, a missing `client_instructions` with `context.field: "client_instructions"` (`detail: "client_instructions_missing"`).
-- **`review_type` (optional).** For a contract of one of the types in `get_capabilities` `review.review_types` (住宅租賃, 國外團體旅遊, 搬家服務, 經銷, 買賣, 軟體開發委託, 合夥, 收購意向書, 保證, 金錢借貸, 最高限額抵押, 會計師委任, 不動產附負擔贈與, 勞動契約, 冷鏈運送, 保密協議, 不動產委託銷售, 資訊系統維運與代管服務, 室內裝修工程承攬, 交通事故損害賠償和解, 銷售代理・居間, 設備維護保養; 保密協議 is a one-way non-disclosure agreement) send `review_type`: the contract is then reviewed as that type, and `represented_party` must be one of its two parties in `review_types[].represented_parties` — there is no default party — or the call is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). When the contract is one of these types — judged by its content, not only its title — send `review_type`, with one of that type's two parties as `represented_party`; when it is not, do not send `review_type`. A `review_type` outside that list is ignored and the contract is reviewed like any other.
+- **`review_type` (optional).** For a contract of one of the types in `get_capabilities` `review.review_types` (住宅租賃, 國外團體旅遊, 搬家服務, 經銷, 買賣, 軟體開發委託, 合夥, 收購意向書, 保證, 金錢借貸, 最高限額抵押, 會計師委任, 不動產附負擔贈與, 勞動契約, 冷鏈運送, 保密協議, 不動產委託銷售, 資訊系統維運與代管服務, 室內裝修工程承攬, 交通事故損害賠償和解, 銷售代理・居間, 設備維護保養, 健身中心, 短期補習班, 婚紗攝影服務, 新車買賣, 國內團體旅遊, 殯葬服務, 安養, 路外停車場租用; 保密協議 is a one-way non-disclosure agreement; 新車買賣 is the sale of a new car — another sale is 買賣) send `review_type`: the contract is then reviewed as that type, and `represented_party` must be one of its two parties in `review_types[].represented_parties` — there is no default party — or the call is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). When the contract is one of these types — judged by its content, not only its title — send `review_type`, with one of that type's two parties as `represented_party`; when it is not, do not send `review_type`. A `review_type` outside that list is ignored and the contract is reviewed like any other.
 - Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
 - **Deliverables:** `review_comments` (the review opinion), `findings` (its important issues as JSON items), `revised_docx`, `redline`, `original`, `revised`, `memo`.
@@ -134,7 +134,9 @@ Submit one contract for full LegalOS review.
             最高限額抵押 / 會計師委任 / 不動產附負擔贈與 /
             勞動契約 / 冷鏈運送 / 保密協議 / 不動產委託銷售 /
             資訊系統維運與代管服務 / 室內裝修工程承攬 / 交通事故損害賠償和解 /
-            銷售代理・居間 / 設備維護保養): the contract is reviewed as that type,
+            銷售代理・居間 / 設備維護保養 / 健身中心 / 短期補習班 / 婚紗攝影服務 /
+            新車買賣 / 國內團體旅遊 / 殯葬服務 / 安養 / 路外停車場租用): the
+            contract is reviewed as that type,
             for one of its two parties. When the contract is one of these types — judge
             by its content, not only its title — send review_type, with one of
             that type's two parties as represented_party; when it is not, do
@@ -1026,6 +1028,62 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "設備使用方",
           "維護廠商"
         ]
+      },
+      {
+        "type": "健身中心",
+        "represented_parties": [
+          "消費者",
+          "健身中心業者"
+        ]
+      },
+      {
+        "type": "短期補習班",
+        "represented_parties": [
+          "學生",
+          "短期補習班"
+        ]
+      },
+      {
+        "type": "婚紗攝影服務",
+        "represented_parties": [
+          "消費者",
+          "婚紗攝影業者"
+        ]
+      },
+      {
+        "type": "新車買賣",
+        "represented_parties": [
+          "買受人",
+          "出賣人"
+        ]
+      },
+      {
+        "type": "國內團體旅遊",
+        "represented_parties": [
+          "旅客",
+          "旅行業者"
+        ]
+      },
+      {
+        "type": "殯葬服務",
+        "represented_parties": [
+          "消費者",
+          "殯葬服務業者"
+        ]
+      },
+      {
+        "type": "安養",
+        "represented_parties": [
+          "消費者",
+          "安養機構"
+        ]
+      },
+      {
+        "type": "路外停車場租用",
+        "represented_parties": [
+          "停車位租用人",
+          "停車場經營業者"
+        ]
       }
     ],
     "medium": {
@@ -1187,6 +1245,62 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
             "設備使用方",
             "維護廠商"
           ]
+        },
+        {
+          "type": "健身中心",
+          "represented_parties": [
+            "消費者",
+            "健身中心業者"
+          ]
+        },
+        {
+          "type": "短期補習班",
+          "represented_parties": [
+            "學生",
+            "短期補習班"
+          ]
+        },
+        {
+          "type": "婚紗攝影服務",
+          "represented_parties": [
+            "消費者",
+            "婚紗攝影業者"
+          ]
+        },
+        {
+          "type": "新車買賣",
+          "represented_parties": [
+            "買受人",
+            "出賣人"
+          ]
+        },
+        {
+          "type": "國內團體旅遊",
+          "represented_parties": [
+            "旅客",
+            "旅行業者"
+          ]
+        },
+        {
+          "type": "殯葬服務",
+          "represented_parties": [
+            "消費者",
+            "殯葬服務業者"
+          ]
+        },
+        {
+          "type": "安養",
+          "represented_parties": [
+            "消費者",
+            "安養機構"
+          ]
+        },
+        {
+          "type": "路外停車場租用",
+          "represented_parties": [
+            "停車位租用人",
+            "停車場經營業者"
+          ]
         }
       ]
     },
@@ -1345,6 +1459,62 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
           "represented_parties": [
             "設備使用方",
             "維護廠商"
+          ]
+        },
+        {
+          "type": "健身中心",
+          "represented_parties": [
+            "消費者",
+            "健身中心業者"
+          ]
+        },
+        {
+          "type": "短期補習班",
+          "represented_parties": [
+            "學生",
+            "短期補習班"
+          ]
+        },
+        {
+          "type": "婚紗攝影服務",
+          "represented_parties": [
+            "消費者",
+            "婚紗攝影業者"
+          ]
+        },
+        {
+          "type": "新車買賣",
+          "represented_parties": [
+            "買受人",
+            "出賣人"
+          ]
+        },
+        {
+          "type": "國內團體旅遊",
+          "represented_parties": [
+            "旅客",
+            "旅行業者"
+          ]
+        },
+        {
+          "type": "殯葬服務",
+          "represented_parties": [
+            "消費者",
+            "殯葬服務業者"
+          ]
+        },
+        {
+          "type": "安養",
+          "represented_parties": [
+            "消費者",
+            "安養機構"
+          ]
+        },
+        {
+          "type": "路外停車場租用",
+          "represented_parties": [
+            "停車位租用人",
+            "停車場經營業者"
           ]
         }
       ]
