@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-02 — read_judgment reads only the court asked for
+
+#### Changed
+
+- `read_judgment` with `court` + `case_number` reads only that court's judgment (台 and 臺 alike). When the source has the number only at other courts, it no longer opens one of them: the answer is `NOT_FOUND` with `detail: "judgment_not_in_source"` and `candidates` listing those other courts' judgments.
+- `candidates` (in both errors) carry `court`, and `decision_date` as `read_judgment` gives it (YYYY-MM-DD).
+
 ### 2026-11-02 — judgments: 民事 / 刑事 under one case number, doc_id in sources, 「未收錄」
 
 #### Added

@@ -3045,9 +3045,11 @@ Returns `disposition` (主文), `text` (one page, at most `max_chars`), `offset`
 
 A 司法院 釋字 (e.g. `court` 司法院, `case_number` 釋字第380號) or a 憲法法庭 憲判字 (e.g. 憲法法庭, 111年憲判字第8號) also carries its change status — `standing`, `changed_by`, `supplemented_by`, `changes`, `standing_checked_through` — and `source`, exactly as in [`search_interpretations`](#search_interpretations). Any other judgment is unchanged.
 
-**The same court and case number can be more than one judgment.** 最高法院's 民事 and 刑事 cases both use 台上字, so 97年度台上字第2624號 is a 刑事判決 and a 民事裁定. Give `case_category` (民事, 刑事 or 行政) with `court` + `case_number` to read that kind's one. Without it, a number that is more than one kind of case is not guessed: the answer is `ok: false`, `error_code` `INVALID_ARGUMENT`, `context` `{"field": "case_category", "detail": "judgment_case_category_ambiguous", "court", "case_number", "candidates": [{"doc_id", "case_category", "title", "decision_date"}, …]}` — read one of the candidates by `doc_id`, or call again with `case_category`; do not retry unchanged. A number that is only one kind of case is read as before, and so is a `doc_id`.
+**The same court and case number can be more than one judgment.** 最高法院's 民事 and 刑事 cases both use 台上字, so 97年度台上字第2624號 is a 刑事判決 and a 民事裁定. Give `case_category` (民事, 刑事 or 行政) with `court` + `case_number` to read that kind's one. Without it, a number that is more than one kind of case is not guessed: the answer is `ok: false`, `error_code` `INVALID_ARGUMENT`, `context` `{"field": "case_category", "detail": "judgment_case_category_ambiguous", "court", "case_number", "candidates": [{"doc_id", "court", "case_category", "title", "decision_date"}, …]}` (`decision_date` as `read_judgment` gives it, YYYY-MM-DD) — read one of the candidates by `doc_id`, or call again with `case_category`; do not retry unchanged. A number that is only one kind of case is read as before, and so is a `doc_id`.
 
 A judgment the source has not collected answers `NOT_FOUND` with `detail` `judgment_not_in_source` and a `reason` of 來源未收錄此裁判：<the case asked for>（不代表不存在；較早年度的裁判多未收錄）. It does not mean the judgment does not exist or that the citation is wrong: many judgments of earlier years are not collected. `case_category` given and no judgment of that kind collected answers the same.
+
+**Only the court asked for is read** (台 and 臺 alike: 台灣高等法院 is 臺灣高等法院). When the source has the case number only at other courts — 臺灣高等法院 112年度上字第100號 is at its 臺中 and 高雄 branches, not at 臺灣高等法院 itself — no judgment is opened: the answer is `NOT_FOUND` with `detail` `judgment_not_in_source`, and `context.candidates` lists those other courts' judgments, in the same shape as above, for the caller to choose from by `doc_id`. They are not the judgment asked for. With no other court's either, there is no `candidates`. When the court asked for has the number, other courts' are left out.
 
 `case_history`, when the source has it: the case's other instances — `upper` (the courts that heard the case after this judgment) and `lower` (those before it), each `{citation_text, court_level, decision_date, disposition, doc_id}` — and `same_case` (every document of the case). No `upper` does not mean the case is final: a newer appeal may not be published yet.
 
@@ -3063,7 +3065,9 @@ Read one judgment's original text, a page at a time: the 主文 (disposition) an
     court_level, decision_date, disposition and doc_id, and same_case (every document of the case); no upper does not mean the case is
     final — a newer appeal may not be published yet. The same court and case number can be both a 民事 and a 刑事 case (最高法院's
     台上字 is both): give case_category to read that one; without it, a number that is more than one kind of case is not guessed —
-    the error lists the candidates (doc_id, case_category, title, decision_date) to read one by doc_id. Synchronous: no job, no charge.
+    the error lists the candidates (doc_id, court, case_category, title, decision_date) to read one by doc_id. Only the court asked
+    for is read (台 and 臺 alike): when the source has the number only at other courts, the answer is NOT_FOUND with those as
+    candidates, never another court's judgment. Synchronous: no job, no charge.
 
     Args:
         doc_id: The judgment's doc_id.
@@ -3075,7 +3079,7 @@ Read one judgment's original text, a page at a time: the 主文 (disposition) an
         max_chars: At most this many characters of text, 200–3000 (default 3000).
 
     Errors: NOT_FOUND (detail judgment_not_in_source: the source has not collected that judgment — which does not mean it does not
-    exist), INVALID_ARGUMENT (neither doc_id nor court + case_number, around with offset, a bad number or case_category; detail
+    exist; candidates when other courts have the same number), INVALID_ARGUMENT (neither doc_id nor court + case_number, around with offset, a bad number or case_category; detail
     judgment_case_category_ambiguous: the number is more than one kind of case, with candidates), RETRIEVAL_FAILED (the source failed).
     
 ```
