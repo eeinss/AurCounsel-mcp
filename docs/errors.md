@@ -115,7 +115,8 @@ Shape:
 | `FILE_REF_NOT_USABLE` | no | The `file_ref` expired, was revoked, or belongs to another identity (which one is not reported); upload again. | — |
 | `ARTIFACT_TOO_LARGE` | no | A text artifact is over the 8 MB inline limit; download it from its `url`. | size and limit |
 | `UPSTREAM_REJECTED` | no | The service rejected the submission. With `context.upstream_status: 403` it means this token is not entitled to that capability. | `{"upstream_status": <int>}` |
-| `NOT_FOUND` | yes | From `get_artifact`: a completed review has no `findings` and never will (`get_job` lists it `ready: false`). Final — do not retry; the opinion is in `review_comments`. The download URL answers HTTP 404. (The lookup tools use the same code for an article or judgment that does not exist.) | `{"detail": "review_has_no_findings", "artifact": "findings"}` |
+| `NOT_FOUND` | yes | From `get_artifact`: a completed review has no `findings` and never will (`get_job` lists it `ready: false`). Final — do not retry; the opinion is in `review_comments`. The download URL answers HTTP 404. (The lookup tools use the same code for an article that does not exist, and `read_judgment` for a judgment the source has not collected: `detail` `judgment_not_in_source`, 來源未收錄此裁判 — not that it does not exist; many judgments of earlier years are not collected. Final — do not retry.) | `{"detail": "review_has_no_findings", "artifact": "findings"}`; `read_judgment`: `{"detail": "judgment_not_in_source", "reason", "court", "case_number", "case_category"}` or `{"detail", "reason", "doc_id"}` |
+| `INVALID_ARGUMENT` | yes | From the lookup tools: the arguments cannot be used as given. From `read_judgment` with `court` + `case_number` and no `case_category`: `detail` `judgment_case_category_ambiguous` — the number is more than one kind of case (e.g. 民事 and 刑事) and none was picked. Read one of `candidates` by `doc_id`, or call again with `case_category`; do not retry unchanged. | `{"field", "reason"}`; ambiguous: `{"field": "case_category", "detail": "judgment_case_category_ambiguous", "court", "case_number", "candidates": [{"doc_id", "case_category", "title", "decision_date"}]}` |
 | `UPSTREAM_ERROR` / `UPSTREAM_UNREACHABLE` | no | The service failed or could not be reached; transient. | — |
 
 This table lists what was observed plus the codes the server's own error vocabulary defines. It is **not** certified as the complete set — the server exposes no enumeration of its error codes.
@@ -259,6 +260,8 @@ Do not blindly retry every error.
 - `unknown`: read `upstream_status` and surface it; do not treat it as progress.
 - `JOB_NOT_FOUND`: the identifier is wrong or the job never existed. Retrying will not change the answer.
 - `NOT_FOUND` with `detail: "review_has_no_findings"`: this review has no findings and never will. Retrying will not change the answer.
+- `NOT_FOUND` with `detail: "judgment_not_in_source"`: the source has not collected that judgment (來源未收錄此裁判). It may still exist; retrying will not change the answer.
+- `INVALID_ARGUMENT` with `detail: "judgment_case_category_ambiguous"`: pick one of `candidates` and read it by `doc_id`, or call again with `case_category`. Retrying unchanged gives the same answer.
 - request validation error (layer 2 or `INVALID_INPUT`): correct the request before retrying.
 - HTTP 406: add `Accept: application/json, text/event-stream`. Retrying unchanged will always fail.
 - HTTP 429: wait for `Retry-After`, then retry the read.

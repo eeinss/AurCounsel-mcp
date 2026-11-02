@@ -6,6 +6,18 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-02 — judgments: 民事 / 刑事 under one case number, doc_id in sources, 「未收錄」
+
+#### Added
+
+- `read_judgment` takes `case_category` (民事, 刑事 or 行政) with `court` + `case_number`. A case number that is more than one kind of case (最高法院's 台上字 is both 民事 and 刑事) is no longer resolved to the first match: without `case_category` the answer is `INVALID_ARGUMENT` with `detail: "judgment_case_category_ambiguous"` and `candidates` (`doc_id`, `case_category`, `title`, `decision_date`). A number that is one kind of case, and a `doc_id`, read as before.
+- `findings`: each judgment carries `case_category` — 民事, 刑事 or 行政 when the text writes it right after the number, else `null`. `version` stays 2.
+- `fast_legal` `sources`: each judgment carries `doc_id` (the one the job obtained; `null` when not retrieved and for earlier jobs) and `case_category`; `arguments` is `{doc_id}` when there is one.
+
+#### Changed
+
+- `read_judgment` for a judgment the source has not collected answers `NOT_FOUND` with `detail: "judgment_not_in_source"` and 來源未收錄此裁判（不代表不存在；較早年度的裁判多未收錄）, instead of 查無此判決. It does not mean the judgment does not exist.
+
 ### 2026-11-01 — findings version 2: judgments with their court
 
 #### Changed
