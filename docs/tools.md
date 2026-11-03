@@ -847,7 +847,11 @@ Read what this deployment offers right now. Read-only: it creates no job and cal
 
 ### Response (live, 2026-10-27)
 
-The `review_types` lists in these examples show the first 30 types; since 2026-11-03 the live list has 104.
+The `review_types` lists in these examples show the first 30 types without `description`; since 2026-11-03 the live list has 104, and each entry also carries a one-sentence `description` — the contracts it fits and how it differs from similar types — for example:
+
+```json
+{"type": "生前殯葬服務（自用型）", "represented_parties": ["消費者", "殯葬服務業者"], "description": "消費者為自己購買，於本人死亡後由其指定的契約執行人執行、業者提供殯葬服務的生前契約；為親屬購買的見「生前殯葬服務（家用型）」。"}
+```
 
 ```json
 {
@@ -1611,7 +1615,8 @@ What this deployment offers right now, read from the service's own table (nothin
       draft / review / revise / compare: per implemented level, `{"enabled": true|false}`. Every draft level drafts any contract or
         document, for either party or neutral, under any of draft.jurisdictions.
       draft also: accepted jurisdictions, represented_party values and languages (draft_contract language; omitted = the jurisdiction's own). review also: `review_types` — the types with their own review, each with its
-        two parties (`represented_parties`), for review_contract review_type; every level reviews any other contract too.
+        two parties (`represented_parties`) and a one-sentence `description` (the contracts it fits and how it differs from
+        similar types), for review_contract review_type; every level reviews any other contract too.
     
 ```
 

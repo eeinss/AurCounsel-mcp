@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-03 — review type descriptions
+
+#### Added
+
+- `get_capabilities` `review.review_types`: every entry now has `description`, one sentence in Traditional Chinese saying which contracts the type fits and how it differs from similar types (for example 生前殯葬服務（家用型） / （自用型）, or the travel types), to help choose `review_type`. Reviews themselves are unchanged.
+
 ### 2026-11-03 — 74 more consumer review types
 
 #### Added
