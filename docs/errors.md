@@ -260,6 +260,7 @@ Do not blindly retry every error.
 - `unknown`: read `upstream_status` and surface it; do not treat it as progress.
 - `JOB_NOT_FOUND`: the identifier is wrong or the job never existed. Retrying will not change the answer.
 - `NOT_FOUND` with `detail: "review_has_no_findings"`: this review has no findings and never will. Retrying will not change the answer.
+- `NOT_FOUND` with `detail: "job_has_no_citations"`: this review or draft completed before the citation check existed; it has no `citations` and never will. Retrying will not change the answer.
 - `NOT_FOUND` with `detail: "draft_not_drafted"`: this draft is not a contract (`draft.outcome` `declined` or `needs_input`); read `draft_summary`, or ask `draft.questions` and submit again. Retrying will not change the answer.
 - `NOT_FOUND` with `detail: "judgment_not_in_source"`: the source has not collected that judgment (來源未收錄此裁判). It may still exist; retrying will not change the answer. `candidates`, when present, are the same number at other courts — let the user choose; do not present one as the judgment cited.
 - `INVALID_ARGUMENT` with `detail: "judgment_case_category_ambiguous"`: pick one of `candidates` and read it by `doc_id`, or call again with `case_category`. Retrying unchanged gives the same answer.

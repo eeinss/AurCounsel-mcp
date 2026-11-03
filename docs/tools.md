@@ -16,7 +16,7 @@ If this document differs from the machine-readable live contract, treat the diff
 
 ## Tool inventory (live capture)
 
-For a key permitted every tool, `tools/list` returns exactly seventeen tools (a key permitted fewer sees only those; see [Keys](#keys-permitted-tools-and-prepaid-balance)):
+For a key permitted every tool, `tools/list` returns exactly eighteen tools (a key permitted fewer sees only those; see [Keys](#keys-permitted-tools-and-prepaid-balance)):
 
 ```text
 review_contract
@@ -36,9 +36,10 @@ read_judgment
 get_laws
 list_law_changes
 get_law_change
+check_citations
 ```
 
-No additional public tools exist beyond these seventeen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these eighteen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 ## Keys: permitted tools and prepaid balance
 
@@ -1689,6 +1690,13 @@ Get the state of any job submitted through this server.
     be confirmed is removed (the law name stays). Null for other jobs and for
     drafts from before the check existed.
 
+    citations is present on a completed review or draft: the counts of its
+    citation check (get_artifact citations) — {complete, statutes: {found,
+    no_such_article, unknown_law, deleted, not_checked}, quotes: {matches,
+    differs, none}, judgments: {found, not_in_source, multiple, not_checked},
+    unparsed}. complete false: a lookup did not answer, the review or draft
+    itself is complete. Null for other jobs and for jobs from before the check.
+
     artifacts lists what this job produces, each with a ready flag. If
     artifacts is empty there will be an artifacts_blocked block naming why no
     address could be built; an empty list on its own is never the answer.
@@ -2219,6 +2227,12 @@ Read one artifact of a finished job.
             whose get_job draft.outcome is not drafted lists draft_html and
             draft_docx as not ready, and asking for them answers NOT_FOUND
             (detail draft_not_drafted) — final, do not retry.
+            A review and a draft also offer citations: the citation check of
+            what they delivered (the review's memo and revised contract; the
+            drafted contract), the same answer check_citations gives. A job
+            completed before the check lists citations as not ready, and
+            asking for it answers NOT_FOUND (detail job_has_no_citations) —
+            final, do not retry.
             A compare offers compare_redline (what changed between the two
             versions), compare_memo and compare_synthesis.
             A revision offers revised_docx (the revised contract to deliver)
@@ -3404,6 +3418,103 @@ Read one judgment's original text, a page at a time: the 主文 (disposition) an
     }
   },
   "title": "read_judgmentArguments",
+  "type": "object"
+}
+```
+
+## `check_citations`
+
+Check the citations in a brief, an opinion, a contract or any text: every statute article and judgment it cites, each once. Give `text` (up to 200,000 characters) or `file_ref` (a `.docx`, `.pdf` or `.doc` from [`/upload`](#uploading-a-document-upload); the ref is spent), not both. Synchronous: no job, no model, no charge. Only act names, article numbers and case numbers are looked up; the text itself is not sent anywhere else.
+
+**What it checks, and what it does not.** It says only whether each citation is found, whether an article text quoted at the citation is the current article's, and the act's last amendment date. It does not judge whether the article applies, or whether a judgment is cited for what it actually holds — *found does not mean used correctly*. A judgment that is not found may simply not be collected by the source (many judgments of earlier years are not), so it is reported as 來源未收錄或字號有誤, never as "does not exist". A quoted text that differs from the current article is reported as 和現行條文不同, not as an error: a document may quote the wording before an amendment.
+
+**Reading citations.** Statutes: 「民法第184條第1項」「勞動基準法第10條之1」「第一百八十四條之一」; a short or former name is read as the act (勞基法 → 勞動基準法, 個資法施行細則 → 個人資料保護法施行細則), and 同法 / 該法 as the act cited just before; 「民法第354條、第359條」 is two articles of 民法. A law name that is not an act's full, short or former name is `unknown_law`. Judgments: 「最高法院110年度台上字第1432號」 (with 民事 / 刑事 / 行政 when written after the number), 釋字, 憲判字. A citation that cannot be read (for example 同法 with no act before it, or 本法) is listed in `unparsed`.
+
+| Field | Meaning |
+|---|---|
+| `statutes[]` | `law` (the act), `law_as_written`, `article`, `article_key` (pass `law` and `article_key` to [`get_article`](#get_article)), `refs` (as written), `status` / `status_text`: `found` 存在 · `no_such_article` 法規存在但無此條 · `unknown_law` 查無此法規名稱 · `deleted` 條文已刪除 · `not_checked` 未完成查詢; `law_status`, `law_amended_on` (the act's last amendment date — there is no date per article), `law_url`, `article_url`, and `quotes[]`. |
+| `quotes[]` | Each article text the document quotes right after the citation (「…第1項規定：「…」」): `status` `matches` 一致 (the current article contains it — punctuation, spaces and width aside; a part counts; ellipses allowed) or `differs` 和現行條文不同 (with `current_text`). No quote: `quotes` is `[]` (無引文). |
+| `judgments[]` | `court`, `case_number`, `case_category`, `refs`, `status` / `status_text`: `found` 查得到 (`doc_id`, `title`, `decision_date`, `url`; read it with [`read_judgment`](#read_judgment)) · `not_in_source` 來源未收錄或字號有誤 · `multiple` 同號多件 (`candidates`, e.g. a 民事 and a 刑事 case under one number) · `not_checked`; and `cited_by_count` (judgments citing that number, counted even when the source has not collected it). |
+| `unparsed[]` | `ref`, `reason`, `status_text` 無法解析. |
+| `counts` | Per status, as `get_job` shows them for a review or draft (below). |
+| `complete` | `false` when a lookup did not answer: those citations are `not_checked`; every other one is answered. |
+
+A finished review and a finished draft carry the same check of what they delivered — the review's memo and revised contract, the drafted contract — as the artifact `citations` ([`get_artifact`](#get_artifact)) and its counts as `get_job` → `citations`. Jobs completed before 2026-11-03 have none (`NOT_FOUND`, detail `job_has_no_citations`).
+
+Example (one entry of each list, live 2026-11-03; `counts` of the whole answer):
+
+```json
+{"ok": true, "version": 1, "complete": true,
+ "statutes": [{"law": "民法", "law_as_written": ["民法"], "article_key": "184", "refs": ["第184條第1項"], "in": ["text"], "article": "第184條", "law_status": "in-force", "law_amended_on": "2026-08-17", "law_url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=B0000001", "status": "found", "status_text": "存在", "article_url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=184", "id": "ch-law:B0000001:art:184", "quotes": [{"quote": "因故意或過失，不法侵害他人之權利者，負損害賠償責任。", "status": "matches", "status_text": "一致"}]}],
+ "judgments": [{"court": "最高法院", "case_number": "49年台上字第1730號", "case_category": null, "refs": ["最高法院49年台上字第1730號"], "in": ["text"], "cited_by_count": 617, "status": "not_in_source", "status_text": "來源未收錄或字號有誤"}],
+ "unparsed": [],
+ "counts": {"complete": true, "statutes": {"found": 5, "no_such_article": 1, "unknown_law": 1, "deleted": 1, "not_checked": 0}, "quotes": {"matches": 1, "differs": 1, "none": 4}, "judgments": {"found": 2, "not_in_source": 2, "multiple": 0, "not_checked": 0}, "unparsed": 0}}
+```
+
+### Live description (verbatim)
+
+```text
+Check the citations in a brief, an opinion, a contract or any text: every statute article and judgment it cites, each once.
+
+    statutes[]: law (the act; a short or former name is read as the act, 同法 / 該法 as the act cited before it), law_as_written,
+    article and article_key (pass law and article_key to get_article), refs (as written), status — found (存在) · no_such_article
+    (法規存在但無此條) · unknown_law (查無此法規名稱) · deleted (條文已刪除) · not_checked (the lookup did not answer) — with
+    status_text, law_status, law_amended_on (the act's last amendment date; there is no date per article), article_url, and
+    quotes[]: each article text the document quotes right after the citation (「…規定：「…」」), status matches (一致: the current
+    article contains it, punctuation, spaces and width aside; a part counts, ellipses allowed) or differs (和現行條文不同, with
+    current_text). A difference is not an error: a document may quote the wording before an amendment. A citation with no quote has
+    quotes [] (無引文).
+    judgments[]: court, case_number, case_category, refs, status — found (查得到: doc_id, title, decision_date, url; read it with
+    read_judgment) · not_in_source (來源未收錄或字號有誤: the source has not collected it — many judgments of earlier years are not —
+    or the number is wrong; never "does not exist") · multiple (同號多件: candidates, e.g. a 民事 and a 刑事 case under one number) ·
+    not_checked — and cited_by_count (judgments citing that number, counted even when the source has not collected it).
+    unparsed[]: citations that cannot be read (無法解析), with the reason — e.g. 同法 with no act before it.
+    counts: per status. complete false when a lookup did not answer (those citations are not_checked).
+
+    It checks only whether a citation is found, whether a quoted text is the current article's, and the amendment date — never
+    whether the article applies or the judgment says what it is cited for: found does not mean used correctly. Synchronous: no job,
+    no model, no charge.
+
+    Args:
+        text: The text to check (up to 200,000 characters). Give text or file_ref, not both.
+        file_ref: An uploaded document (.docx, .pdf or .doc) by its file_ref from the upload route; the ref is spent.
+
+    Errors: INVALID_ARGUMENT (neither or both given, text too long, or a document with no readable text), FILE_REF_NOT_USABLE,
+    UPSTREAM_ERROR / UPSTREAM_UNREACHABLE (the service failed).
+    
+```
+
+### Exact input schema (verbatim)
+
+```json
+{
+  "properties": {
+    "text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Text"
+    },
+    "file_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File Ref"
+    }
+  },
+  "title": "check_citationsArguments",
   "type": "object"
 }
 ```

@@ -6,6 +6,20 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-03 — citation check
+
+#### Added
+
+- `check_citations`: the statute articles and judgments a text or an uploaded document cites, each looked up once — a statute is found (存在), no such article (法規存在但無此條), unknown law (查無此法規名稱) or deleted (條文已刪除), with the act's last amendment date and `article_key` for `get_article`; an article text quoted at the citation matches the current article (一致) or differs from it (和現行條文不同, with the current text); a judgment is found (with its link), not in the source (來源未收錄或字號有誤) or one of several under the same number (同號多件, with candidates). Synchronous; no job, no model, no charge.
+- Every new review and draft (every level) carries the same check of what it delivered as the artifact `citations`, and `get_job` → `citations` has its counts. Jobs completed before this have none (`NOT_FOUND`, detail `job_has_no_citations`). Reviews and drafts themselves are unchanged, and they complete even when the check cannot run (the artifact then says it is not complete).
+
+#### Limits
+
+- It checks only whether a citation is found, whether a quoted text is the current article's, and the amendment date. It does not judge whether the article applies or whether a judgment is cited for what it holds: found does not mean used correctly.
+- A judgment not found may not be collected by the source (many judgments of earlier years are not); it is never reported as not existing.
+- A quoted text that differs from the current article may be the wording before an amendment; it is not reported as an error.
+- The amendment date is the act's; there is no date per article.
+
 ### 2026-11-03 — 住宅轉租 parties
 
 #### Changed
