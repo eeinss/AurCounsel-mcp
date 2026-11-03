@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-03 — 74 more consumer review types
+
+#### Added
+
+- `review_contract` `review_type`: 74 more consumer standard-form contract types (every level), one for each other notice of 應記載及不得記載事項 currently in force — for example 信用卡, 預售屋買賣, 成屋買賣, 小客車租賃, 美容, 托嬰中心, 郵輪船票. Each is reviewed with that notice; its two parties are named as the notice names them. `get_capabilities` `review.review_types` lists all 104 types with their parties; the `review_type` description now points there instead of listing them.
+
 ### 2026-11-02 — eight consumer review types
 
 #### Added
