@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-04 — two review types also read their official notice
+
+#### Changed
+
+- `review_contract` `review_type` 國外團體旅遊 and 搬家服務 (every level, both parties): the review now also reads the competent authority's 應記載及不得記載事項 for that kind of contract (國外旅遊 / 搬家貨運), as the consumer types do. Their topic checklist review is unchanged. 住宅租賃 and 不動產委託銷售 are unchanged.
+
 ### 2026-11-03 — case status wording; two more short names
 
 #### Changed
