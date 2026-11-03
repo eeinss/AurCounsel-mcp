@@ -3009,9 +3009,13 @@ Search court judgments for how courts decide a point. Each result: the court, th
     passage, its position (passage_at, for read_judgment's around) and the doc_id. roles lists the section labels the source puts on the
     passage — 「理由，推定為法院判斷」 is the court's own reasoning; 「未確認為法院判斷」 may be a party's argument. Each result also gives
     case_category (民事 / 刑事 / 行政, from the doc_id's court code), decision_kind (判決 / 裁定, from the title), decision_year (the
-    ROC year, from the case number) — each null when it cannot be read from the judgment — and case_status, where the case stands
-    (e.g. final; same_case: the same case has other documents at that court; null when not given) and final_doc_id (the case's last
-    document), and cited_by_count — how many other cases' judgments cite it in their reasoning — with cited_by_levels (the citing
+    ROC year, from the case number) — each null when it cannot be read from the judgment — and case_status, where the case stands in
+    the source's database, not whether the judgment is legally final (確定): final — the database's last judgment of the case;
+    affirmed — an appeal, 抗告 or retrial against it was dismissed, so it stands; reversed — set aside (wholly or in part) without
+    remand; remanded — set aside and sent back, so the case has a later judgment; reviewed — heard by a higher court whose holding is
+    none of these or cannot be read (read that judgment); same_case — not itself reviewed, another document of the same case at that
+    court (e.g. a ruling); null when not given. Reviewed more than once, the strongest outcome is shown (reversed > remanded >
+    affirmed > reviewed). final_doc_id is the database's last document of the case. Also cited_by_count — how many other cases' judgments cite it in their reasoning — with cited_by_levels (the citing
     courts' levels). The count is a floor: the same case's other instances, rulings and citations written another way are not counted.
     At most 10 judgments are searched.
     Synchronous: no job, no charge.
@@ -3307,8 +3311,11 @@ Read one judgment's original text, a page at a time: the 主文 (disposition) an
     司法院 and 釋字第380號; 憲法法庭 and 111年憲判字第8號). A 釋字 or 憲判字 also carries its change status (standing, changed_by,
     supplemented_by, changes; see search_interpretations) and source. case_history, when the source has it, is the case's other
     instances: upper (the courts that heard the case after this judgment) and lower (those before it), each with citation_text,
-    court_level, decision_date, disposition and doc_id, and same_case (every document of the case); no upper does not mean the case is
-    final — a newer appeal may not be published yet. The same court and case number can be both a 民事 and a 刑事 case (最高法院's
+    court_level, decision_date, doc_id and disposition — what the higher court did with the lower one: dismissed (the appeal was
+    dismissed; the lower judgment stands), reversed (set aside, not remanded, nothing of it left), partly_reversed (set aside in
+    part, the rest dismissed), reversed_remanded (set aside and sent back), first_instance_like (the holding reads like a first
+    instance's; its effect on the lower judgment is not read), other (none of these), no_holding (no 主文 found) — and same_case
+    (every document of the case); no upper does not mean the case is legally final (確定) — a newer appeal may not be published yet. The same court and case number can be both a 民事 and a 刑事 case (最高法院's
     台上字 is both): give case_category to read that one; without it, a number that is more than one kind of case is not guessed —
     the error lists the candidates (doc_id, court, case_category, title, decision_date) to read one by doc_id. Only the court asked
     for is read (台 and 臺 alike): when the source has the number only at other courts, the answer is NOT_FOUND with those as

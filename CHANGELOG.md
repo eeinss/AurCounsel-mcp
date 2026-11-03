@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-03 — case status wording; two more short names
+
+#### Changed
+
+- `search_judgments` `case_status` and `read_judgment` `case_history` `disposition`: each value is now described as the source defines it. `final` is the database's last judgment of the case — **not** that the judgment is legally final (確定). `affirmed`, `reversed`, `remanded`, `reviewed`, `same_case` (the strongest outcome when reviewed more than once: reversed > remanded > affirmed > reviewed); `disposition` `dismissed`, `reversed`, `partly_reversed`, `reversed_remanded`, `first_instance_like`, `other`, `no_holding`. Fields and values are unchanged.
+- Act names: 廢清法 (廢棄物清理法) and 租賃專法 (租賃住宅市場發展及管理條例) are now read as those acts by `get_article`, `get_laws`, `search_statutes` and `check_citations`.
+
 ### 2026-11-03 — citation check
 
 #### Added
