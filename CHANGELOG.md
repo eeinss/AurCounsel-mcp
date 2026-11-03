@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-03 — 住宅轉租 parties
+
+#### Changed
+
+- `review_contract` `review_type` 住宅轉租: the two parties are now 承租人 / 包租業, as the notice names them (包租業 was listed as 出租人, which in that notice is the original landlord). 出租人 is refused with INVALID_INPUT listing the accepted values.
+
 ### 2026-11-03 — review type descriptions
 
 #### Added
