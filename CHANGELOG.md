@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-04 — 不動產委託銷售 and 住宅租賃 also read their official notice
+
+#### Changed
+
+- `review_contract` `review_type` 不動產委託銷售 (every level, both parties): the review now also reads the competent authority's 不動產委託銷售定型化契約應記載及不得記載事項. 住宅租賃 (both parties): the review reads the 住宅租賃定型化契約應記載及不得記載事項 at level medium only; at high and large it is unchanged. Their topic checklist review is unchanged.
+
 ### 2026-11-04 — two review types also read their official notice
 
 #### Changed
