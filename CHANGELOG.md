@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-05 — compare_contracts opens; documents are written whole
+
+#### Added
+
+- `compare_contracts` is open at every level (`medium`, `high`, `large`; `high` and `large` are charged by usage, as `review_contract` is). It reads both documents whole and lists every substantive difference — the clause, what each version says, its effect and a recommendation — then an overall opinion (`compare_synthesis` / `compare_memo`); `compare_redline` shows the paragraph-level changes. New optional `represented_party`: the effects and recommendations are for that party; omitted or neutral, for both sides. Two documents together too long for the level fail the job with a message saying so. The job's steps are now 解析兩份文件 → 比較兩份合約全文 → 產生比對文件.
+
+#### Changed
+
+- `draft_contract` with a `doc_type` (聲請書, 起訴狀, 答辯狀, 存證信函, 律師函 …, given as examples): the document is written whole; a fact the request does not give — case number, party, address, date, amount, evidence — stays a `[待補]` mark in it, so a document is `drafted` or `declined`, never `needs_input`. `party_a` / `party_b` names are used in it. Its statutes and judgments are looked up like a contract's (`citations`); for Taiwan the drafting is given candidate statutes as reference.
+
 ### 2026-11-04 — 不動產委託銷售 and 住宅租賃 also read their official notice
 
 #### Changed

@@ -39,7 +39,7 @@ get_law_change
 check_citations
 ```
 
-No additional public tools exist beyond these eighteen. Two of them are registered but **not open**: `compare_contracts` and `revise_contract` answer every call with `PERMISSION_DENIED` (see their sections). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
+No additional public tools exist beyond these eighteen. One of them is registered but **not open**: `revise_contract` answers every call with `PERMISSION_DENIED` (see its section). [`get_capabilities`](#get_capabilities) says which capabilities are open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}`.
 
 ## Keys: permitted tools and prepaid balance
 
@@ -324,7 +324,10 @@ Draft a new contract or legal document with LegalOS.
     reasons are in draft_summary) or needs_input (the request lacks or
     contradicts what the contract needs; draft.questions lists what to ask the
     user — submit again with the answers). Only drafted has draft_html /
-    draft_docx.
+    draft_docx. A document (doc_type) is written whole: a fact the request
+    does not give — case number, party, address, date, amount, evidence —
+    stays a [待補] mark in it, so a document is drafted or declined, never
+    needs_input; its citations are looked up like a contract's (citations).
 
     Any field left blank is written into the document as a placeholder such as
     [甲方] and is not invented by the engine, so it is better to omit a term you
@@ -341,9 +344,9 @@ Draft a new contract or legal document with LegalOS.
         amount: Contract amount, in your own wording. Blank leaves a placeholder.
         term: Contract term or duration. Blank leaves a placeholder.
         special: Any special requirements the document must cover.
-        doc_type: For a court or lawyer's document rather than a contract:
-            聲請書 / 起訴狀 / 答辯狀 / 存證信函 / 律師函 / 委任狀 / 和解書. Omit
-            for a contract.
+        doc_type: For a court or lawyer's document rather than a contract,
+            e.g. 聲請書 / 起訴狀 / 答辯狀 / 存證信函 / 律師函 / 委任狀 / 和解書.
+            Omit for a contract.
         requested_jurisdiction: Governing law to draft under. 'hk' is accepted
             but LegalOS has no Hong Kong jurisdiction, so it is drafted as
             'other' and the response says the request was degraded. Required:
@@ -563,7 +566,7 @@ Draft a new contract or legal document with LegalOS.
 
 A `subject` with no text (only punctuation or spaces) is refused with `INVALID_INPUT`, `context: {"field": "subject", "reason": "no text"}`, before anything is sent.
 
-A finished draft says what it is in `get_job` → `draft.outcome`: `drafted` (the contract: `draft_html`, `draft_docx`, `draft_summary`), `declined` (not drafted — the request should not be, e.g. an unlawful transaction; `draft_summary` carries the reasons) or `needs_input` (not drafted — the request lacks or contradicts what the contract needs; `draft.questions` lists what to ask the user, the full reply is `draft_summary`; submit again with the answers). For `declined` and `needs_input`, `draft_html` / `draft_docx` are not ready and answer `NOT_FOUND` `draft_not_drafted`. Both are `completed`, not `failed`. A contract that stops mid-sentence is not delivered: the job fails.
+A document (`doc_type`) is written whole: a fact the request does not give — case number, party, address, date, amount, evidence — stays a `[待補]` mark in it, so a document is `drafted` or `declined`, never `needs_input`; its citations are looked up like a contract's. A finished draft says what it is in `get_job` → `draft.outcome`: `drafted` (the contract: `draft_html`, `draft_docx`, `draft_summary`), `declined` (not drafted — the request should not be, e.g. an unlawful transaction; `draft_summary` carries the reasons) or `needs_input` (not drafted — the request lacks or contradicts what the contract needs; `draft.questions` lists what to ask the user, the full reply is `draft_summary`; submit again with the answers). For `declined` and `needs_input`, `draft_html` / `draft_docx` are not ready and answer `NOT_FOUND` `draft_not_drafted`. Both are `completed`, not `failed`. A contract that stops mid-sentence is not delivered: the job fails.
 
 ### Success response shape and `job_id` path
 
@@ -579,7 +582,7 @@ A finished draft says what it is in `get_job` → `draft.outcome`: `drafted` (th
 
 ### Purpose
 
-**Not open.** Every call — with or without `model` — returns `ok: false`, `error_code: "PERMISSION_DENIED"`, `context.capability: "compare"`, before any document is read: nothing is sent, no job is created and no model is called. The capability is implemented on the service and is listed by [`get_capabilities`](#get_capabilities) with `enabled: false`, `implemented: true`; when it opens, that listing changes and this tool starts accepting calls.
+Compare two versions of a contract. The comparison reads both documents whole and lists every substantive difference — the clause, what each version says, its effect and a recommendation — then an overall opinion. With `represented_party` the effects and recommendations are for that party; without it, or with a neutral wording, both parties' are given. Every level (`medium`, `high`, `large`); `high` and `large` are charged by usage, as `review_contract` is.
 
 ### Public guarantees
 
@@ -592,10 +595,13 @@ A finished draft says what it is in `get_job` → `draft.outcome`: `drafted` (th
 ```text
 Compare two versions of a contract and report what changed.
 
-    Not open yet: while the service's capability table has this capability
-    disabled (see get_capabilities), every call is refused with
-    PERMISSION_DENIED before any document is read — nothing is sent, no job is
-    created and no model is called.
+    The comparison reads both documents whole and lists every substantive
+    difference — the clause, what each version says, its effect and a
+    recommendation — then an overall opinion (compare_synthesis / compare_memo);
+    compare_redline shows the paragraph-level changes. With represented_party
+    the effects and recommendations are for that party; without it (or with a
+    neutral wording) both parties' are given. Two documents together too long
+    for the level fail the job with a message saying so; nothing is split.
 
     Returns immediately with a job_id; the comparison runs in the background and
     takes minutes. Poll get_job with that job_id.
@@ -620,6 +626,8 @@ Compare two versions of a contract and report what changed.
         file_b_ref: Handle from `/upload` for the second contract.
         model: Optional. The level: medium (the default), high or large; get_capabilities lists
             the levels offered. Never switched to another level.
+        represented_party: Optional. The party you act for, in your own words
+            (e.g. 承租人, 買方, the company's name); omitted or neutral = both sides.
     
 ```
 
@@ -695,6 +703,18 @@ Compare two versions of a contract and report what changed.
       ],
       "default": null,
       "title": "Model"
+    },
+    "represented_party": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Represented Party"
     }
   },
   "required": [
@@ -706,16 +726,16 @@ Compare two versions of a contract and report what changed.
 }
 ```
 
-`file_a_name` and `file_b_name` are always required. The two documents arrive the same way: either both inline (`file_a_b64` with `file_b_b64`) or both by reference from [`/upload`](#uploading-a-document-upload) (`file_a_ref` with `file_b_ref`). A call that mixes the two, or gives both or neither for one side, is refused with `INVALID_INPUT`. There are no enums. Both inputs must be `.docx` — unlike `review_contract`, `.pdf` and `.doc` are refused, by content rather than by file name.
+`file_a_name` and `file_b_name` are always required. The two documents arrive the same way: either both inline (`file_a_b64` with `file_b_b64`) or both by reference from [`/upload`](#uploading-a-document-upload) (`file_a_ref` with `file_b_ref`). A call that mixes the two, or gives both or neither for one side, is refused with `INVALID_INPUT`. `represented_party` is optional, in your own words (e.g. 承租人, 買方, a company's name); omitted or a neutral wording compares for both sides. There are no enums. Both inputs must be `.docx` — unlike `review_contract`, `.pdf` and `.doc` are refused, by content rather than by file name.
 
 ### Success response shape and `job_id` path
 
-Not reachable while the tool is closed: every call returns `PERMISSION_DENIED`, observed live on 2026-10-18 (with and without `model`).
+`{ok: true, job_id, capability: "compare", status, file_a_name, file_b_name, model, represented_party}` — `job_id` is at the top level; `represented_party` is as sent, `null` for both sides. Poll `get_job`; a completed compare has `compare_redline`, `compare_memo` and `compare_synthesis`. Two documents together too long for the level fail the job with a message saying so. Observed live on 2026-11-05 (level medium, a represented party): completed, all three artifacts ready.
 
 ### Verified example
 
 ```json
-{"ok": false, "error_code": "PERMISSION_DENIED", "message": "This capability is not open yet (此功能尚未開放). Nothing was sent, no job was created and no model was called; context.capability names it, and get_capabilities lists what is open.", "context": {"capability": "compare"}}
+{"ok": true, "job_id": "<job_id>", "capability": "compare", "status": "<status>", "file_a_name": "A.docx", "file_b_name": "B.docx", "model": "medium", "represented_party": "承租人"}
 ```
 
 ---

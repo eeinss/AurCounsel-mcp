@@ -303,14 +303,12 @@ A document over the length limit ends at `refused` (1.0).
 | `redlining` | `redlining` | 產生紅線 | 0.90 | |
 | `done` | `done` | 已完成 / 未完成 | 1.0 | |
 
-**compare** (not open yet):
+**compare**:
 
 | `stage` | event `step` | 中文 (`text`) | `fraction` | event `detail` |
 |---|---|---|---|---|
-| `parsing` | `parsing` | 解析兩份文件 | 0.05, 0.10 | 文件 A; 文件 B |
-| `aligning` | `aligning` | 對齊兩份文件的段落 | 0.15 | 文件 A n 段・文件 B m 段 |
-| `analyzing` | `analyzing` | 逐段分析差異 | 0.20 → 0.75 | 第 i／N 處變動 |
-| `synthesizing` | `synthesizing` | 撰寫比對總評 | 0.78 | |
+| `parsing` | `parsing` | 解析兩份文件 | 0.05 | |
+| `analyzing` | `analyzing` | 比較兩份合約全文 | 0.20 | |
 | `generating` | `generating` | 產生比對文件 | 0.85 | |
 | `done` | `done` | 已完成 / 未完成 | 1.0 | |
 

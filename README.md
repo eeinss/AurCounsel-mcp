@@ -6,7 +6,7 @@ AurCounsel MCP is the public developer interface for **AurCounsel**, a contract 
 
 > **Newest capability: `fast_legal`.** It answers a legal question with bounded research and says whether the evidence it found was sufficient (`COMPLETE` or `INSUFFICIENT_EVIDENCE`). The optional `level`: `medium` (default) is free and the fastest; `high` is charged by usage; `large` is charged by usage and researches the most deeply. See [Fast Legal](#fast-legal).
 
-> **`compare_contracts` and `revise_contract` are not open.** Both are listed by `tools/list`, and every call returns `PERMISSION_DENIED` with nothing sent. `get_capabilities` says what is open. Revision jobs submitted before `revise_contract` was withdrawn on an earlier date can still be read with `get_job` / `get_artifact` — see [docs/tools.md](docs/tools.md#revise_contract).
+> **`revise_contract` is not open.** It is listed by `tools/list`, and every call returns `PERMISSION_DENIED` with nothing sent. `get_capabilities` says what is open. Revision jobs submitted before `revise_contract` was withdrawn on an earlier date can still be read with `get_job` / `get_artifact` — see [docs/tools.md](docs/tools.md#revise_contract).
 
 **Public MCP endpoint**
 
@@ -36,7 +36,7 @@ AurCounsel MCP currently exposes these primary tools:
 
 - `review_contract` — submit a contract for review.
 - `draft_contract` — request contract drafting.
-- `compare_contracts` — compare two contracts or contract versions. **Not open yet:** every call returns `PERMISSION_DENIED`.
+- `compare_contracts` — compare two versions of a contract, optionally for one represented party.
 - `revise_contract` — apply a change to a contract. **Not open yet:** every call returns `PERMISSION_DENIED`.
 - `get_capabilities` — what is open right now: capabilities, the models open now (`models`) and built (`implemented_models`), and the contract types each type-limited `draft_contract` model accepts.
 - `fast_legal` — answer a legal question with bounded research, together with an evidence-sufficiency status.
@@ -120,7 +120,7 @@ Required arguments, by tool:
 | --- | --- |
 | `review_contract` | `file_name`, one of `file_b64` / `file_ref`, `represented_party` (one party of the contract — as the contract names it, or 甲方 / 乙方; with `review_type`, one of that type's two parties; neutral is refused), `client_instructions`. Optional `model` (a level: `medium` default, `high` / `large` charged by usage — every level reviews any contract) and `review_type` (see `get_capabilities` `review.review_types`) |
 | `draft_contract` | `subject` and `requested_jurisdiction`; for a contract (no `doc_type`) also `contract_type` and `represented_party`. Optional `model` (a level): `medium` (default), `high` or `large` — every level drafts any contract or document, for either party or neutral, under any jurisdiction offered (see [docs/tools.md](docs/tools.md#draft_contract)) |
-| `compare_contracts` | not open (`PERMISSION_DENIED`) |
+| `compare_contracts` | `file_a_name`, `file_b_name` and both documents (`.docx`, both inline or both by `/upload` reference). Optional `model` (a level): `medium` (default), `high` or `large`; optional `represented_party` (see [docs/tools.md](docs/tools.md#compare_contracts)) |
 | `revise_contract` | not open (`PERMISSION_DENIED`) |
 | `get_capabilities` | none |
 | `fast_legal` | `question`. Optional `level`: `medium` (default, free), `high` or `large` (deepest); `high` and `large` are charged by usage |

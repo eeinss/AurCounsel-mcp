@@ -83,7 +83,7 @@ get_job
 get_artifact
 ```
 
-A live `tools/list` returns exactly these eight and nothing else. `compare_contracts` and `revise_contract` are registered but not open: every call returns `PERMISSION_DENIED`. Call `get_capabilities` to see what is open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}` — the server publishes no prompts and no resources.
+A live `tools/list` returns exactly these eight and nothing else. `revise_contract` is registered but not open: every call returns `PERMISSION_DENIED`. Call `get_capabilities` to see what is open right now. `prompts/list` returns `{"prompts": []}` and `resources/list` returns `{"resources": []}` — the server publishes no prompts and no resources.
 
 The canonical schemas are whatever the live MCP server returns through tool discovery. The prose documentation in this repo must be regenerated or corrected whenever it diverges from that machine-readable contract. The per-tool contract is in [tools.md](tools.md).
 
