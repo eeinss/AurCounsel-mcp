@@ -164,7 +164,7 @@ Three things to read from that:
 - `artifacts` is still fully populated with six entries, all `ready: false`, each with a `url`. A populated `artifacts` array is **not** evidence that anything is retrievable.
 - `progress` retains the fraction and stage the job reached before failing. `0.15` here is where it stopped, not how much is available.
 
-**UNRESOLVED — failure detail.** The only `failure` content observed is `{"error_code": "JOB_FAILED"}`. Whether the block ever carries a message, a stage, or a more specific code was not established, and no enumeration of failure codes is exposed.
+**Failure codes.** `failure.error_code` is `INPUT_TOO_LONG` (a compare pair too long for the level; with `input_tokens`, `limit_tokens`, `fits_levels`), `DRAFT_UNFINISHED` (a draft that stopped mid-sentence) or `JOB_FAILED` (any other cause, no further field). See [tools.md](tools.md#failure-representation).
 
 ### `unknown`
 

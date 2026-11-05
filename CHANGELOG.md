@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-05 — two failure codes
+
+#### Added
+
+- `get_job` `failure.error_code` `INPUT_TOO_LONG`: a `compare_contracts` job whose two documents together are longer than the level reads at once fails before any model is called, with `input_tokens`, `limit_tokens` and `fits_levels` (other levels known to hold them; empty when none is known). Before, such a job could fail as `JOB_FAILED`.
+- `DRAFT_UNFINISHED`: a `draft_contract` job whose draft stopped mid-sentence (not delivered; submit again). Other failures stay `JOB_FAILED`.
+
 ### 2026-11-05 — compare_contracts opens; documents are written whole
 
 #### Added

@@ -601,7 +601,8 @@ Compare two versions of a contract and report what changed.
     compare_redline shows the paragraph-level changes. With represented_party
     the effects and recommendations are for that party; without it (or with a
     neutral wording) both parties' are given. Two documents together too long
-    for the level fail the job with a message saying so; nothing is split.
+    for the level fail the job with failure.error_code INPUT_TOO_LONG (with
+    input_tokens and limit_tokens), before any model is called; nothing is split.
 
     Returns immediately with a job_id; the comparison runs in the background and
     takes minutes. Poll get_job with that job_id.
@@ -730,7 +731,7 @@ Compare two versions of a contract and report what changed.
 
 ### Success response shape and `job_id` path
 
-`{ok: true, job_id, capability: "compare", status, file_a_name, file_b_name, model, represented_party}` — `job_id` is at the top level; `represented_party` is as sent, `null` for both sides. Poll `get_job`; a completed compare has `compare_redline`, `compare_memo` and `compare_synthesis`. Two documents together too long for the level fail the job with a message saying so. Observed live on 2026-11-05 (level medium, a represented party): completed, all three artifacts ready.
+`{ok: true, job_id, capability: "compare", status, file_a_name, file_b_name, model, represented_party}` — `job_id` is at the top level; `represented_party` is as sent, `null` for both sides. Poll `get_job`; a completed compare has `compare_redline`, `compare_memo` and `compare_synthesis`. Two documents together too long for the level fail the job before any model is called, with `failure.error_code` `INPUT_TOO_LONG` and the numbers. Observed live on 2026-11-05 (level medium, a represented party): completed, all three artifacts ready.
 
 ### Verified example
 
@@ -1688,7 +1689,11 @@ Get the state of any job submitted through this server.
     'unknown' means LegalOS reported a state this server does not map; the raw
     value is in upstream_status. A job that ran and failed comes back as
     'failed' with a failure block — LegalOS reports that in the body rather than
-    as an HTTP error, so check the status and not just the call.
+    as an HTTP error, so check the status and not just the call. failure.error_code
+    is INPUT_TOO_LONG for a compare whose two documents together are longer than
+    the level reads at once (input_tokens, limit_tokens, and fits_levels: other
+    levels known to hold them, empty when none is known), DRAFT_UNFINISHED for a
+    draft that stopped mid-sentence (submit again), and JOB_FAILED otherwise.
 
     revision is present only on a revise job, and it is where a revision's
     result lives: outcome is applied, blocked or needs_clarification, with
@@ -1831,7 +1836,7 @@ The tool returns `isError: false` and a single text content block containing thi
 | `note_check` | object \| null | Finished drafts. `{checked, corrected, removed}`: how many statute article citations in `draft_summary` were checked against the article text, how many were changed to the article that says what the sentence says, and how many article numbers were removed because they could not be confirmed (the law name stays). `null` for other capabilities and for drafts from before the check existed. |
 | `artifacts` | array | See below. Never empty without `artifacts_blocked`. |
 | `artifacts_blocked` | object \| null | Present when no artifact address could be built. Observed `null` in both captures. |
-| `failure` | object \| null | Present when `status` is `failed`. Observed: `{"error_code": "JOB_FAILED"}`. |
+| `failure` | object \| null | Present when `status` is `failed`: `error_code` `INPUT_TOO_LONG` (with `input_tokens`, `limit_tokens`, `fits_levels`), `DRAFT_UNFINISHED` or `JOB_FAILED`. See [Failure representation](#failure-representation). |
 
 Each `artifacts[]` entry:
 
@@ -2176,7 +2181,12 @@ Note the shape of terminal failure: `ok` is still `true` — the *call* succeede
 
 ### Failure representation
 
-`failure` is an object with at least `error_code`. The only value observed is `JOB_FAILED`. Whether other codes or additional fields (message, stage, cause) appear in this block is **UNRESOLVED** — one failed job is not a vocabulary.
+`failure` is an object with `error_code`. Two fixed causes have their own code: `INPUT_TOO_LONG` — a compare whose two documents together are longer than the level reads at once, failed before any model was called; it also carries `input_tokens` (their length), `limit_tokens` (the most this level reads) and `fits_levels` (other levels known to hold them; empty when none is known) — and `DRAFT_UNFINISHED` — a draft that stopped mid-sentence, not delivered; submit again. Every other failure is `JOB_FAILED`, with no further field: its reason is not available through this interface.
+
+```json
+"failure": {"error_code": "INPUT_TOO_LONG", "input_tokens": 119304, "limit_tokens": 49536, "fits_levels": []}
+"failure": {"error_code": "DRAFT_UNFINISHED"}
+```
 
 ### Retry / poll hints
 
