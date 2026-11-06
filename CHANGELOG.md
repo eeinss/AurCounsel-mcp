@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-07 — 查核中 after drafting; simplified contract-type names
+
+#### Changed
+
+- Once a draft is written, `progress.text` shows 查核中:核對法條引用與標記 while its citations are checked and the files are assembled (`progress.fraction` at least 0.90), instead of staying on the last clause written.
+- A `contract_type` written in Simplified Chinese (for example 最高限额抵押权设定合同, 住宅租赁合同, 人事保证合同) is drafted with the same minimum-content guidance as its Traditional form. A Traditional `contract_type` is handled exactly as before.
+
 ### 2026-11-06 — drafting and comparing report progress while they run
 
 #### Changed
