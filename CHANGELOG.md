@@ -6,6 +6,17 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-07 — 保證, 短期補習班補習服務, 美容服務, 婚紗攝影服務 and 中古汽車買賣 added to the Draft contract types
+
+#### Added
+
+- 保證 (`suretyship`): a guarantee of a credit or trade debt by a person (保證契約, 連帶保證, 保證書), representing the creditor. A personnel guarantee stays 人事保證; a performance bond, a deposit and a warranty are not this type.
+- 短期補習班補習服務 (`cram_school`): a short-term cram school's tutoring contract with a student, representing the school.
+- 美容服務 (`beauty`): a beauty or body-care service contract with a consumer, including continuing courses and the products sold with them, representing the business. Medical aesthetics, clinics, medical treatment and slimming services are not this type.
+- 婚紗攝影服務 (`wedding_photo`): a wedding photography service contract with a consumer, representing the studio.
+- 中古汽車買賣 (`used_car`): the sale of a used car by a dealer to a buyer, representing the dealer; a motorcycle is not this type.
+- Every Draft level drafts these with minimum-content guidance. 加盟合同 is now recognised as 加盟.
+
 ### 2026-11-07 — 查核中 after drafting; simplified contract-type names
 
 #### Changed
