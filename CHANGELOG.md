@@ -6,6 +6,19 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-06 — 商品(服務)禮券, 網路交易購物條款 and 人事保證 added to the Draft contract types; 條款-titled drafts delivered whole
+
+#### Added
+
+- 商品(服務)禮券 (`gift_voucher`): the terms of use of a voucher or stored-value card a business sells for value (paper, magnetic or chip card, or electronic), representing the issuer. Electronic tickets, electronic-payment stored value, membership points, discount coupons and free gift coupons are not this type.
+- 網路交易購物條款 (`online_sale`): the shopping terms of a business's own website, app or online shop selling goods to consumers by distance contract, representing the business. A 買賣 contract named with the online channel (網路, 網購, 電商, 線上, 通訊交易, 官網) is drafted as this type. A platform's shop-opening, listing or onboarding terms with merchants and subscription or digital-content terms are not this type.
+- 人事保證 (`personnel_guarantee`): a personnel guarantee under the Civil Code, where a guarantor answers to the employer for the employee's damages from their duties, representing the employer. A guarantee of an ordinary debt, a deposit and a promissory note are not this type; a contract type that also names another type (for example 僱傭契約及人事保證) is drafted without type guidance.
+- Every Draft level drafts these with minimum-content guidance.
+
+#### Fixed
+
+- A draft whose title ends in 條款 (terms of use, shopping terms), or whose closing notes or chapter headings mention 契約, could fail as empty or be delivered without its first chapters. The contract now starts at its own title.
+
 ### 2026-11-06 — 住宅租賃 added to the Draft contract types; building sales no longer use the movable-sale guidance
 
 #### Added
