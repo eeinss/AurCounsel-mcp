@@ -6,7 +6,7 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
-### 2026-11-07 — 保證, 短期補習班補習服務, 美容服務, 婚紗攝影服務 and 中古汽車買賣 added to the Draft contract types
+### 2026-11-06 — 保證, 短期補習班補習服務, 美容服務, 婚紗攝影服務 and 中古汽車買賣 added to the Draft contract types
 
 #### Added
 
@@ -17,7 +17,7 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 - 中古汽車買賣 (`used_car`): the sale of a used car by a dealer to a buyer, representing the dealer; a motorcycle is not this type.
 - Every Draft level drafts these with minimum-content guidance. 加盟合同 is now recognised as 加盟.
 
-### 2026-11-07 — 查核中 after drafting; simplified contract-type names
+### 2026-11-06 — 查核中 after drafting; simplified contract-type names
 
 #### Changed
 
