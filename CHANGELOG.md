@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-06 — 不動產最高限額抵押權設定 added to the Draft contract types
+
+#### Added
+
+- 不動產最高限額抵押權設定 (`max_mortgage`): a contract creating a maximum-amount mortgage (最高限額抵押權) over real property, the mortgagor being the debtor or a third party, representing the mortgagee. Every Draft level drafts it with minimum-content guidance. An ordinary mortgage (抵押權設定 without 最高限額), a chattel mortgage or other chattel security, a pledge (質權) and the underlying credit agreement are not this type.
+
 ### 2026-11-05 — two failure codes
 
 #### Added
