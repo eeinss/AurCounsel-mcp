@@ -289,7 +289,7 @@ A document over the length limit ends at `refused` (1.0).
 | `stage` | event `step` | 中文 (`text`) | `fraction` | event `detail` |
 |---|---|---|---|---|
 | `retrieving` | `retrieving` | 檢索同類型範本與相關條款 | 0.10 | |
-| `drafting` | `drafting` | 起草合約 | 0.30 | 共約 N 條, or the part being drafted, when the drafting step reports one |
+| `drafting` | `drafting` | 起草合約 | 0.30 → 0.90 | while the draft is written (about every 5 s): 思考中…(已 2 分 10 秒) before the text starts, then 撰寫中:已寫到第 N 條 (a document: 撰寫中:已寫 N 字) |
 | `drafting` | `assembling` | 彙整並組裝草稿 | 0.85 | |
 | `done` | `done` | 已完成 / 未完成 | 1.0 | |
 
@@ -308,11 +308,20 @@ A document over the length limit ends at `refused` (1.0).
 | `stage` | event `step` | 中文 (`text`) | `fraction` | event `detail` |
 |---|---|---|---|---|
 | `parsing` | `parsing` | 解析兩份文件 | 0.05 | |
-| `analyzing` | `analyzing` | 比較兩份合約全文 | 0.20 | |
+| `analyzing` | `analyzing` | 比較兩份合約全文 | 0.20 → 0.80 | while the comparison is written (about every 5 s): 思考中…(已 N 秒), then 撰寫比較結果:已寫 N 字 |
 | `generating` | `generating` | 產生比對文件 | 0.85 | |
 | `done` | `done` | 已完成 / 未完成 | 1.0 | |
 
-`fraction` is a position, not a time estimate (a long step keeps one value for minutes), and it does not decrease. Treat `stage` as a display value, not something to branch on; branch on `status`.
+`fraction` is a position, not a time estimate, and it does not decrease. During drafting and comparing it rises with the text written so far — a rough scale; it can stay near 0.8–0.9 while the finished draft is checked and assembled.
+
+A `medium` draft usually takes about 5–11 minutes; the drafting step reports progress the whole time. Example, a `medium` personnel-guarantee contract (2026-11-06, `progress.text` every 20 s):
+
+```text
+20 s 起草合約　思考中…(已 15 秒) · 200 s 起草合約　思考中…(已 3 分 16 秒) · 221 s 起草合約　撰寫中:已寫到第 1 條
+301 s 起草合約　撰寫中:已寫到第 12 條 · 341 s 起草合約　撰寫中:已寫到第 15 條 · 441 s 已完成
+```
+
+Treat `stage` as a display value, not something to branch on; branch on `status`.
 
 ### Following a job's steps (`after_seq`, all capabilities)
 

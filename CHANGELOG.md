@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-06 — drafting and comparing report progress while they run
+
+#### Changed
+
+- `draft_contract` and `compare_contracts` jobs no longer hold one `progress` value while the text is written. `progress.text` and the job's events show 思考中…(已 N 分 N 秒) before the text starts, then 撰寫中:已寫到第 N 條 (a document: 撰寫中:已寫 N 字; a comparison: 撰寫比較結果:已寫 N 字), updated about every 5 seconds; `progress.fraction` rises from 0.30 to at most 0.90 (comparing: 0.20 to 0.80) and never decreases. A `medium` draft usually takes about 5–11 minutes. The prompts, outputs and charges are unchanged.
+
 ### 2026-11-06 — 加盟 and 個人資料蒐集同意書 added to the Draft contract types; mortgage and consent forms with a described business
 
 #### Added
