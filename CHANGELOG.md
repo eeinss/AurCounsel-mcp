@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-06 — 住宅租賃 added to the Draft contract types; building sales no longer use the movable-sale guidance
+
+#### Added
+
+- 住宅租賃 (`residential_lease`): a residential lease between landlord and tenant for living in, 30 days or longer, representing the landlord. Every Draft level drafts it with minimum-content guidance. A master lease (包租), sublease (轉租), property management (代管), a shop, office, factory or warehouse lease, a short stay, land or a parking space let on its own, and a lease of movables are not this type.
+
+#### Changed
+
+- A sale whose contract type names an existing building — 成屋, 透天, 公寓, 大樓 or 住宅 (for example 成屋買賣契約, 透天厝買賣契約) — is no longer drafted with the 動產買賣(採購 / 供貨) guidance; it is drafted without type guidance, as 不動產 / 房屋 / 房地 sales already were. A contract type that only mentions 住宅 alongside a movable (for example 住宅設備買賣) is drafted the same way.
+
 ### 2026-11-06 — 不動產最高限額抵押權設定 added to the Draft contract types
 
 #### Added
