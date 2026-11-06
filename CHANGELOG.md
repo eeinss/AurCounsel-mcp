@@ -6,6 +6,18 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-06 — 加盟 and 個人資料蒐集同意書 added to the Draft contract types; mortgage and consent forms with a described business
+
+#### Added
+
+- 加盟 (`franchise`): a franchise agreement — the franchisor licenses its trademark or know-how and assists the franchisee's business for a fee, including a letter of intent stage — representing the franchisor. It is recognised by its contract wording (加盟契約, 加盟合約, 加盟協議, 加盟意向書, 加盟授權, 特許經營), not by 加盟 alone, so another contract that mentions a franchised shop keeps its own type. A distribution, a sales agency and a shop lease on its own are not this type.
+- 個人資料蒐集同意書 (`pd_consent`): a notice and consent form for collecting, processing and using personal data from members, customers or students, representing the collector. Employee data, a public authority and outsourced processing between businesses are not this type.
+- Every Draft level drafts these with minimum-content guidance.
+
+#### Changed
+
+- 不動產最高限額抵押權設定 and 個人資料蒐集同意書 are recognised by the main title: a contract type such as 最高限額抵押權設定契約(擔保借款) or 會員個人資料告知暨同意書(電商), whose parentheses describe the secured debt or the business served, is drafted as that type. Before, such a description could leave the contract without type guidance or give it the guidance of the type the parentheses named.
+
 ### 2026-11-06 — 商品(服務)禮券, 網路交易購物條款 and 人事保證 added to the Draft contract types; 條款-titled drafts delivered whole
 
 #### Added
