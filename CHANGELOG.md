@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-07 — 會計師委任 recognised by the engagement, not by 會計師 alone
+
+#### Fixed
+
+- A `contract_type` that only mentions 會計師 — for example an equipment lease to an accounting firm — is no longer drafted with the 會計師委任 guidance. 會計師委任 needs a word of the engagement as well (委任, 簽證, 查核, 核閱, 審計, 稅務, 記帳, 財務報告, 顧問, 專業服務 …); 會計師委任契約 and similar names are drafted as before.
+
 ### 2026-11-07 — nine consumer contract types added to the Draft contract types
 
 #### Added
