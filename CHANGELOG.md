@@ -6,6 +6,21 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-07 — eight consumer contract types added to the Draft contract types
+
+#### Added
+
+Every Draft level drafts these with minimum-content guidance, each for the business:
+
+- 殯葬服務 (`funeral`): a funeral service contract for a death that has occurred (治喪, 殯葬禮儀). A pre-need contract is 生前殯葬服務; a columbarium niche is not this type.
+- 生前殯葬服務 (`preneed_funeral`): a pre-need funeral contract (生前契約).
+- 長照住宿機構 (`ltc_residential`): a residence contract with a residential long-term-care institution. Home-based, community-based and day care, nursing homes and senior housing are not this type; software for long-term care stays 醫療軟體開發.
+- 兒童課後照顧 (`after_school`): an after-school care contract (課後照顧, 安親班).
+- 訂席・外燴(辦桌) (`banquet`): a restaurant booking or catering contract for a banquet (訂席, 外燴, 辦桌, 婚宴). A wedding photography package stays 婚紗攝影服務; a venue rental is not this type.
+- 停車場租用 (`parking`): the use of a parking lot, by the hour or monthly. The sale of a parking space, land leases and parking-lot management are not this type.
+- 機車租賃 (`scooter_rental`): a motorcycle or scooter rental contract, short or long term. A motorcycle sale, instalments and repairs are not this type.
+- 搬家貨運 (`moving`): a moving contract, including its quotation.
+
 ### 2026-11-07 — 會計師委任 recognised by the engagement, not by 會計師 alone
 
 #### Fixed
