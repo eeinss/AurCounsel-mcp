@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-07 — 預售屋買賣 added to the Draft contract types
+
+#### Added
+
+- 預售屋買賣 (`presale`): the sale of a pre-sale house (預售屋, including a pre-sale townhouse or apartment and the parking space and loan terms that come with it), representing the seller (the developer). A `contract_type` such as 預售屋買賣契約 or 預售透天住宅買賣契約 is drafted with this type's minimum-content guidance at every Draft level. A separate parking-space sale, a completed house (成屋), a consignment or brokerage listing are not this type.
+
 ### 2026-11-06 — 保證, 短期補習班補習服務, 美容服務, 婚紗攝影服務 and 中古汽車買賣 added to the Draft contract types
 
 #### Added
