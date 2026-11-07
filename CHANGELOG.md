@@ -6,6 +6,26 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-07 — nine consumer contract types added to the Draft contract types
+
+#### Added
+
+Every Draft level drafts these with minimum-content guidance, each for the business:
+
+- 健身中心會員 (`gym`): a gym membership contract. A personal-trainer course is 健身教練服務, not this type.
+- 健身教練服務 (`fitness_trainer`): a fitness-trainer course contract (健身教練, 私人教練, 教練課程), including one held in a gym. A driving course is not this type.
+- 瘦身美容 (`slimming`): a slimming or body-shaping service contract (瘦身, 減重, 體態雕塑), including products sold with it; medical aesthetics are not this type.
+- 汽車買賣 (`new_car`): the sale of a new car by a dealer, cash or in instalments. A used car stays 中古汽車買賣; a motorcycle is not this type.
+- 汽車維修 (`car_repair`): a car repair or servicing contract (維修, 保養, 鈑金, 烤漆); a motorcycle is not this type.
+- 小客車租賃 (`car_rental`): a car rental contract, short or long term; a finance lease, a coach and a motorcycle are not this type.
+- 洗衣 (`laundry`): the terms of a laundry receipt or a laundry service. A laundromat franchise stays 加盟.
+- 犬貓美容服務 (`pet_grooming`): a dog or cat grooming contract, including a grooming and boarding package.
+- 產後護理及坐月子 (`postpartum_care`): a postpartum care centre's residence and care contract.
+
+#### Changed
+
+- 美容服務 no longer takes a contract type that names 瘦身美容 or 犬貓美容; those are drafted as 瘦身美容 and 犬貓美容服務.
+
 ### 2026-11-07 — 預售屋買賣 added to the Draft contract types
 
 #### Added
