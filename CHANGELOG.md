@@ -6,6 +6,54 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-08 — 39 contract types added to the Draft contract types
+
+#### Added
+
+Every Draft level drafts these with minimum-content guidance, each for the business. They are the standard-form contracts with an official notice of mandatory and prohibited terms:
+
+- 個別旅客訂房契約 (`hotel_booking`)
+- 國外個別旅遊契約 (`fit_overseas`)
+- 國內個別旅遊契約 (`fit_domestic`)
+- 簡易型一日遊國內旅遊契約 (`day_tour`)
+- 郵輪國外旅遊契約 (`cruise_tour`)
+- 海外旅遊學習契約 (`study_tour`)
+- 藝文表演票券契約 (`perf_ticket`)
+- 藝文展覽票券契約 (`exhibit_ticket`)
+- 運動賽事票券契約 (`sports_ticket`)
+- 觀光遊樂業遊樂服務契約 (`amusement_park`)
+- 代客駕車服務契約 (`valet_driving`)
+- 一般護理之家入住契約 (`general_nursing_home`)
+- 以通訊交易方式訂定之食品或餐飲服務契約 (`food_mail_order`)
+- 零售業販售福袋契約 (`lucky_bag`)
+- 網路連線遊戲服務契約 (`online_game`)
+- 線上遊戲點數(卡)契約 (`game_points`)
+- 即時通訊軟體服務契約 (`im_service`)
+- 第三方支付服務契約 (`third_party_payment`)
+- 信用卡契約 (`credit_card`)
+- 金融卡約定條款 (`debit_card`)
+- 個人網路銀行業務服務契約 (`online_banking`)
+- 保管箱出租契約 (`safe_deposit`)
+- 消費性無擔保貸款契約 (`unsecured_loan`)
+- 個人購屋貸款契約 (`home_loan`)
+- 個人購車貸款契約 (`car_loan`)
+- 電子支付機構業務契約 (`e_payment`)
+- 自用汽車保險契約 (`auto_insurance`)
+- 家用天然氣供氣契約 (`natural_gas`)
+- 家用液化石油氣供氣契約 (`lpg_supply`)
+- 有線廣播電視服務契約 (`cable_tv`)
+- 國內線航空乘客運送契約 (`domestic_flight`)
+- 鐵路旅客運送契約 (`rail_passenger`)
+- 公路汽車客運業旅客運送契約 (`intercity_bus`)
+- 市區汽車客運業旅客運送契約 (`city_bus`)
+- 國內固定航線載客船舶乘客運送契約 (`ferry`)
+- 郵輪船票服務契約 (`cruise_ticket`)
+- 自由氣球乘客載運契約 (`hot_air_balloon`)
+- 公路(市區)汽車客運業無記名票證契約 (`bus_stored_ticket`)
+- 汽車駕駛訓練契約 (`driving_school`)
+
+Notes on routing: payment, banking and car-insurance types are chosen by the main title only, so a contract that mentions a credit card or insurance in its parentheses keeps its own type. A ticket naming more than one kind of event, a contract naming both third-party payment and electronic payment, compulsory motor liability insurance, international flights, metro rail and yachts take no contract-type guidance. 汽車駕駛訓練 (`driving_school`) now has guidance; motorcycle driving lessons do not.
+
 ### 2026-11-08 — nine contract types added to the Draft contract types
 
 #### Added
