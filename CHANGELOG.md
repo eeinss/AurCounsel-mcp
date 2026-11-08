@@ -6,6 +6,16 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-08 — 國外個別旅遊 guidance updated; complete drafts no longer reported as unfinished
+
+#### Changed
+
+- 國外個別旅遊 (`fit_overseas`): the minimum-content guidance now states that the announced cancellation compensation is the cap on what the traveller pays; the draft no longer lets the travel agency claim actual losses above it.
+
+#### Fixed
+
+- A complete draft whose last line is a signature-field label, a closing such as 謹訂, a fill-in row, a ※ note, a checkbox line or a signer label (for example 業者: or 本公司:) is no longer reported as unfinished. A draft that really stops mid-sentence is still reported as unfinished.
+
 ### 2026-11-08 — 39 contract types added to the Draft contract types
 
 #### Added
