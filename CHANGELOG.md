@@ -6,6 +6,15 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-08 — two contract types added to the Draft contract types
+
+#### Added
+
+Every Draft level drafts these with minimum-content guidance:
+
+- 托嬰中心收托 (`infant_care`): an infant-care centre's childcare contract, for the centre. Home-based childcare, nannies and kindergartens are not this type.
+- 商業用不動產租賃 (`commercial_lease`): a lease of a shop, office, factory, warehouse or shopping-mall floor, for the lessor. Residential leases stay 住宅租賃; master leases, subleases, property management, land, equipment and short venue rentals are not this type.
+
 ### 2026-11-07 — eight consumer contract types added to the Draft contract types
 
 #### Added
