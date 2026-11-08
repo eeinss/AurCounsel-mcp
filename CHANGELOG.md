@@ -6,6 +6,27 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-08 — ten contract types added to the Draft contract types
+
+#### Added
+
+Every Draft level drafts these with minimum-content guidance, each for the business:
+
+- 成屋買賣 (`home_sale`): the sale of a completed home, land and building included. A pre-sale home stays 預售屋買賣.
+- 住宅轉租(包租) (`res_sublease`): a master lessor's sublease of a home. A commercial sublease is not this type.
+- 租賃住宅委託管理(代管) (`rental_mgmt`): a landlord's contract with a rental-housing manager. Building management and property-sale mandates are not this type.
+- 預售停車位買賣 (`presale_parking`): the separate sale of a pre-sale parking space, including one in a pre-sale building.
+- 社區式長期照顧服務 (`ltc_community`): community-based long-term care — day care, small multi-function services, group homes.
+- 居家式長期照顧服務 (`ltc_home`): home-based long-term care. Home childcare and the employment of a foreign caregiver are not this type.
+- 安養 (`elder_residence`): a residence contract with a senior-housing institution (安養).
+- 養護(長期照護) (`nursing_care`): a residence contract with an elderly nursing-care institution (養護, 長期照護). A nursing home (護理之家) is not this type.
+- 國外旅遊 (`tour_overseas`): an overseas group tour. Individual travel, free travel, cruises and study tours are not this type.
+- 國內旅遊 (`tour_domestic`): a domestic group tour. Individual travel and one-day tours are not this type.
+
+#### Changed
+
+- A 房屋租賃 contract type that names a shop, office, factory, warehouse or mall — for example 房屋租賃契約(店面) — is drafted as 商業用不動產租賃; a plain 房屋租賃契約 stays 住宅租賃.
+
 ### 2026-11-08 — two contract types added to the Draft contract types
 
 #### Added
