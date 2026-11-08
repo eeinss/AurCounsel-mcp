@@ -6,6 +6,22 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-08 — nine contract types added to the Draft contract types
+
+#### Added
+
+Every Draft level drafts these with minimum-content guidance, each for the business:
+
+- 海外留學 (`study_abroad`): an overseas study-abroad service contract. Study tours (遊學) are not this type.
+- 移民服務 (`immigration_service`): an immigration-agency service contract (investment, skilled, family, start-up or retirement immigration). Visa-only errands are not this type.
+- 交友媒合 (`dating_service`): a dating or matchmaking service contract. Cross-border marriage brokerage is not this type.
+- 網際網路教學 (`online_tutoring`): an online teaching service contract.
+- 臍帶血保存 (`cord_blood`): a cord-blood storage service contract.
+- 電器買賣 (`appliance_sale`): the sale of household appliances, installation and warranty included. Appliance rental is not this type.
+- 遊覽車租賃 (`coach_rental`): the charter of a coach with driver, including shuttle charters for events.
+- 自行車租賃 (`bicycle_rental`): a bicycle rental contract. Public bike-share membership terms are not this type.
+- 骨灰(骸)存放單位使用權買賣 (`columbarium`): the sale of the right to use a columbarium niche. Brokered (consignment) sales are not this type.
+
 ### 2026-11-08 — ten contract types added to the Draft contract types
 
 #### Added
