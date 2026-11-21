@@ -6,6 +6,17 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-21 — reviews complete sooner; `get_job` `supplement`
+
+#### Added
+
+- `get_job` `supplement` on a completed review: `pending` (a supplemental check is still running; the `memo` and `review_comments` downloaded now do not have its findings yet), `attached` (they include them — download again if fetched while `pending`), `none` (nothing to add), `failed` (the check did not finish; the delivered review stands). Null for other jobs, while a review runs, and for earlier reviews. Clients that do not read it are unaffected.
+
+#### Changed
+
+- A review is `completed` as soon as its main review is delivered; the supplemental check runs after it and adds its findings to the same `memo` and `review_comments`. The revised contract does not change.
+- A `high` / `large` review's `cost` is settled once `supplement` is no longer `pending` (`cost_status` `not_final` until then); the amount covers the whole review as before.
+
 ### 2026-11-08 — 國外個別旅遊 guidance updated; complete drafts no longer reported as unfinished
 
 #### Changed

@@ -88,6 +88,7 @@ review_contract
 - **Deliverables:** `review_comments` (the review opinion), `findings` (its important issues as JSON items), `revised_docx`, `redline`, `original`, `revised`, `memo`.
 - **`revised_docx` is always a tracked-changes document.** It is the uploaded contract with this review's changes as tracked changes by the author **AurCounsel** (dated when the review ran), so each can be accepted or rejected in Word: accepting every change gives the revised contract this review proposes; rejecting only AurCounsel's gives back the upload as it was. Tracked changes already in the upload are kept, with their author and date; text the other side inserted and this review deletes is shown as AurCounsel's deletion inside their insertion, as Word shows it. A paragraph this review does not change is left exactly as uploaded, and a review that changes nothing returns the upload itself. `revised` (the HTML view) shows the revised contract with every change accepted, and `original` shows the upload with its own tracked changes accepted — the text the review read.
 - **Scanned PDFs.** A scanned PDF, or a PDF with some scanned pages, is accepted: the pages without a text layer are read from their images, in the contract's own script (a simplified-Chinese contract stays simplified), the other pages as before; reading a scan adds roughly ten seconds to a minute. The review opinion of such a contract opens with 「本合約由掃描檔辨識,金額、日期、名稱請對照原件。」 — amounts, dates and names read from a scan should be checked against the original. A scan that cannot be read (or one over 200 scanned pages) is refused before a job is created, with `UPSTREAM_REJECTED` (`upstream_status: 400`).
+- **Supplemental findings (`get_job` `supplement`).** A completed review may still have a supplemental check running: `supplement` is `pending` while it runs (the `memo` and `review_comments` you download then do not have its findings yet), `attached` once they include them (download them again if you fetched them while it was `pending`), `none` when there is nothing to add, `failed` when the check did not finish (the delivered review stands as it is). Poll `get_job` until it is no longer `pending`. A `high` / `large` review's `cost` is final once `supplement` is no longer `pending`.
 - Completed deliverables are retrieved through the artifact interface.
 - A failed job must not expose partial/generated internal artifacts as completed deliverables.
 
@@ -1760,9 +1761,20 @@ Get the state of any job submitted through this server.
     (民事 / 刑事 / 行政 from that doc_id, else null): read_judgment by doc_id
     opens that same judgment.
 
+    supplement is present on a completed review: its supplemental findings, a
+    second check that may still run after the review is completed. pending —
+    still being checked, the memo and review comments you download now do not
+    have them yet; attached — the memo and review comments include them
+    (download them again if you fetched them while it was pending); none —
+    nothing to add; failed — the supplemental check did not finish and the
+    delivered review stands as it is. Poll get_job until it is no longer
+    pending to know. Null for other jobs, while a review is running, and for
+    reviews from before this field.
+
     cost / cost_status: cost is the amount the job is settled at,
     {amount_micros, currency, final}, present when cost_status is settled —
-    fixed when the job ends; a failed job, including one interrupted by a
+    fixed when the job ends (a review: once its supplement is no longer
+    pending, until then not_final); a failed job, including one interrupted by a
     service restart, is settled at 0. not_final: the job has not ended.
     unsupported: this capability / model has no settlement (currently
     draft_contract and fast_legal at levels high and large are settled;
