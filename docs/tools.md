@@ -85,7 +85,8 @@ review_contract
 - **`review_type` (optional).** For a contract of one of the types in `get_capabilities` `review.review_types` (104 types, each with its two parties: contract types such as 住宅租賃, 經銷, 買賣, 軟體開發委託, and the consumer standard-form contracts whose competent authority published 應記載及不得記載事項, such as 健身中心, 信用卡, 預售屋買賣, 國內團體旅遊 — read the list from `get_capabilities`; 保密協議 is a one-way non-disclosure agreement; 新車買賣 is the sale of a new car — another sale is 買賣) send `review_type`: the contract is then reviewed as that type, and `represented_party` must be one of its two parties in `review_types[].represented_parties` — there is no default party — or the call is refused (`INVALID_INPUT`, `context.field: "represented_party"`, `detail: "not_a_party_of_review_type"`, `accepted`). When the contract is one of these types — judged by its content, not only its title — send `review_type`, with one of that type's two parties as `represented_party`; when it is not, do not send `review_type`. A `review_type` outside that list is ignored and the contract is reviewed like any other.
 - Each refusal comes before the document is used: nothing is sent and no job is created. A review is never switched to another level.
 - **Cost:** a `high` or `large` review is charged by usage, as a `high` / `large` draft (`get_job` `cost`, `cost_status`); a review that does not complete costs nothing. `medium` is not charged.
-- **Deliverables:** `review_comments` (the review opinion), `findings` (its important issues as JSON items), `revised_docx`, `redline`, `original`, `revised`, `memo`.
+- **Deliverables:** `review_comments` (the review opinion), `findings` (its important issues as JSON items), `revised_docx`, `clean_docx`, `redline`, `original`, `revised`, `memo`.
+- **`redline`** is `revised_docx` shown as one continuous page with its tracked changes, as Word shows them: this review's changes and any already in the upload are styled apart, each with its author and date; Word's automatic clause numbers are shown and tables kept (headers and footers are not). **`original`** shows the upload; when it carries tracked changes they are shown the same way, and the page says the review read the text with them accepted. **`clean_docx`** is `revised_docx` with every tracked change accepted — the upload's and this review's — with no revision marks left; numbering, formatting, tables and comments are kept. A review completed before `clean_docx` existed lists it as not ready (`NOT_FOUND`, `detail: "review_has_no_clean_docx"`; accept all changes in `revised_docx` for the same text).
 - **`revised_docx` is always a tracked-changes document.** It is the uploaded contract with this review's changes as tracked changes by the author named in `revision_author` — **AurCounsel** when it is not sent — (dated when the review ran), so each can be accepted or rejected in Word: accepting every change gives the revised contract this review proposes; rejecting only that author's gives back the upload as it was. Tracked changes already in the upload are kept, with their author and date; text the other side inserted and this review deletes is shown as this review's deletion inside their insertion, as Word shows it. When this review changes text the other side inserted, the whole of their insertion is deleted and the new text is inserted next to it — never pieces of this review's text inside theirs — so if they reject their own insertion the paragraph still reads. A change never cuts an English word or a number in two (it replaces the whole word or number); Chinese text is still marked character by character. A clause number that Word generates (automatic numbering such as 1. / 1.1 / (a)) is not text: it is never typed into a paragraph or marked as a change, and a clause this review adds takes the document's own automatic numbering at the matching level. A paragraph this review does not change is left exactly as uploaded, and a review that changes nothing returns the upload itself. `revised` (the HTML view) shows the revised contract with every change accepted, and `original` shows the upload with its own tracked changes accepted — the text the review read. **`revision_author` (optional):** the author name of this review's tracked changes, e.g. the user's or the firm's name — leading and trailing spaces removed, 1 to 64 characters, no line break, tab or other control / invisible formatting character (otherwise `INVALID_INPUT`, `context.field: "revision_author"`, before a job is created). If it equals an author already in the upload, the two cannot be told apart by author in Word.
 - **Scanned PDFs.** A scanned PDF, or a PDF with some scanned pages, is accepted: the pages without a text layer are read from their images, in the contract's own script (a simplified-Chinese contract stays simplified), the other pages as before; reading a scan adds roughly ten seconds to a minute. The review opinion of such a contract opens with 「本合約由掃描檔辨識,金額、日期、名稱請對照原件。」 — amounts, dates and names read from a scan should be checked against the original. A scan that cannot be read (or one over 200 scanned pages) is refused before a job is created, with `UPSTREAM_REJECTED` (`upstream_status: 400`).
 - **Supplemental findings (`get_job` `supplement`).** A completed review may still have a supplemental check running: `supplement` is `pending` while it runs (the `memo` and `review_comments` you download then do not have its findings yet), `attached` once they include them (download them again if you fetched them while it was `pending`), `none` when there is nothing to add, `failed` when the check did not finish (the delivered review stands as it is). Poll `get_job` until it is no longer `pending`. A `high` / `large` review's `cost` is final once `supplement` is no longer `pending`.
@@ -2286,13 +2287,18 @@ Read one artifact of a finished job.
     Args:
         job_id: The handle returned when the job was submitted.
         artifact: A public artifact name for this job's capability.
-            A review offers redline (tracked-change view of the changes),
-            original (the uploaded contract, showing the text with its own
-            tracked changes accepted), revised, revised_docx (the revised
-            contract to deliver, always with tracked changes: any tracked
-            changes already in the upload are kept, and this review's changes
-            are tracked changes by AurCounsel — accept all in Word for the
-            revised contract), memo (the opinion document), review_comments (the review opinion
+            A review offers redline (revised_docx shown as one page with its
+            tracked changes: this review's and any already in the upload,
+            told apart and each with its author and date), original (the
+            uploaded contract; when it carries tracked changes they are shown,
+            and the review read its text with them accepted), revised,
+            revised_docx (the revised contract to deliver, always with tracked
+            changes: any tracked changes already in the upload are kept, and
+            this review's changes are tracked changes by revision_author or
+            AurCounsel), clean_docx (revised_docx with every tracked change
+            accepted, no revision marks; a review completed before it existed
+            lists it as not ready and asking answers NOT_FOUND, detail
+            review_has_no_clean_docx — final, do not retry), memo (the opinion document), review_comments (the review opinion
             the LegalOS UI shows the lawyer) and findings (the same opinion's
             important issues as a JSON list of items, each with the contract
             clauses, statutes and judgments it cites). A review without findings
@@ -2316,7 +2322,6 @@ Read one artifact of a finished job.
             A revision offers revised_docx (the revised contract to deliver)
             and redline_docx (the same revision as tracked changes). Both exist
             only for an applied revision — read revision.outcome from get_job.
-    
 ```
 
 ### Exact input schema (verbatim)

@@ -6,6 +6,17 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-22 — review `redline` as one page; `original` with the upload's tracked changes; `clean_docx`
+
+#### Added
+
+- Review artifact `clean_docx`: `revised_docx` with every tracked change accepted (the upload's and this review's), no revision marks; numbering, formatting, tables and comments kept. Reviews completed before it existed list it as not ready (`review_has_no_clean_docx`).
+
+#### Changed
+
+- `redline` is now `revised_docx` itself shown as one continuous page, as Word shows its tracked changes: this review's changes and the upload's own are styled apart, each with author and date; whole words are replaced as in the Word document; automatic clause numbers are shown.
+- `original` shows the upload's own tracked changes when it has any, with a note that the review read the text with them accepted. Without tracked changes it is as before.
+
 ### 2026-11-22 — `revised_docx`: Word automatic numbering
 
 #### Fixed

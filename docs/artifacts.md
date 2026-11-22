@@ -33,7 +33,7 @@ Clients should not expose them as final results.
 The accepted vocabulary is not inferred: it is returned verbatim by the live server in `context.accepted` when `get_artifact` is called with an unrecognised artifact name. Which names are valid for a given job depends on that job's `capability`:
 
 ```text
-review:   redline, original, revised, revised_docx, memo, review_comments
+review:   redline, original, revised, revised_docx, clean_docx, memo, review_comments
 draft:    draft_html, draft_docx, draft_summary
 compare:  compare_redline, compare_memo, compare_synthesis
 revise:   revised_docx, redline_docx   (revision jobs submitted before revise_contract was withdrawn)
@@ -46,10 +46,11 @@ The `media_type` and `inline_text_available` columns below are verbatim from the
 
 | Artifact | Produced by | Meaning (from the live description) | Media type | Inline text |
 |---|---|---|---|---|
-| `redline` | review | Tracked-change view of the changes | `text/html` | yes |
+| `redline` | review | `revised_docx` as one page with its tracked changes (this review's and the upload's own, each with author and date) | `text/html` | yes |
 | `original` | review | The submitted contract | `text/html` | yes |
 | `revised` | review | The revised contract | `text/html` | yes |
 | `revised_docx` | review, revise | The revised contract to deliver | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | **no** |
+| `clean_docx` | review | `revised_docx` with every tracked change accepted (no revision marks) | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | **no** |
 | `memo` | review | The opinion document | `text/html` | yes |
 | `review_comments` | review | The review opinion the UI shows the lawyer | `text/markdown` | yes |
 | `redline_docx` | revise | The revised contract carrying the changes as Word revision marks | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | **no** |
