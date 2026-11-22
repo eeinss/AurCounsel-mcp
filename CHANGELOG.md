@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-22 — `revised_docx`: changes inside the other side's insertions
+
+#### Changed
+
+- When a review changes text the other side inserted (their tracked insertion), the whole insertion is deleted and the new text inserted next to it, instead of pieces interleaved inside it: if they reject their own insertion, the paragraph still reads.
+- A change never cuts an English word or a number in two; it replaces the whole word or number. Chinese text is still marked character by character.
+
 ### 2026-11-22 — `review_contract` `revision_author`
 
 #### Added
