@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-22 — `revised_docx`: Word automatic numbering
+
+#### Fixed
+
+- In a contract numbered by Word's automatic numbering (1. / 1.1 / (a)), `revised_docx` no longer types the clause number in front of the text (which showed as 「1.1 1.1 …」) or marks it as a change; a clause with no other change has no tracked change. A clause the review adds takes the document's automatic numbering at the matching level; if the document has no numbering of that form, the clause is added as written.
+
 ### 2026-11-22 — `revise_contract` default author
 
 #### Changed
