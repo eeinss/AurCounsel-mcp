@@ -6,6 +6,12 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-22 — `revise_contract` default author
+
+#### Changed
+
+- `revise_contract` without `revision_author`: the tracked changes in `redline_docx` are authored **AurCounsel**, as `review_contract`'s `revised_docx`.
+
 ### 2026-11-22 — `revised_docx`: changes inside the other side's insertions
 
 #### Changed

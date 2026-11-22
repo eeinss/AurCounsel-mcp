@@ -822,7 +822,7 @@ Apply a requested change to one contract and produce the revised document.
             tracked changes in redline_docx, under the same rules as
             review_contract's revision_author (1 to 64 characters, no control
             or invisible formatting character; otherwise INVALID_INPUT).
-            Omitted, the service's own author name is used.
+            Omitted, the author is AurCounsel, as for review_contract.
 ```
 
 ### Exact input schema (verbatim)
