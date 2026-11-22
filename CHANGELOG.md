@@ -6,6 +6,13 @@ The format is inspired by Keep a Changelog. Version numbers in this repository d
 
 ## [0.1.0] - Unreleased
 
+### 2026-11-22 — `review_contract` `revision_author`
+
+#### Added
+
+- `review_contract` `revision_author` (optional): the author name of this review's tracked changes in `revised_docx` (for example the user's or the firm's name). Leading and trailing spaces are removed; 1 to 64 characters, no line break, tab or other control / invisible formatting character, otherwise `INVALID_INPUT` (`context.field: "revision_author"`) before a job is created. Not sent: the author is **AurCounsel**, as before. The upload's own tracked changes keep their author and date; a name equal to one of their authors cannot be told apart from it by author.
+- `revise_contract` takes the same `revision_author` for `redline_docx`.
+
 ### 2026-11-21 — reviews complete sooner; `get_job` `supplement`
 
 #### Added
